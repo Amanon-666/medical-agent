@@ -116,13 +116,7 @@
 
 ## 部署复现
 
-在线服务已部署完成，可直接验证。新环境复现时按以下顺序执行：
-
-1. 准备 DataMate、Nexent、Python 3.10+、Docker / Docker Compose、SQLite。
-2. 根据 `.env.example` 或 `config.example.yaml` 填写目标环境参数。
-3. 运行 `deploy/00_check_prereqs.sh` 检查基础环境。
-4. 运行 `deploy/run_all.sh` 执行算子部署、数据库构建、MCP 启动、Agent 注册和可视化平台启动。
-5. 运行 `deploy/08_verify.sh` 检查服务健康状态。
+在线服务已部署完成，可直接验证。新环境复现请参阅 **[`DEPLOY.md`](DEPLOY.md)**（部署总指南，含 9 步清单、配置填写、文件索引和回滚方式）。
 
 ## 数据资产
 
