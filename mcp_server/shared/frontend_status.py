@@ -84,11 +84,7 @@ def get_validation_frontend_status_payload() -> dict:
                 "label": service["label"],
                 "purpose": service["purpose"],
                 "public_url": _public_url(service),
-                "local_url": probe["local_url"],
-                "port": service["port"],
                 "status": "running" if probe["reachable"] else "stopped",
-                "http_status": probe["http_status"],
-                "error": probe["error"],
                 "start_command": service["start_command"],
             }
         )
