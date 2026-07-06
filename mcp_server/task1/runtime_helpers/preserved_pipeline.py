@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Dict, List
 
+import os
+
 import requests
 
 from .datamate_ops import build_files, register_benchmark, register_dataset, run_sudo
@@ -18,8 +20,8 @@ from .governance import register_governance
 from .local_cleaning import CleanStats, clean_json, clean_jsonl
 
 
-DM_BASE = "http://localhost:18000"
-DATASET_VOLUME = "/home/share/docker-data/volumes/datamate-dataset-volume/_data"
+DM_BASE = os.environ["CCF_DATAMATE_BASE"]
+DATASET_VOLUME = os.environ["CCF_DATASET_VOLUME"]
 
 
 def op(op_id: str) -> Dict:

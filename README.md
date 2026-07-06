@@ -20,7 +20,7 @@
 1. 打开 `https://demo.mashiro.xin/`，确认页面标题为“医学数据智能体可视化平台”，页面可加载数据来源、统计指标、关系子图、图表、证据表和噪声拦截记录。
 2. 打开 `https://nexent.mashiro.xin/`，使用演示账号登录，选择任务一、任务二或任务三智能体进行对话。
 3. 打开 `https://datamate.mashiro.xin/`，使用演示账号登录，在数据管理中查看糖尿病混合格式数据集及其任务一清洗结果。
-4. 如需 Notebook 演示，双击 `demo/start_notebook_demo.bat`。Notebook 默认连接已部署服务并使用演示账号，不要求手工输入密码。
+4. 如需 Notebook 演示，双击 `demo/start_notebook_demo.bat`。Notebook 默认连接已部署服务并使用演示账号。
 
 可直接输入 Nexent 的示例指令：
 
@@ -38,18 +38,18 @@
 
 ## 目录结构
 
-| 目录 | 作用 | 对应任务 |
+| 目录 | 作用 | 详细说明 |
 | --- | --- | --- |
-| `clients/` | DataMate 与 Nexent HTTP 客户端封装。 | 部署、Agent 发布、Notebook 演示 |
-| `core/` | 医学实体识别、关系抽取、三元组生成、疾病查询、NL2SQL 等领域能力。 | 任务二、任务三 |
-| `operators/` | 注册到 DataMate 的自定义算子，包括医学术语标准化、结构化字段清洗、语义噪声过滤等。 | 任务一，部分能力供任务二复用 |
-| `mcp_server/` | 暴露给 Nexent 的 MCP 工具服务，负责任务一、二、三的工具入口和流程编排。 | 任务一、任务二、任务三 |
-| `kg/` | 知识图谱库与分析库的构建脚本。 | 任务二、任务三 |
-| `demo/` | Notebook 演示和医学数据智能体可视化平台。 | 全流程演示、任务三 |
-| `data/` | 糖尿病混合格式数据、任务二知识图谱库、任务三分析库。 | 数据资产 |
-| `deploy/` | 环境检查、算子部署、数据库构建、MCP 启动、Agent 发布、可视化平台启动和健康检查。 | 复现部署 |
-| `docs/` | 架构、任务实现、部署、配置、演示和数据资产说明。 | 工程说明 |
-| `scripts/` | 部署流程调用的平台注册脚本，不作为交互演示入口。 | 部署辅助 |
+| `clients/` | DataMate 与 Nexent HTTP 客户端封装。 | [`clients/README.md`](clients/README.md) |
+| `core/` | 医学实体识别、关系抽取、三元组生成、疾病查询、NL2SQL 等领域能力。 | [`core/README.md`](core/README.md) |
+| `operators/` | 注册到 DataMate 的自定义算子，包括医学术语标准化、结构化字段清洗、语义噪声过滤等。 | [`operators/README.md`](operators/README.md) |
+| `mcp_server/` | 暴露给 Nexent 的 MCP 工具服务，负责任务一、二、三的工具入口和流程编排。 | [`mcp_server/README.md`](mcp_server/README.md) |
+| `kg/` | 知识图谱库与分析库的构建脚本。 | [`kg/README.md`](kg/README.md) |
+| `demo/` | Notebook 演示和医学数据智能体可视化平台。 | [`demo/README.md`](demo/README.md) |
+| `data/` | 糖尿病混合格式数据、任务二知识图谱库、任务三分析库。 | [`data/README.md`](data/README.md) |
+| `deploy/` | 环境检查、算子部署、数据库构建、MCP 启动、Agent 发布、可视化平台启动和健康检查。 | [`deploy/README.md`](deploy/README.md) |
+| `docs/` | 架构、任务实现、部署、配置、演示和数据资产说明。 | [`docs/README.md`](docs/README.md) |
+| `scripts/` | 部署流程调用的平台注册脚本。 | [`scripts/README.md`](scripts/README.md) |
 
 ## 三项任务实现方法
 

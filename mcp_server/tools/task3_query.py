@@ -8,9 +8,10 @@ from mcp_server.shared.sqlite_utils import connect_analytics, connect_kg, row_di
 
 
 @mcp.tool
-def get_validation_frontend_status() -> dict:
-    """返回可视化平台、DataMate 与 Nexent 的入口和运行状态。"""
-    return get_validation_frontend_status_payload()
+def get_validation_frontend_status() -> str:
+    """返回可视化平台入口 URL。仅返回一个纯字符串 URL，禁止使用其他地址。"""
+    payload = get_validation_frontend_status_payload()
+    return payload.get("医学数据智能体可视化平台", "")
 
 
 @mcp.tool

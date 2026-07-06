@@ -12,6 +12,10 @@
 6. `PERFORMANCE_AND_EVALUATION.md`：查看任务一、任务二、任务三的指标口径和复现脚本。
 7. `TASK3_NL2SQL_EVAL_REPORT.md`：查看任务三 NL2SQL 指标口径和限制。
 
+---
+
+[← 返回项目首页](../README.md)
+
 ## 文档清单
 
 | 文件 | 中文标题 | 内容 |

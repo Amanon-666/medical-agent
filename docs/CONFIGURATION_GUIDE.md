@@ -9,6 +9,22 @@
 
 在线服务已经部署完成，普通验证无需填写配置文件。只有在新环境部署或接管服务时才需要复制模板并填写。
 
+## 部署前速查清单
+
+复制模板后，按顺序完成以下配置即可部署。每项改完可对照 [`deploy/00_check_prereqs.sh`](../deploy/00_check_prereqs.sh) 验证。
+
+| 序号 | 要做什么 | 文件 | 找哪一行 |
+|:---:|---------|------|---------|
+| 1 | 填入 DeepSeek API Key | [`.env.example`](../.env.example) | `CCF_LLM_API_KEY=` |
+| 2 | 设 Nexent 管理员密码 | [`.env.example`](../.env.example) | `CCF_NEXENT_PASSWORD=` |
+| 3 | 换成自己的域名（共 5 个 URL） | [`.env.example`](../.env.example) | 搜索 `mashiro.xin`，全部替换 |
+| 4 | 填服务器 IP 和 SSH 用户名 | [`config.example.yaml`](../config.example.yaml) | `server:` 段 |
+| 5 | 改项目部署目录 | [`config.example.yaml`](../config.example.yaml) | `server_project_root` |
+| 6 | 确认 DataMate 数据卷路径 | [`.env.example`](../.env.example) | `CCF_DATASET_VOLUME` |
+| 7 | （如需 sudo）设密码 | [`.env.example`](../.env.example) | `CCF_SUDO_PW=` |
+
+改完后执行 `bash deploy/00_check_prereqs.sh` 验证。
+
 ## 1. 在线服务地址
 
 | 服务 | 地址 |

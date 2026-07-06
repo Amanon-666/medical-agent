@@ -21,20 +21,29 @@
 | 实体识别、关系抽取、三元组生成 | `core/medical_extraction_service.py`、`core/medical_offline_extraction.py` | MCP 知识抽取算子 | 任务二展示重点，通过 MCP 工具被 Nexent 智能体编排。 |
 | 疾病详情查询与 NL2SQL | `core/medical_query_engine.py`、`core/nl2sql.py` | MCP 查询算子 | 任务三展示重点，读取任务二生成的知识图谱库和分析库。 |
 
-## 文件职责
+## 文件索引
 
-| 文件 | 职责 |
-| --- | --- |
-| `medical_extraction_service.py` | 任务二知识抽取服务入口，统一执行实体识别、关系抽取和三元组生成。 |
-| `medical_offline_extraction.py` | 本地规则与词典增强抽取链，保证在模型接口不可用时仍可完成基础知识生成。 |
-| `medical_ner.py` | 医学实体识别基础模块，覆盖疾病、症状、药物、检查、科室等类型。 |
-| `medical_re.py` | 医学关系抽取基础模块，生成诊断、治疗、检查、并发等关系。 |
-| `medical_triple.py` | 把实体和关系整理为知识图谱三元组结构。 |
-| `medical_normalize.py` | 医学术语、缩写和同义表达标准化。 |
-| `medical_query_engine.py` | 面向任务三的疾病详情查询和结构化结果组织。 |
-| `nl2sql.py` | 将自然语言统计问题映射为只读 SQL 并执行。 |
-| `text_preprocessor.py` / `text_quality.py` | 通用文本预处理和质量判断。 |
-| `schemas.py` | 实体、关系、三元组等核心数据结构定义。 |
+| 文件 | 职责 | 所属任务 |
+| --- | --- | --- |
+| [`medical_extraction_service.py`](medical_extraction_service.py) | 任务二知识抽取服务入口，统一执行实体识别、关系抽取和三元组生成。 | T2 |
+| [`medical_offline_extraction.py`](medical_offline_extraction.py) | 本地规则与词典增强抽取链，模型不可用时仍可完成基础知识生成。 | T2 |
+| [`medical_ner.py`](medical_ner.py) | 医学实体识别，覆盖疾病、症状、药物、检查、科室等类型。 | T2 |
+| [`medical_re.py`](medical_re.py) | 医学关系抽取，生成诊断、治疗、检查、并发等关系。 | T2 |
+| [`medical_triple.py`](medical_triple.py) | 把实体和关系整理为知识图谱三元组结构。 | T2 |
+| [`medical_fewshot.py`](medical_fewshot.py) | CMeEE/CMeIE few-shot 样例检索，供 LLM 抽取路径使用。 | T2 |
+| [`medical_extraction_validation.py`](medical_extraction_validation.py) | 实体/关系/三元组去重、校验与置信度过滤。 | T2 |
+| [`medical_normalize.py`](medical_normalize.py) | 医学术语、缩写和同义表达标准化。 | T1+T2 |
+| [`medical_query_engine.py`](medical_query_engine.py) | 面向任务三的疾病详情查询和 SQL 模板引擎。 | T3 |
+| [`nl2sql.py`](nl2sql.py) | 将自然语言统计问题映射为只读 SQL 并执行。 | T3 |
+| [`text_preprocessor.py`](text_preprocessor.py) | 通用文本分段与预处理。 | T1+T2 |
+| [`text_quality.py`](text_quality.py) | 四维文本质量评分与过滤判断。 | T1+T2 |
+| [`schemas.py`](schemas.py) | 实体、关系、三元组等核心数据结构定义。 | T2+T3 |
+| [`llm_client.py`](llm_client.py) | 统一 LLM 调用出口，所有 LLM 请求经此模块发出。 | ALL |
+| [`__init__.py`](__init__.py) | 包导出，暴露常用模块给外部调用方。 | ALL |
+
+---
+
+[← 返回项目首页](../README.md)
 
 ## 调用链
 
