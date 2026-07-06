@@ -74,7 +74,7 @@ def query_disease_analytics(disease: str, aspect: str = "all") -> dict:
     preventions, procedures, populations。
     """
     if not Path(ANALYTICS_DB).exists():
-        return {"error": f"分析数据库不存在: {ANALYTICS_DB}，请先运行 kg/build_analytics_v2.py"}
+        return {"error": "分析数据库未构建，请先运行 kg/build_analytics_v2.py"}
     terms = _disease_aliases(disease)
     if not terms:
         return {"error": "disease 不能为空"}
@@ -120,7 +120,7 @@ def query_disease_analytics(disease: str, aspect: str = "all") -> dict:
             "disease": disease,
             "matched_terms": terms,
             "aspect": selected,
-            "database": ANALYTICS_DB,
+            "database": os.path.basename(ANALYTICS_DB),
             "results": results,
         }
     finally:
@@ -134,5 +134,5 @@ def ask_medical_analytics(question: str) -> dict:
     该工具优先套用可解释 SQL 模板，用于展示从中文问题到 SQL、再到结构化结果的过程。
     """
     if not Path(ANALYTICS_DB).exists():
-        return {"error": f"分析数据库不存在: {ANALYTICS_DB}", "columns": [], "rows": [], "row_count": 0}
+        return {"error": "分析数据库未构建，请先运行 kg/build_analytics_v2.py", "columns": [], "rows": [], "row_count": 0}
     return medical_query_engine.ask_medical_db(question, ANALYTICS_DB)

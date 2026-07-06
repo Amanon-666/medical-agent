@@ -12,10 +12,18 @@ import urllib.error
 import urllib.request
 
 
-PUBLIC_DOMAIN = os.environ.get("CCF_PUBLIC_DOMAIN", "mashiro.xin").strip() or "mashiro.xin"
+PUBLIC_DOMAIN = os.environ.get("CCF_PUBLIC_DOMAIN", "mashiro.xin").strip()
+
+
+def _service_port(name: str, default: int) -> int:
+    env_key = f"CCF_{name.upper()}_PORT"
+    value = os.environ.get(env_key, "").strip()
+    return int(value) if value else default
 
 
 def _default_public_url(subdomain: str, path: str = "/") -> str:
+    if not PUBLIC_DOMAIN:
+        return ""
     return f"https://{subdomain}.{PUBLIC_DOMAIN}{path}"
 
 
@@ -23,7 +31,7 @@ SERVICE_DEFINITIONS = [
     {
         "name": "task3_interactive_demo",
         "label": "医学数据智能体可视化平台",
-        "port": 8765,
+        "port": _service_port("task3_interactive_demo", 8765),
         "path": "/",
         "env_url": "CCF_TASK3_DEMO_URL",
         "public_subdomain": "demo",
@@ -33,7 +41,7 @@ SERVICE_DEFINITIONS = [
     {
         "name": "datamate_frontend",
         "label": "DataMate 前端",
-        "port": 30000,
+        "port": _service_port("datamate_frontend", 30000),
         "path": "/",
         "env_url": "CCF_DATAMATE_FRONTEND_URL",
         "public_subdomain": "datamate",
@@ -43,7 +51,7 @@ SERVICE_DEFINITIONS = [
     {
         "name": "nexent_frontend",
         "label": "Nexent 前端",
-        "port": 3000,
+        "port": _service_port("nexent_frontend", 3000),
         "path": "/",
         "env_url": "CCF_NEXENT_FRONTEND_URL",
         "public_subdomain": "nexent",
@@ -55,10 +63,8 @@ SERVICE_DEFINITIONS = [
 
 def _public_url(service: dict) -> str:
     configured = os.environ.get(service["env_url"], "").strip()
-    legacy_fragments = ("127.0.0.1", "localhost", "http://")
-    raw_ip_url = re.match(r"^https?://\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?(?:/.*)?$", configured)
-    # 面向智能体的结果返回稳定公网域名；本地探针和历史 IP 只用于运行态排查。
-    if configured and not raw_ip_url and not any(fragment in configured for fragment in legacy_fragments):
+    legacy_fragments = ("127.0.0.1", "localhost")
+    if configured and not any(fragment in configured for fragment in legacy_fragments):
         return configured
     return _default_public_url(service["public_subdomain"], service["path"])
 
@@ -75,31 +81,9 @@ def _probe_local(port: int, path: str = "/", timeout: float = 2.0) -> dict:
 
 
 def get_validation_frontend_status_payload() -> dict:
-    services = []
+    result = {}
     for service in SERVICE_DEFINITIONS:
-        probe = _probe_local(service["port"], service["path"])
-        services.append(
-            {
-                "name": service["name"],
-                "label": service["label"],
-                "purpose": service["purpose"],
-                "public_url": _public_url(service),
-                "status": "running" if probe["reachable"] else "stopped",
-                "start_command": service["start_command"],
-            }
-        )
-
-    primary = next((item for item in services if item["name"] == "task3_interactive_demo"), services[0])
-    return {
-        "status": "ok",
-        "primary_url": primary["public_url"],
-        "primary_service": primary["name"],
-        "primary_label": primary["label"],
-        "primary_status": primary["status"],
-        "services": services,
-        "note": (
-            "前端只读取当前知识图谱和分析库状态。新增 DataMate 数据源需要先通过 "
-            "run_task2_kg_pipeline 入库并刷新分析库，再打开或刷新前端验证。"
-        ),
-        "retired_services": [],
-    }
+        url = _public_url(service)
+        if url:
+            result[service["label"]] = url
+    return result
