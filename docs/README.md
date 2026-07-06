@@ -9,7 +9,8 @@
 3. `TASK1_MIXED_ORCHESTRATION.md`：查看任务一混合格式清洗如何保留 `txt/csv/json/jsonl` 源格式和质量证据。
 4. `DATA_ARTIFACTS.md`：确认演示数据、知识图谱库、分析库和数据来源管理方式。
 5. `DEPLOYMENT_GUIDE.md` 与 `CONFIGURATION_GUIDE.md`：在新环境中复现服务。
-6. `TASK3_NL2SQL_EVAL_REPORT.md`：查看任务三 NL2SQL 指标口径和限制。
+6. `PERFORMANCE_AND_EVALUATION.md`：查看任务一、任务二、任务三的指标口径和复现脚本。
+7. `TASK3_NL2SQL_EVAL_REPORT.md`：查看任务三 NL2SQL 指标口径和限制。
 
 ## 文档清单
 
@@ -21,7 +22,7 @@
 | `DEMO_USAGE_GUIDE.md` | 演示操作说明 | 在线入口、演示账号、Notebook、Nexent 对话、DataMate 数据查看和可视化平台操作。 |
 | `DEPLOYMENT_GUIDE.md` | 部署复现说明 | 环境依赖、脚本顺序、健康检查、域名配置和回滚边界。 |
 | `PROJECT_ASSETS.md` | 工程资产说明 | 各目录和关键文件的作用、对应任务和交付边界。 |
+| `PERFORMANCE_AND_EVALUATION.md` | 性能与评测说明 | 图谱规模、任务一/二性能口径、任务三 NL2SQL 准确率和复现脚本。 |
 | `TASK1_MIXED_ORCHESTRATION.md` | 任务一混合清洗说明 | 混合格式识别、分链清洗、格式保留、血缘和质量证据。 |
 | `TASK3_NL2SQL_EVAL_REPORT.md` | 任务三 NL2SQL 指标说明 | NL2SQL 准确率、通过数、阈值和展示口径。 |
-
 

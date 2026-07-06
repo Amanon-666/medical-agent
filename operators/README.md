@@ -34,3 +34,12 @@
 - 算子只负责单步数据处理，不直接操作 Nexent Agent。
 - 混合格式编排由 `mcp_server/task1/` 完成。
 - 算子输出必须包含可追溯证据，例如字段变更、术语替换、噪声移除数量或过滤原因。
+
+## 辅助知识库与审计模块
+
+| 文件 | 作用 |
+| --- | --- |
+| `operators/medical_term_normalizer/medical_abbrev.py` | 医学缩写与处方频次词典，提供不依赖模型接口的快速术语标准化。 |
+| `operators/llm_noise_filter/noise_logger.py` | 记录语义噪声信号、清洗状态和差异片段，用于质量审计和任务三噪声拦截展示。 |
+
+这些文件是正式能力的一部分，不是临时调试代码。部署时应与对应算子目录一起同步到 DataMate 运行环境。

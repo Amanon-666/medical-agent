@@ -37,7 +37,9 @@
 | `CCF_MCP_URL` | Nexent 访问 MCP 服务的地址。 |
 | `CCF_TASK3_DEMO_URL` | 可视化平台公网地址。 |
 | `CCF_DATAMATE_OPERATOR_VOLUME` | DataMate 算子运行目录。 |
+| `CCF_DATASET_VOLUME` | DataMate 数据集文件目录，任务一注册新数据集时会把文件写入该目录。 |
 | `CCF_DATAMATE_RUNTIME_CONTAINER` | DataMate 算子运行容器名。 |
+| `CCF_DATA_ROOT` | 本地复现时的医学数据源目录；可使用 `data/standard_diabetes_demo/datamate_upload`。 |
 
 ## 3. 可选配置
 
@@ -48,7 +50,17 @@
 | `CCF_DEMO_DELETE_TOKEN` | 可视化平台启用数据来源删除功能时填写。 |
 | `CCF_MCP_PUBLIC_URL` | MCP 服务需要公网访问时填写。 |
 
-## 4. 安全注意
+## 4. DataMate 文件目录
+
+任务一混合格式清洗需要读取源数据并把输出文件登记到 DataMate。相关路径不应写死在代码中：
+
+| 字段 | 建议值 | 用途 |
+| --- | --- | --- |
+| `CCF_DATA_ROOT` | `data/standard_diabetes_demo/datamate_upload` | 本工程标准糖尿病混合格式数据源。 |
+| `CCF_DATASET_VOLUME` | DataMate 部署时挂载的数据集 volume | DataMate 后端读取数据集文件的位置。 |
+| `CCF_DATAMATE_OPERATOR_VOLUME` | DataMate 算子运行 volume | 自定义算子同步和注册的位置。 |
+
+## 5. 安全注意
 
 - 不要把真实生产密码写入 Git 历史。
 - 在线演示账号只用于当前演示环境。

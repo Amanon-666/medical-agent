@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # CCF 部署脚本 09：应用 Cloudflare Tunnel 固定域名配置
 #
-# 默认只预览，不修改运行态。由于 live cloudflared 配置通常位于
-# /home/panyushuo/.cloudflared/config.yml，运行 --apply 前需要确认该动作
-# 符合当前服务器操作边界。
+# 默认只预览，不修改运行态。运行 --apply 前应确认目标路径
+# CCF_CLOUDFLARED_CONFIG 符合当前服务器操作边界。
 set -euo pipefail
 
 ROOT="${CCF_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"

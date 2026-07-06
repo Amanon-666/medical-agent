@@ -9,18 +9,32 @@ import uuid
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-from scripts.runtime_env import get_runtime_secret
+from scripts.runtime_env import get_runtime_secret, load_runtime_env
 
 
-DATASET_VOLUME = "/home/share/docker-data/volumes/datamate-dataset-volume/_data"
+ROOT = Path(__file__).resolve().parents[3]
+
+
+def _runtime_value(name: str, default: str = "") -> str:
+    """读取运行配置，避免把服务器路径写死在代码中。"""
+
+    if name not in os.environ:
+        load_runtime_env(root=ROOT, keys=[name])
+    return os.environ.get(name, default)
+
+
+def dataset_volume() -> str:
+    """返回 DataMate 数据集文件目录。"""
+
+    value = _runtime_value("CCF_DATASET_VOLUME")
+    if not value:
+        raise RuntimeError("CCF_DATASET_VOLUME is required. Set it in .env.runtime or the process environment.")
+    return value
 
 SOURCE_ROOT_CANDIDATES = [
     os.environ.get("CCF_DATA_ROOT"),
-    "/home/panyushuo/ccf数据集",
-    "/home/ccf数据集",
-    "/data/ccf数据集",
-    "D:/ccf数据集",
-    "D:/ccf-medical-ai/data_sources",
+    str(ROOT / "data" / "standard_diabetes_demo" / "datamate_upload"),
+    str(ROOT / "data" / "standard_diabetes_demo"),
 ]
 
 ENCODINGS = ("utf-8-sig", "utf-8", "gb18030", "gbk")
@@ -34,7 +48,10 @@ def resolve_source_root(explicit: Optional[str] = None) -> Path:
         path = Path(item)
         if path.exists():
             return path
-    raise FileNotFoundError("No CCF dataset root found. Set CCF_DATA_ROOT or pass --source-root.")
+    raise FileNotFoundError(
+        "No dataset source root found. Set CCF_DATA_ROOT or pass --source-root. "
+        "For the built-in demo, use data/standard_diabetes_demo/datamate_upload."
+    )
 
 
 def first_existing(root: Path, relatives: Iterable[str]) -> Optional[Path]:
@@ -381,7 +398,7 @@ def register_dataset(
     description: str = "Task 1 mixed real-source benchmark",
 ) -> Dict:
     dataset_id = str(uuid.uuid4())
-    target_dir = f"{DATASET_VOLUME}/{dataset_id}"
+    target_dir = f"{dataset_volume()}/{dataset_id}"
     mkdir = run_sudo(["mkdir", "-p", target_dir])
     if mkdir.returncode != 0:
         raise RuntimeError(mkdir.stderr)

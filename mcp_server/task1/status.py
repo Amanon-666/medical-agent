@@ -5,11 +5,15 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 
-TASK1_ASYNC_STATUS_ROOT = Path("/home/panyushuo/ccf-medical-ai/data/task1_mixed_agent_runs")
+ROOT = Path(__file__).resolve().parents[2]
+TASK1_ASYNC_STATUS_ROOT = Path(
+    os.environ.get("CCF_TASK1_STATUS_ROOT", ROOT / "data" / "task1_mixed_agent_runs")
+)
 
 
 def task1_async_status_path(run_id: str) -> Path:

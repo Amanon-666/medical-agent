@@ -18,9 +18,9 @@ from datamate.core.base_op import Mapper
 def _ensure_core_path() -> None:
     here = Path(__file__).resolve()
     candidates = [
+        Path(os.environ["CCF_PROJECT_ROOT"]) if os.environ.get("CCF_PROJECT_ROOT") else None,
         here.parents[2] if len(here.parents) > 2 else None,
         Path("/opt/runtime/ccf_medical_ai"),
-        Path("/home/panyushuo/ccf-medical-ai"),
     ]
     for candidate in candidates:
         if candidate and (candidate / "core").exists():

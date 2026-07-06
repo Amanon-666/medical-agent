@@ -21,6 +21,8 @@ datamate:
   operator_volume: "/home/share/docker-data/volumes/datamate-operator-runtime-volume/_data"
   # DataMate 数据集文件目录。
   dataset_volume: "/home/share/docker-data/volumes/datamate-dataset-volume/_data"
+  # 本工程演示数据源目录；在线环境使用已注册的数据集，本地复现可指向 data/standard_diabetes_demo/datamate_upload。
+  data_root: "data/standard_diabetes_demo/datamate_upload"
   runtime_container: "datamate-runtime"
   db_container: "datamate-database"
 
