@@ -1,0 +1,55 @@
+# 医学数据智能体工程配置模板
+# 使用方式：复制为 config.yaml，并按目标环境填写。
+
+server:
+  # 目标服务器主机名或 IP；在线演示环境已经部署完成，本地验证可不填写。
+  host: "your-server-host"
+  # 用于部署脚本登录服务器的用户。
+  ssh_user: "your-ssh-user"
+
+llm:
+  # 兼容 OpenAI Chat Completions 协议的模型接口。
+  base_url: "https://api.deepseek.com/v1/chat/completions"
+  # 模型名称。任务二当前支持本地规则链；配置模型后可作为增强抽取后端。
+  model: "deepseek-chat"
+  timeout_seconds: 240
+
+datamate:
+  # DataMate API 地址。在线服务公网入口为 https://datamate.mashiro.xin/。
+  api_base: "http://localhost:8080"
+  # DataMate 算子运行目录，对应 datamate operator volume。
+  operator_volume: "/home/share/docker-data/volumes/datamate-operator-runtime-volume/_data"
+  # DataMate 数据集文件目录。
+  dataset_volume: "/home/share/docker-data/volumes/datamate-dataset-volume/_data"
+  runtime_container: "datamate-runtime"
+  db_container: "datamate-database"
+
+nexent:
+  # Nexent API 地址。在线服务公网入口为 https://nexent.mashiro.xin/。
+  api_base: "http://localhost:5010"
+  # 管理员账号；密码从 CCF_NEXENT_PASSWORD 环境变量读取。
+  admin_email: "suadmin@nexent.com"
+  tenant_name: "CCF Medical AI"
+
+mcp_server:
+  # MCP 服务监听地址。
+  host: "0.0.0.0"
+  port: 8900
+  # Nexent 注册 MCP 工具时使用的地址。
+  external_url: "http://127.0.0.1:8900/mcp"
+
+public_urls:
+  # 当前在线演示域名。新环境可替换为自己的域名。
+  datamate: "https://datamate.mashiro.xin/"
+  nexent: "https://nexent.mashiro.xin/"
+  visualization: "https://demo.mashiro.xin/"
+
+kg:
+  # 任务二知识图谱数据库。
+  sqlite_path: "data/task2_medical_kg.db"
+  # 任务三分析数据库。
+  analytics_sqlite_path: "data/task3_analytics.db"
+
+deploy:
+  # 服务器上的项目部署目录。
+  server_project_root: "/home/your-user/ccf-medical-ai"

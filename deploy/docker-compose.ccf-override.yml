@@ -1,0 +1,136 @@
+# Docker Compose override for CCF clean-environment testing
+# Purpose: Deploy DataMate + Nexent with non-conflicting ports/names/volumes
+# Usage: docker compose -f docker-compose.yml -f docker-compose.ccf-override.yml up -d
+#
+# All services, volumes, and networks are prefixed with ccf-test- to avoid
+# conflicts with any existing deployment.
+
+# ---- DataMate overrides ----
+# Applies to: DataMate/deployment/docker/datamate/docker-compose.yml
+
+services:
+  # ========== DataMate services ==========
+  datamate-backend:
+    container_name: ccf-test-datamate-backend
+    volumes:
+      - ccf-test-dataset-volume:/dataset
+      - ccf-test-flow-volume:/flow
+      - ccf-test-log-volume:/var/log/datamate
+      - ccf-test-operator-upload-volume:/operators/upload
+      - ccf-test-operator-runtime-volume:/operators/extract
+
+  datamate-backend-python:
+    container_name: ccf-test-datamate-backend-python
+    ports: ["18001:18000"]
+    volumes:
+      - ccf-test-dataset-volume:/dataset
+      - ccf-test-flow-volume:/flow
+      - ccf-test-log-volume:/var/log/datamate
+      - ccf-test-graph-data-volume:/data/rag_storage
+      - ccf-test-operator-upload-volume:/operators/upload
+      - ccf-test-operator-runtime-volume:/operators/extract
+
+  datamate-gateway:
+    container_name: ccf-test-datamate-gateway
+    ports: ["8081:8080"]
+
+  datamate-frontend:
+    container_name: ccf-test-datamate-frontend
+    ports: ["30002:3000"]
+    volumes:
+      - ccf-test-frontend-log-volume:/var/log/datamate/frontend
+
+  datamate-database:
+    container_name: ccf-test-datamate-database
+    ports: ["5433:5432"]
+    volumes:
+      - ccf-test-postgresql-volume:/var/lib/postgresql/data
+      - ccf-test-database-log-volume:/var/log/datamate/database
+
+  datamate-runtime:
+    container_name: ccf-test-datamate-runtime
+    volumes:
+      - ccf-test-ray-log-volume:/tmp/ray
+      - ccf-test-log-volume:/var/log/datamate
+      - ccf-test-dataset-volume:/dataset
+      - ccf-test-flow-volume:/flow
+      - ccf-test-operator-runtime-volume:/opt/runtime/datamate/ops/user
+      - ccf-test-operator-packages-volume:/usr/local/lib/ops/site-packages
+
+  # ========== Nexent services ==========
+  nexent-elasticsearch:
+    container_name: ccf-test-nexent-elasticsearch
+    ports: ["9211:9200", "9311:9300"]
+    volumes:
+      - ccf-test-nexent-es-data:/usr/share/elasticsearch/data
+
+  nexent-postgresql:
+    container_name: ccf-test-nexent-postgresql
+    ports: ["5435:5432"]
+    volumes:
+      - ccf-test-nexent-pg-data:/var/lib/postgresql/data
+
+  nexent-config:
+    container_name: ccf-test-nexent-config
+    ports: ["50101:5010"]
+
+  nexent-runtime:
+    container_name: ccf-test-nexent-runtime
+    ports: ["50141:5014"]
+
+  nexent-mcp:
+    container_name: ccf-test-nexent-mcp
+    ports: ["50111:5011", "50151:5015"]
+
+  nexent-northbound:
+    container_name: ccf-test-nexent-northbound
+    ports: ["50131:5013"]
+
+  nexent-web:
+    container_name: ccf-test-nexent-web
+    ports: ["30001:3000"]
+
+  nexent-data-process:
+    container_name: ccf-test-nexent-data-process
+    ports: ["50121:5012", "5556:5555", "8266:8265"]
+
+  redis:
+    container_name: ccf-test-nexent-redis
+    ports: ["6380:6379"]
+    volumes:
+      - ccf-test-nexent-redis-data:/data
+
+  nexent-minio:
+    container_name: ccf-test-nexent-minio
+    ports: ["9012:9000", "9013:9001"]
+    volumes:
+      - ccf-test-nexent-minio-data:/etc/minio/data
+
+  nexent-openssh-server:
+    container_name: ccf-test-nexent-openssh-server
+    ports: ["2223:22"]
+
+# ---- Volumes (all prefixed with ccf-test-) ----
+volumes:
+  ccf-test-dataset-volume:
+  ccf-test-flow-volume:
+  ccf-test-log-volume:
+  ccf-test-postgresql-volume:
+  ccf-test-ray-log-volume:
+  ccf-test-frontend-log-volume:
+  ccf-test-database-log-volume:
+  ccf-test-operator-upload-volume:
+  ccf-test-operator-runtime-volume:
+  ccf-test-operator-packages-volume:
+  ccf-test-graph-data-volume:
+  ccf-test-nexent-es-data:
+  ccf-test-nexent-pg-data:
+  ccf-test-nexent-redis-data:
+  ccf-test-nexent-minio-data:
+
+# ---- Networks ----
+networks:
+  datamate:
+    name: ccf-test-datamate-network
+  nexent:
+    name: ccf-test-nexent-network

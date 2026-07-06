@@ -1,0 +1,104 @@
+"""
+任务二知识图谱持久化模块。
+
+该模块负责三元组入库、来源登记、重复过滤和写入统计。
+"""
+
+import time
+from dataclasses import asdict, is_dataclass
+from typing import Any
+from mcp_server.shared.sqlite_utils import connect_kg
+from mcp_server.kg.schema import _task2_ensure_kg_schema
+from mcp_server.kg.normalization import (
+    normalize_kg_entity_type,
+    normalize_kg_relation_code,
+    relation_display_name,
+)
+
+def ensure_kg_schema(conn=None):
+    c = conn or connect_kg()
+    _task2_ensure_kg_schema(c)
+    if conn is None:
+        c.close()
+
+def ensure_source(conn, dataset, record_count):
+    c = conn.cursor()
+    source_name = dataset.get('name') or dataset.get('id') or 'unknown'
+    now = time.strftime('%Y-%m-%dT%H:%M:%S')
+    c.execute(
+        '''INSERT OR IGNORE INTO kg_sources(source_name, source_path, source_type, record_count, created_at)
+           VALUES(?,?,?,?,?)''',
+        (source_name, dataset.get('id', ''), 'datamate', record_count, now),
+    )
+    c.execute(
+        '''UPDATE kg_sources SET source_path=?, source_type=?, record_count=?
+           WHERE source_name=?''',
+        (dataset.get('id', ''), 'datamate', record_count, source_name),
+    )
+    c.execute('SELECT source_id FROM kg_sources WHERE source_name=?', (source_name,))
+    row = c.fetchone()
+    return row[0] if row else None
+
+def ensure_entity(conn, name, etype=''):
+    if not (name or '').strip():
+        return None
+    c = conn.cursor()
+    now = time.strftime('%Y-%m-%dT%H:%M:%S')
+    normalized_type = normalize_kg_entity_type(etype)
+    c.execute(
+        '''INSERT OR IGNORE INTO kg_entities(canonical_name, entity_type, confidence, created_at)
+           VALUES(?,?,?,?)''',
+        (name, normalized_type, 1.0, now),
+    )
+    c.execute('SELECT entity_id FROM kg_entities WHERE canonical_name=? AND entity_type=?', (name, normalized_type))
+    row = c.fetchone()
+    return row[0] if row else None
+
+def ensure_relation(conn, code, display=''):
+    if not (code or '').strip():
+        return None
+    c = conn.cursor()
+    normalized_code = normalize_kg_relation_code(code)
+    c.execute(
+        'INSERT OR IGNORE INTO kg_relations(relation_code, display_name) VALUES(?,?)',
+        (normalized_code, display or relation_display_name(normalized_code)),
+    )
+    return normalized_code
+
+def _triple_to_dict(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if hasattr(value, "to_dict"):
+        return value.to_dict()
+    if is_dataclass(value):
+        return asdict(value)
+    raise TypeError(f"unsupported triple payload type: {type(value).__name__}")
+
+
+def persist_triples(conn, record_triples, source_file='', source_id=None):
+    count = 0
+    c = conn.cursor()
+    for raw_triple in record_triples:
+        t = _triple_to_dict(raw_triple)
+        sid = ensure_entity(conn, t.get('subject',''), t.get('subject_type', ''))
+        oid = ensure_entity(conn, t.get('object',''), t.get('object_type', ''))
+        rel = ensure_relation(conn, t.get('predicate',''), '')
+        if not sid or not oid or not rel:
+            continue
+        c.execute(
+            '''INSERT OR IGNORE INTO kg_triples(subject_id, relation_code, object_id, source_id,
+               evidence, confidence, extractor, created_at) VALUES(?,?,?,?,?,?,?,?)''',
+            (
+                sid,
+                rel,
+                oid,
+                source_id,
+                t.get('evidence') or source_file,
+                t.get('confidence', 0.7),
+                t.get('method', 'llm'),
+                time.strftime('%Y-%m-%dT%H:%M:%S'),
+            ),
+        )
+        count += max(c.rowcount, 0)
+    conn.commit()
+    return count

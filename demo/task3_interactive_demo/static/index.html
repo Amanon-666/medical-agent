@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>医学数据智能体可视化平台</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>医学数据智能体可视化平台</h1>
+          <p>任务一清洗数据流向任务二知识抽取，再进入任务三问答、图谱和质量审计。</p>
+        </div>
+        <div class="status-pill" id="healthStatus">连接中</div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel lineage-panel" aria-label="数据流向">
+          <div class="panel-head">
+            <div>
+              <h2>数据流向</h2>
+              <p>从混合数据集到图谱问答的全链路</p>
+            </div>
+            <button class="text-button" id="refreshLineage">刷新</button>
+          </div>
+          <div class="lineage-canvas" id="lineageCanvas"></div>
+          <div class="metric-grid" id="overviewMetrics"></div>
+          <div class="evaluation-panel" id="evaluationPanel"></div>
+        </section>
+
+        <div class="workspace-resizer" data-resizer="left" role="separator" aria-label="调整数据流向和问答区域宽度" tabindex="0">
+          <span></span>
+        </div>
+
+        <section class="panel chat-panel" aria-label="智能体问答">
+          <div class="panel-head">
+            <div>
+              <h2>自然语言问答</h2>
+              <p>规则优先识别问句类型，生成只读查询，返回证据和图表</p>
+            </div>
+            <label class="mode-toggle" title="开启后，问题会先转发给 Nexent 任务三智能体，再同步生成前端证据和图表">
+              <input id="agentModeToggle" type="checkbox" checked />
+              <span>Nexent智能体</span>
+            </label>
+          </div>
+          <div class="sample-row" id="sampleQuestions"></div>
+          <div class="chat-log" id="chatLog"></div>
+          <form class="composer" id="queryForm">
+            <textarea id="questionInput" rows="2" placeholder="例如：肺泡蛋白质沉积症需要做哪些检查？"></textarea>
+            <button type="submit">发送</button>
+          </form>
+        </section>
+
+        <div class="workspace-resizer" data-resizer="right" role="separator" aria-label="调整问答和图谱洞察区域宽度" tabindex="0">
+          <span></span>
+        </div>
+
+        <section class="panel insight-panel" aria-label="图谱与质量">
+          <div class="panel-head">
+            <div>
+              <h2>图谱洞察</h2>
+              <p>疾病关系子图、统计图表和噪声拦截记录</p>
+            </div>
+          </div>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="graph">关系子图</button>
+            <button class="tab" data-tab="chart">统计图表</button>
+            <button class="tab" data-tab="evidence">证据表</button>
+            <button class="tab" data-tab="quality">噪声拦截</button>
+          </div>
+
+          <div class="tab-pane active" id="tab-graph">
+            <div class="search-row">
+              <input id="diseaseInput" value="肺泡蛋白质沉积症" />
+              <button id="loadGraph">载入</button>
+            </div>
+            <div class="graph-canvas" id="graphCanvas"></div>
+            <div class="detail-block" id="graphSummary"></div>
+          </div>
+
+          <div class="tab-pane" id="tab-chart">
+            <div class="chart-canvas" id="chartCanvas"></div>
+          </div>
+
+          <div class="tab-pane" id="tab-evidence">
+            <div class="table-wrap" id="evidenceTable"></div>
+          </div>
+
+          <div class="tab-pane" id="tab-quality">
+            <div class="audit-note" id="qualityNote"></div>
+            <div class="quality-summary" id="qualitySummary"></div>
+            <div class="section-title">高频可疑值</div>
+            <div class="table-wrap compact-table" id="qualityTopValues"></div>
+            <div class="audit-actions">
+              <button class="outline-button" id="toggleQualityDetails" type="button">展开拦截明细</button>
+            </div>
+            <div class="table-wrap" id="qualityTable"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/static/app_common.js?v=20260703c"></script>
+    <script src="/static/workspace_layout.js?v=20260703c"></script>
+    <script src="/static/markdown_renderer.js?v=20260703c"></script>
+    <script src="/static/quality_renderer.js?v=20260703d"></script>
+    <script src="/static/visualization_renderer.js?v=20260704a"></script>
+    <script src="/static/graph_renderer.js?v=20260704a"></script>
+    <script src="/static/app.js?v=20260704d"></script>
+  </body>
+</html>

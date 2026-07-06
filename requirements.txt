@@ -1,0 +1,21 @@
+# ===== 核心 =====
+requests>=2.31.0          # HTTP 调用（Ollama / DataMate / Nexent API）
+pyyaml>=6.0               # 读配置
+loguru>=0.7.0             # 日志（与 DataMate 算子一致）
+
+# ===== MCP Server =====
+fastmcp>=2.0.0            # 与 Nexent MCP 集成（Nexent 用 fastmcp 客户端连接）
+
+# ===== 任务三：NL2SQL + 可视化 =====
+streamlit>=1.30.0         # BI 可视化前端（纯 Python，最简单）
+pandas>=2.0.0             # 数据处理
+plotly>=5.18.0            # 交互式图表（柱状图/折线图/关系图）
+pyvis>=0.3.2              # 知识图谱网络图可视化
+
+# ===== 部署/同步 =====
+paramiko>=3.0.0           # SSH/SFTP（同步代码到服务器、部署算子）
+
+# ===== 测试 =====
+pytest>=8.0.0
+
+# 注：DataMate 算子运行时依赖 datamate.core（由 datamate-runtime 容器提供，本地不需装）

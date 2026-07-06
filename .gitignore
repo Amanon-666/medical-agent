@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+
+# SQLite databases (large, not for git)
+*.db
+
+# Runtime config with secrets
+.env.runtime
+
+# Logs
+*.log
+
+# Codex
+.codex*

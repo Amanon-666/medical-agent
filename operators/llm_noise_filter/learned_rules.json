@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "description": "自动学习的噪声规则库。每次LLM清洗后从被删文本中挖掘新模式，经医疗白名单验证后加入。",
+  "rules": [],
+  "stats": {
+    "total_learned": 0,
+    "total_false_positives": 0,
+    "last_updated": ""
+  }
+}
