@@ -8,7 +8,6 @@
 | --- | --- |
 | [`start_notebook_demo.bat`](start_notebook_demo.bat) | Windows 一键启动 Notebook 演示。 |
 | [`interactive_pipeline_demo.ipynb`](interactive_pipeline_demo.ipynb) | **主演示 Notebook**：交互式全链路演示（清洗→抽取→查询）。 |
-| [`task1_pipeline_demo.ipynb`](task1_pipeline_demo.ipynb) | 任务一专项 Notebook。 |
 | [`task3_interactive_demo/`](task3_interactive_demo/) | **可视化平台源码**（Python HTTP 服务 + JS 前端）。 |
 | · [`server.py`](task3_interactive_demo/server.py) | 可视化平台 HTTP 服务入口。 |
 | · [`query_service.py`](task3_interactive_demo/query_service.py) | 自然语言查询引擎。 |

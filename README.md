@@ -113,7 +113,6 @@
 | [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | **配置总入口**：部署前速查清单 + 全部 33 个环境变量表 + 容器路径说明 + 修改入口。 |
 | [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 演示数据、知识图谱库、分析库和数据来源管理策略。 |
 | [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) | 任务一混合格式清洗编排、格式保留和质量证据。 |
-| [`docs/PERFORMANCE_AND_EVALUATION.md`](docs/PERFORMANCE_AND_EVALUATION.md) | 规模、性能、质量指标和复现脚本。 |
 
 ## 部署复现
 

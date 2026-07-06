@@ -9,7 +9,6 @@
 | [`standard_diabetes_demo/datamate_upload/`](standard_diabetes_demo/datamate_upload/) | 糖尿病混合格式演示数据，覆盖 `txt/csv/json/jsonl`。 |
 | `task2_medical_kg.db` | 任务二知识图谱库（不进 Git，通过 Release 或脚本构建）。 |
 | `task3_analytics.db` | 任务三分析库（不进 Git，通过 Release 或脚本构建）。 |
-| [`task3_nl2sql_eval_report.json`](task3_nl2sql_eval_report.json) | 任务三 NL2SQL 评测结果。 |
 
 ## 标准演示数据
 

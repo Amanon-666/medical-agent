@@ -13,9 +13,6 @@ from db_utils import connect, count_rows, has_table, query_dicts, read_json_file
 from paths import (
     ANALYTICS_DB,
     KG_DB,
-    TASK2_CMEIE_SELFCHECK_REPORT,
-    TASK2_CMEEE_EVAL_REPORT,
-    TASK3_NL2SQL_EVAL_REPORT,
 )
 from quality import (
     filter_quality_display_rows,
@@ -173,68 +170,17 @@ def overview_payload() -> dict[str, Any]:
 
 
 def evaluation_payload() -> dict[str, Any]:
-    cmeee_report = read_json_file(TASK2_CMEEE_EVAL_REPORT)
-    cmeie_report = read_json_file(TASK2_CMEIE_SELFCHECK_REPORT)
-    nl2sql_report = read_json_file(TASK3_NL2SQL_EVAL_REPORT)
-    cmeee_metrics = cmeee_report.get("metrics") if isinstance(cmeee_report.get("metrics"), dict) else {}
-    cmeie_metrics = cmeie_report.get("metrics") if isinstance(cmeie_report.get("metrics"), dict) else {}
-    nl2sql_summary = nl2sql_report.get("summary") if isinstance(nl2sql_report.get("summary"), dict) else {}
-
     return {
         "task2": {
             "extractor_label": "本地知识抽取链",
             "runtime_metrics_source": "run_task2_kg_pipeline response",
             "runtime_metric_label": "任务执行时返回吞吐量、平均耗时和入库数量",
-            "runtime_metric_fields": [
-                "抽取链名称",
-                "抽取总耗时",
-                "平均记录耗时",
-                "记录吞吐量",
-                "增强降级记录数",
-            ],
-            "cmeee_baseline": {
-                "exists": bool(cmeee_report),
-                "mode": cmeee_report.get("mode"),
-                "sample_count": cmeee_report.get("sample_count"),
-                "precision": cmeee_metrics.get("precision"),
-                "recall": cmeee_metrics.get("recall"),
-                "f1": cmeee_metrics.get("f1"),
-            },
-            "cmeie_selfcheck": {
-                "exists": bool(cmeie_report),
-                "diagnostic_only": bool(cmeie_report.get("diagnostic_only")),
-                "sample_count": cmeie_report.get("sample_count"),
-                "precision": cmeie_metrics.get("precision"),
-                "recall": cmeie_metrics.get("recall"),
-                "f1": cmeie_metrics.get("f1"),
-            },
-        },
-        "task3": {
-            "nl2sql": {
-                "exists": bool(nl2sql_report),
-                "total": nl2sql_summary.get("total"),
-                "passed": nl2sql_summary.get("passed"),
-                "failed": nl2sql_summary.get("failed"),
-                "accuracy": nl2sql_summary.get("accuracy"),
-                "template_match_rate": nl2sql_summary.get("template_match_rate"),
-                "execution_success_rate": nl2sql_summary.get("execution_success_rate"),
-                "meets_85_percent": nl2sql_summary.get("meets_85_percent"),
-            }
         },
         "npu": {
             "status": "未启用",
             "claim": "未申报加速",
             "note": "当前环境展示 CPU 基线；如接入真实 NPU，可替换为实测报告。",
         },
-        "reports": [
-            {"name": "task2_cmeee_baseline", "path": str(TASK2_CMEEE_EVAL_REPORT), "exists": TASK2_CMEEE_EVAL_REPORT.exists()},
-            {
-                "name": "task2_cmeie_selfcheck",
-                "path": str(TASK2_CMEIE_SELFCHECK_REPORT),
-                "exists": TASK2_CMEIE_SELFCHECK_REPORT.exists(),
-            },
-            {"name": "task3_nl2sql_eval", "path": str(TASK3_NL2SQL_EVAL_REPORT), "exists": TASK3_NL2SQL_EVAL_REPORT.exists()},
-        ],
     }
 
 

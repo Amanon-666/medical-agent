@@ -11,9 +11,6 @@
 | [`update_nexent_agents.py`](update_nexent_agents.py) | 创建或更新任务一、任务二、任务三智能体的工具绑定和提示词。 | `deploy/06_register_nexent.sh` |
 | [`generate_datamate_registration_sql.py`](generate_datamate_registration_sql.py) | 生成 DataMate 算子注册 SQL，用于登记自定义算子。 | `deploy/03_register_operators.sh` |
 | [`start_mcp_server.sh`](start_mcp_server.sh) | 在服务器上启动 MCP 服务。 | `deploy/05_start_mcp.sh` |
-| [`evaluate_task2_cmeee_f1.py`](evaluate_task2_cmeee_f1.py) | 复现实体识别基线指标，支持外部 CMeEE 数据路径。 | 手动评测 |
-| [`evaluate_task2_cmeie_f1.py`](evaluate_task2_cmeie_f1.py) | 复现关系抽取自检指标，支持外部 CMeIE 数据路径。 | 手动评测 |
-| [`evaluate_task3_nl2sql_templates.py`](evaluate_task3_nl2sql_templates.py) | 复现任务三 NL2SQL 固定问题集准确率。 | 手动评测 |
 
 ## 配置来源
 
@@ -23,7 +20,6 @@
 
 - 在线服务已部署完成时，不需要手动运行本目录脚本。
 - 新环境复现时，应通过 [`deploy/`](../deploy/) 中的脚本统一调用。
-- 评测脚本用于复现文档中的质量指标，不参与在线服务启动。
 
 ---
 

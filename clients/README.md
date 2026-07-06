@@ -7,7 +7,6 @@
 | 文件 | 职责 |
 | --- | --- |
 | [`nexent_client.py`](nexent_client.py) | 封装 Nexent 登录、Agent 管理、MCP 注册、工具扫描和 SSE 流式对话接口。 |
-| [`datamate_client.py`](datamate_client.py) | 封装 DataMate 数据集、文件和任务相关接口（部分实现）。 |
 | [`__init__.py`](__init__.py) | 包导出。 |
 
 ## 设计边界

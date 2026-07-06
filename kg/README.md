@@ -6,10 +6,8 @@
 
 | 文件 | 职责 | 输出 |
 | --- | --- | --- |
-| [`build_kg.py`](build_kg.py) | 基础知识图谱构建入口。 | `data/task2_medical_kg.db` |
-| [`build_kg_v2.py`](build_kg_v2.py) | **当前主构建入口**，保留来源、格式、记录编号和质量标记。 | `data/task2_medical_kg.db` |
+| [`build_kg_v2.py`](build_kg_v2.py) | **主构建入口**，保留来源、格式、记录编号和质量标记。 | `data/task2_medical_kg.db` |
 | [`build_analytics_v2.py`](build_analytics_v2.py) | 从知识图谱库生成疾病统计、关系统计、NL2SQL 表。 | `data/task3_analytics.db` |
-| [`build_sql_db.py`](build_sql_db.py) | 构建任务三 NL2SQL 查询所需的结构化表。 | `data/task3_analytics.db` |
 
 ## 数据流
 
