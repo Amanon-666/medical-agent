@@ -106,15 +106,14 @@
 
 | 文档 | 内容 |
 | --- | --- |
-| `docs/README.md` | 文档目录索引，说明每份文档的用途和阅读顺序。 |
-| `docs/ARCHITECTURE_AND_IMPLEMENTATION.md` | 总体架构、三项任务数据流、模块职责、算子分工和工程边界。 |
-| `docs/DEMO_USAGE_GUIDE.md` | 在线服务、演示账号、Notebook 和对话式验证步骤。 |
-| `docs/DEPLOYMENT_GUIDE.md` | 新环境复现部署步骤、脚本入口、健康检查和回滚方式。 |
-| `docs/CONFIGURATION_GUIDE.md` | `.env.example` 与 `config.example.yaml` 字段说明。 |
-| `docs/DATA_ARTIFACTS.md` | 演示数据、知识图谱库、分析库和数据来源管理策略。 |
-| `docs/TASK1_MIXED_ORCHESTRATION.md` | 任务一混合格式清洗编排、格式保留和质量证据。 |
-| `docs/PERFORMANCE_AND_EVALUATION.md` | 任务一、任务二、任务三的规模、性能、质量指标和复现脚本。 |
-| `docs/TASK3_NL2SQL_EVAL_REPORT.md` | 任务三 NL2SQL 评测口径、指标和限制。 |
+| [`docs/README.md`](docs/README.md) | 文档目录索引，说明每份文档的用途和阅读顺序。 |
+| [`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md) | 总体架构、三项任务数据流、模块职责、算子分工和工程边界。 |
+| [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务、演示账号、Notebook 和对话式验证步骤。 |
+| [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) | 新环境复现部署步骤、脚本入口、健康检查和回滚方式。 |
+| [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | **配置总入口**：部署前速查清单 + 全部 33 个环境变量表 + 容器路径说明 + 修改入口。 |
+| [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 演示数据、知识图谱库、分析库和数据来源管理策略。 |
+| [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) | 任务一混合格式清洗编排、格式保留和质量证据。 |
+| [`docs/PERFORMANCE_AND_EVALUATION.md`](docs/PERFORMANCE_AND_EVALUATION.md) | 规模、性能、质量指标和复现脚本。 |
 
 ## 部署复现
 
