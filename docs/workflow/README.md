@@ -1,4 +1,4 @@
-# CCF 医疗 AI 比赛工作流说明
+# 医疗 AI 工作流说明
 
 > 基于提交侧 `D:\ccf-medical-ai-final-submission` 的代码实际追踪结果
 > 生成日期: 2026-07-06

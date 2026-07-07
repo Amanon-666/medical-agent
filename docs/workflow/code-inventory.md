@@ -203,7 +203,7 @@
 | `08_verify.sh` | 全链路健康验证 |
 | `09_apply_cloudflare_tunnel.sh` | (可选) Cloudflare Tunnel |
 | `10_route_cloudflare_dns.sh` | (可选) Cloudflare DNS |
-| `docker-compose.ccf-override.yml` | 评审环境端口覆盖 |
+| `docker-compose.ccf-override.yml` | 端口覆盖配置 |
 | `nexent.ccf-clean.env` | Nexent 干净环境变量 |
 
 ---

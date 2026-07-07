@@ -18,7 +18,7 @@
 | 7 | [`06_register_nexent.sh`](06_register_nexent.sh) | 注册 MCP 服务并发布任务一、任务二、任务三智能体。 |
 | 8 | [`07_start_demo.sh`](07_start_demo.sh) | 启动医学数据智能体可视化平台。 |
 | 9 | [`08_verify.sh`](08_verify.sh) | 检查服务健康状态和核心接口。 |
-| -- | [`docker-compose.ccf-override.yml`](docker-compose.ccf-override.yml) | 评审环境 Docker Compose 端口覆盖。 |
+| -- | [`docker-compose.ccf-override.yml`](docker-compose.ccf-override.yml) | 端口覆盖配置。 |
 | -- | [`nexent.ccf-clean.env`](nexent.ccf-clean.env) | Nexent 干净部署环境变量模板。 |
 
 ## 2. 配置文件
