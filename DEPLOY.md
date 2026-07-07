@@ -36,7 +36,7 @@ cp config.example.yaml config.yaml
 | --- | --- | --- |
 | LLM API Key | `.env.runtime` | 填入 `CCF_LLM_API_KEY=` |
 | Nexent 管理员凭据 | `.env.runtime` | 填入 `CCF_NEXENT_PASSWORD=` |
-| 服务域名（共 5 处） | `.env.runtime` | 搜索 `mashiro.xin` 并替换为目标域名 |
+| 服务域名 | `.env.runtime` | 修改 `CCF_PUBLIC_DOMAIN` 即可，四个子域名 URL 自动推导（标准模式 `https://{sub}.{domain}`）。如需自定义单个入口再单独修改对应 `CCF_*_URL` |
 | 服务器连接信息 | `config.yaml` | 修改 `server.host` 与 `server.ssh_user` |
 | DataMate 数据卷路径 | `.env.runtime` | 修改 `CCF_DATASET_VOLUME` 以匹配实际挂载点 |
 

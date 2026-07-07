@@ -11,7 +11,7 @@
 | 前端 | Jupyter Notebook (ipywidgets + Plotly)、原生 HTML/JS | 交互式演示、可视化平台 |
 | 数据存储 | SQLite（4 个数据库）、PostgreSQL（DataMate 平台） | 知识图谱、分析库、噪声规则、术语词典 |
 | 通信协议 | MCP (streamable-http)、REST API、SSE | 智能体工具调用、DataMate API、流式对话 |
-| AI 模型 | DeepSeek Chat API | 实体识别、关系抽取、NL2SQL（离线规则链可脱离模型运行） |
+| AI 模型 | LLM API（OpenAI 兼容协议，默认 DeepSeek） | 实体识别、关系抽取、NL2SQL（离线规则链可脱离模型运行） |
 | 基础设施 | Docker、GNU Screen、Bash | 容器化部署、后台服务管理 |
 
 ## 文档导航

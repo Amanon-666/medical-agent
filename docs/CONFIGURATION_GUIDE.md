@@ -17,7 +17,7 @@
 |:---:|---------|------|---------|
 | 1 | 填入 LLM API Key | [`.env.example`](../.env.example) | `CCF_LLM_API_KEY=` |
 | 2 | 设 Nexent 管理员密码 | [`.env.example`](../.env.example) | `CCF_NEXENT_PASSWORD=` |
-| 3 | 换成自己的域名（共 5 个 URL） | [`.env.example`](../.env.example) | 搜索 `mashiro.xin`，全部替换 |
+| 3 | 设主域名（自动推导子域名 URL） | [`.env.example`](../.env.example) | 修改 `CCF_PUBLIC_DOMAIN`，子域名 URL 自动生成；如需自定义单个入口再单独修改对应 `CCF_*_URL` |
 | 4 | 填服务器 IP 和 SSH 用户名 | [`config.example.yaml`](../config.example.yaml) | `server:` 段 |
 | 5 | 改项目部署目录 | [`config.example.yaml`](../config.example.yaml) | `server_project_root` |
 | 6 | 确认 DataMate 数据卷路径 | [`.env.example`](../.env.example) | `CCF_DATASET_VOLUME` |
@@ -46,7 +46,7 @@
 
 | 字段 | 说明 | 默认值 | 消费者 |
 | --- | --- | --- | --- |
-| `CCF_LLM_API_KEY` | DeepSeek API Key | 空 | [`core/llm_client.py`](../core/llm_client.py) |
+| `CCF_LLM_API_KEY` | LLM API Key（OpenAI 兼容协议） | 空 | [`core/llm_client.py`](../core/llm_client.py) |
 | `CCF_LLM_BASE_URL` | LLM 接口地址 | `https://api.deepseek.com/v1/chat/completions` | 同上 |
 | `CCF_LLM_MODEL` | 模型名称 | `deepseek-chat` | 同上 |
 | `CCF_NEXENT_CONFIG_BASE` | Nexent 配置 API 地址 | `http://127.0.0.1:5010` | [`clients/nexent_client.py`](../clients/nexent_client.py) |
