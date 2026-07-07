@@ -82,7 +82,6 @@
 | `CCF_MEDICAL_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |
 | `CCF_ANALYTICS_DB` | 分析库路径 | `data/task3_analytics.db` | 同上 |
 | `CCF_DEMO_DELETE_TOKEN` | 可视化平台来源删除口令（填入任意值即启用删除功能，删除时需输入该值验证） | 空 | [`demo/task3_interactive_demo/source_management.py`](../demo/task3_interactive_demo/source_management.py) |
-| `CCF_DATAMATE_SOURCE_ROOT` | DataMate 源码目录（运维用） | `/home/share/modelengine/DataMate` | 部署脚本 |
 | `MCP_HOST` / `MCP_PORT` | MCP 服务监听地址和端口 | `0.0.0.0:8900` | [`mcp_server/server.py`](../mcp_server/server.py) |
 
 ## 4. 无需修改的路径（容器内标准路径）
