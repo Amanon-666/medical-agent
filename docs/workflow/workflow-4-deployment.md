@@ -1,13 +1,13 @@
 # 链路四：部署流程
 
-> 评委从零复现项目 — 每一步执行什么脚本、依赖什么外部服务
+> 用户从零复现项目 — 每一步执行什么脚本、依赖什么外部服务
 
 ---
 
 ## 部署总览
 
 ```
-评委拿到提交包
+用户拿到提交包
     │
     ▼
 1. 准备环境: Docker Compose 启动 DataMate + Nexent
@@ -129,7 +129,7 @@
   sqlite3 data/task3_analytics.db ".tables" → 16 表
 
 ⚠ 需要 CCF_MEDICAL_KG_DATA 环境变量指向 QASystemOnMedicalKG/medical.json
-  如果未设置 → exit 1，提示评委下载数据源
+  如果未设置 → exit 1，提示用户下载数据源
 
 依赖:
   QASystemOnMedicalKG 数据集 (外部, ~110MB)
@@ -254,7 +254,7 @@ Demo 服务:
 ## 部署依赖图
 
 ```
-外部依赖 (评委需自行准备):
+外部依赖 (用户需自行准备):
   ├── Docker + Docker Compose
   ├── DataMate 镜像/源码 (官方)
   ├── Nexent 镜像/源码 (官方)
@@ -271,7 +271,7 @@ Demo 服务:
   └── 文档 (docs/, README.md)
 
 运行时的数据流:
-  评委的 API Key → .env.runtime → MCP Server 环境变量
+  用户的 API Key → .env.runtime → MCP Server 环境变量
   → core/llm_client.py → DeepSeek API
   → operators/*/process.py → DataMate Runtime 容器内
 ```

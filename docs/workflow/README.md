@@ -12,7 +12,7 @@
 | [workflow-1-data-cleaning.md](workflow-1-data-cleaning.md) | 任务一：数据处理 — 从用户文本到清洗结果 |
 | [workflow-2-knowledge-graph.md](workflow-2-knowledge-graph.md) | 任务二：知识图谱 — 实体、关系、三元组生成 |
 | [workflow-3-analytics-visualization.md](workflow-3-analytics-visualization.md) | 任务三：数据分析 — NL2SQL + 可视化平台 |
-| [workflow-4-deployment.md](workflow-4-deployment.md) | 部署流程 — 评委从零复现的每一步 |
+| [workflow-4-deployment.md](workflow-4-deployment.md) | 部署流程 — 用户从零复现的每一步 |
 | [workflow-5-notebook-demo.md](workflow-5-notebook-demo.md) | Notebook 演示 — 交互式全链路展示 |
 | [code-inventory.md](code-inventory.md) | 代码清单 — 每个文件属于哪条链路 |
 
@@ -50,7 +50,7 @@
 
 ## 两条验证路径
 
-项目提供了两套并行的验证路径，评委可以任选：
+项目提供了两套并行的验证路径，用户可以任选：
 
 | | Agent 路径（在线） | 直接路径（离线） |
 |---|---|---|

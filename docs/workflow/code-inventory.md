@@ -292,7 +292,7 @@
 | `evaluate_task2_cmeee_f1.py` | CMeEE F1 评测 | **必须** |
 | `evaluate_task3_nl2sql_templates.py` | NL2SQL 准确率评测 | **必须** |
 | `e2e_full_pipeline_test.py` | 端到端自动化测试 | 建议 |
-| `judge_reproduce_task2_task3.sh` | 评委复现验证 | 建议 |
+| `judge_reproduce_task2_task3.sh` | 用户复现验证 | 建议 |
 | `validate_task2_task3_local.py` | 本地数据库验证 | 建议 |
 
 ---
