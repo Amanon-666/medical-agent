@@ -69,3 +69,7 @@
 | DeepSeek API | LLM 调用（NER/RE/NL2SQL） | 回退到本地规则（精度降低） |
 | QASystemOnMedicalKG 数据 | KG 构建源数据 | 无法构建 task2_medical_kg.db |
 | Docker + sudo | 读取 DataMate 清洗结果 | 无法收集清洗输出 |
+
+---
+
+[← 返回项目首页](../../README.md)

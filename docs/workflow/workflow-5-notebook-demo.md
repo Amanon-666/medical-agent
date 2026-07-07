@@ -224,3 +224,7 @@ Stage 3: 任务三 Agent → 数据分析
 | task3_analytics.db | Cell 3 KPI + 图表 | Cell 3 看板空白 |
 | Jupyter + ipywidgets | Notebook 运行 | 启动失败 |
 | plotly + pandas | Cell 3 图表渲染 | 图表不显示 |
+
+---
+
+[← 返回项目首页](../../README.md)

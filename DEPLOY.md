@@ -150,3 +150,7 @@ python scripts/update_nexent_agents.py
 | 数据库构建失败 | 保留有上一版本的数据库文件，或数据源可用 | 用上一版本 `.db` 覆盖 `data/` 目录，或重新执行 `bash deploy/04_build_databases.sh` 从源数据重建 |
 | 智能体发布错误 | 发布前版本仍保留在 Nexent 中（`update_nexent_agents.py` 每次发布创建新版本） | 在 Nexent 管理界面选择目标智能体，切换至上一可用版本 |
 | MCP 代码缺陷 | 保留有上一版本的 `mcp_server/` 代码 | 用上一版本代码覆盖 `mcp_server/`，执行 `bash deploy/05_start_mcp.sh` 重启 |
+
+---
+
+[← 返回项目首页](README.md)

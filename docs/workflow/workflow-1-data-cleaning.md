@@ -284,3 +284,7 @@
 | DataMate Database | Docker 容器 `datamate-database` | 数据集和任务元数据 (PostgreSQL) |
 | Docker socket | `/var/run/docker.sock` | docker exec 查询数据库 |
 | sudo | 系统级 | 读取 DataMate volume 中的文件 |
+
+---
+
+[← 返回项目首页](../../README.md)

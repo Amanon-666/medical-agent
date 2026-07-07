@@ -92,3 +92,7 @@ JSON 链递归遍历字符串字段，只清理字段值，不改变对象层级
 | `mcp_server/task1/postprocess.py` | 最终数据集整理与格式保留。 |
 | `mcp_server/task1/evidence.py` | 清洗证据汇总。 |
 | `operators/` | DataMate 自定义清洗算子。 |
+
+---
+
+[← 返回项目首页](../README.md)

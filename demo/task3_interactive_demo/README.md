@@ -62,3 +62,7 @@ https://demo.mashiro.xin/
 ## 数据安全边界
 
 来源删除功能默认保护 QASystemOnMedicalKG、CBLUE 等基线来源，只允许删除演示过程中新增的非保护来源。删除动作需要服务端口令，并会先生成数据库备份。
+
+---
+
+[← 返回项目首页](../../README.md)

@@ -315,3 +315,7 @@ Python ThreadingHTTPServer (单文件, 无需 Flask/FastAPI)
 | SQLite 数据库 | 所有查询的数据源 | 整个任务三不可用 |
 | DeepSeek API | NL2SQL 的 LLM 调用 | NL2SQL 不可用 (模板查询仍可用) |
 | Nexent API (:5014) | /api/agent 转发 | Agent 网关不可用 (直查 SQLite 仍可用) |
+
+---
+
+[← 返回项目首页](../../README.md)
