@@ -1,6 +1,33 @@
 # 医学数据智能体工程
 
-本工程基于 DataMate 与 Nexent 构建医学数据智能体系统，形成“数据治理 → 知识图谱生成 → 分析问答与可视化”的端到端闭环。工程内容包括 DataMate 自定义算子、MCP 工具服务、Nexent 智能体编排、知识图谱库、分析库、可视化平台和部署说明。
+基于 DataMate 与 Nexent 构建的医学数据智能体系统，形成”数据治理 → 知识图谱生成 → 分析问答与可视化”的端到端闭环。
+
+## 技术栈
+
+| 层级 | 技术 | 用途 |
+| --- | --- | --- |
+| 运行平台 | DataMate（数据处理）、Nexent（智能体编排） | 算子运行时、Agent 对话与 MCP 工具调度 |
+| 后端服务 | Python 3.10+、FastMCP 3.4 | MCP 工具服务、知识抽取、NL2SQL |
+| 前端 | Jupyter Notebook (ipywidgets + Plotly)、原生 HTML/JS | 交互式演示、可视化平台 |
+| 数据存储 | SQLite（4 个数据库）、PostgreSQL（DataMate 平台） | 知识图谱、分析库、噪声规则、术语词典 |
+| 通信协议 | MCP (streamable-http)、REST API、SSE | 智能体工具调用、DataMate API、流式对话 |
+| AI 模型 | DeepSeek Chat API | 实体识别、关系抽取、NL2SQL（离线规则链可脱离模型运行） |
+| 基础设施 | Docker、GNU Screen、Bash | 容器化部署、后台服务管理 |
+
+## 文档导航
+
+| 你要了解什么 | 去看哪个文档 |
+| --- | --- |
+| 如何部署到新环境 | **[`DEPLOY.md`](DEPLOY.md)** — 部署总指南 |
+| 部署前需要改哪些配置 | [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) — 33 个字段速查 |
+| 系统架构和模块职责 | [`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md) |
+| 如何在线验证功能 | [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) |
+| 数据库结构和数据资产 | [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) |
+| 任务一清洗的编排细节 | [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) |
+| 代码调用链路追踪 | [`docs/workflow/README.md`](docs/workflow/README.md) — 五条完整链路 |
+| 每个代码文件的作用 | [`docs/workflow/code-inventory.md`](docs/workflow/code-inventory.md) — 183 文件清单 |
+| 每个目录的子文档 | 见下方[目录结构](#目录结构)（每行可点击） |
+| 全部文档列表 | [`docs/README.md`](docs/README.md) — 文档索引导读 |
 
 ## 在线服务入口
 
@@ -80,17 +107,6 @@
 
 任务二返回来源文件、格式分布、解析记录数、实体数、关系数、生成三元组数、入库三元组数、平均耗时、吞吐量和分析库刷新状态。
 
-当前工程侧基线数据如下，数值来自本工程随附知识库、分析库和评测记录，用于说明系统规模与展示口径：
-
-| 指标 | 当前值 | 说明 |
-| --- | --- | --- |
-| 知识图谱规模 | 约 79,600 个实体、约 467,400 条三元组 | 由医学公开数据和任务二新增来源构建，供任务三查询与图表使用。 |
-| 疾病分析库规模 | 约 14,408 个疾病条目 | 来自 `data/task3_analytics.db`，用于疾病详情、统计图表和只读 SQL 查询。 |
-| 实体识别评测 | CMeEE 样本基线 F1 16.5% | 当前为本地词典与规则链基线，用于展示无模型依赖时的可复现能力边界。 |
-| 关系抽取自检 | 100 条诊断样本通过 | 用于检查关系抽取规则在演示疾病域内的稳定性。 |
-| 任务三 NL2SQL | 42 / 42，通过率 100.0% | 固定问题集规则化评测，展示阈值为 85%。 |
-| NPU 状态 | 未启用 | 当前在线环境未检测到真实 NPU，不声明 NPU 加速。 |
-
 ### 任务三：分析问答与可视化
 
 任务三重点展示任务一、二产物复用。系统读取任务二知识图谱库和任务三分析库，提供疾病详情查询、关系子图、统计图表、证据表、噪声拦截记录、自然语言统计查询和 NL2SQL 指标。
@@ -130,12 +146,12 @@
 
 数据库属于数据产物，可随工程目录提供；通常不纳入 Git 历史。
 
-## 质量边界
+## 设计边界
 
-- 清洗效果以工具返回的真实证据为准。
-- 任务二以数据库写入和工具返回为成功依据，不把智能体自然语言自述当作成功依据。
-- 当前环境无 NPU 加速。
-- 对 DataMate / Nexent 源码的改动通过算子、MCP 工具、数据库产物、部署脚本和文档体现。
+- 清洗效果以 MCP 工具返回的真实证据为准，不编造未返回的噪声明细或术语替换结果。
+- 任务二以数据库写入为成功依据，不把智能体自然语言自述当作成功依据。
+- 当前环境未启用 NPU 加速。
+- 对上游 DataMate / Nexent 的改动仅通过算子、MCP 工具、数据库产物、部署脚本和文档体现，不直接修改平台源码。
 
 ## 相关仓库
 
