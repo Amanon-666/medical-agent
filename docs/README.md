@@ -26,3 +26,17 @@
 | `DEPLOYMENT_GUIDE.md` | 部署复现说明 | 环境依赖、脚本顺序、健康检查、域名配置和回滚边界。 |
 | `TASK1_MIXED_ORCHESTRATION.md` | 任务一混合清洗说明 | 混合格式识别、分链清洗、格式保留、血缘和质量证据。 |
 
+## 工作流追踪文档
+
+`workflow/` 目录提供五条完整代码链路的逐文件追踪，用于理解数据如何在系统中流转：
+
+| 文件 | 内容 |
+| --- | --- |
+| [`workflow/README.md`](workflow/README.md) | 工作流总索引与全局架构图 |
+| [`workflow/workflow-1-data-cleaning.md`](workflow/workflow-1-data-cleaning.md) | 任务一：从用户文本到清洗结果的完整代码链路 |
+| [`workflow/workflow-2-knowledge-graph.md`](workflow/workflow-2-knowledge-graph.md) | 任务二：实体识别→关系抽取→三元组生成→持久化 |
+| [`workflow/workflow-3-analytics-visualization.md`](workflow/workflow-3-analytics-visualization.md) | 任务三：NL2SQL + 浏览器可视化平台双路径 |
+| [`workflow/workflow-4-deployment.md`](workflow/workflow-4-deployment.md) | 部署流程：每一步执行什么、依赖什么 |
+| [`workflow/workflow-5-notebook-demo.md`](workflow/workflow-5-notebook-demo.md) | Notebook 演示：5 个 Cell 逐一解析 |
+| [`workflow/code-inventory.md`](workflow/code-inventory.md) | 完整代码清单：按链路归类 + 复用关系 |
+
