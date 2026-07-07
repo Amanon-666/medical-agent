@@ -17,7 +17,7 @@
 |:---:|---------|------|---------|
 | 1 | 填入 LLM API Key | [`.env.example`](../.env.example) | `CCF_LLM_API_KEY=` |
 | 2 | 设 Nexent 管理员密码 | [`.env.example`](../.env.example) | `CCF_NEXENT_PASSWORD=` |
-| 3 | 设主域名（自动推导子域名 URL） | [`.env.example`](../.env.example) | 修改 `CCF_PUBLIC_DOMAIN`，子域名 URL 自动生成；如需自定义单个入口再单独修改对应 `CCF_*_URL` |
+| 3 | 填写域名与各服务入口 URL | [`.env.example`](../.env.example) | 分别填写 `CCF_PUBLIC_DOMAIN` 及四个 `CCF_*_URL`，互不依赖 |
 | 4 | 填服务器 IP 和 SSH 用户名 | [`config.example.yaml`](../config.example.yaml) | `server:` 段 |
 | 5 | 改项目部署目录 | [`config.example.yaml`](../config.example.yaml) | `server_project_root` |
 | 6 | 确认 DataMate 数据卷路径 | [`.env.example`](../.env.example) | `CCF_DATASET_VOLUME` |
@@ -81,7 +81,7 @@
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |
 | `CCF_MEDICAL_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |
 | `CCF_ANALYTICS_DB` | 分析库路径 | `data/task3_analytics.db` | 同上 |
-| `CCF_DEMO_DELETE_TOKEN` | 可视化平台数据来源删除令牌 | 空 | [`demo/task3_interactive_demo/source_management.py`](../demo/task3_interactive_demo/source_management.py) |
+| `CCF_DEMO_DELETE_TOKEN` | 可视化平台来源删除口令（填入任意值即启用删除功能，删除时需输入该值验证） | 空 | [`demo/task3_interactive_demo/source_management.py`](../demo/task3_interactive_demo/source_management.py) |
 | `CCF_DATAMATE_SOURCE_ROOT` | DataMate 源码目录（运维用） | `/home/share/modelengine/DataMate` | 部署脚本 |
 | `MCP_HOST` / `MCP_PORT` | MCP 服务监听地址和端口 | `0.0.0.0:8900` | [`mcp_server/server.py`](../mcp_server/server.py) |
 
