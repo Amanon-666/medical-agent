@@ -45,7 +45,7 @@
 |---|---|---|
 | **任务一** | Nexent → MCP → DataMate API → 算子链 | 无（清洗必须走 DataMate） |
 | **任务二** | Nexent → MCP → core/ → LLM API | `kg/build_kg_v2.py` 直接调 core/（需外部数据源） |
-| **任务三** | Nexent → MCP → core/nl2sql.py | `demo/server.py` 直接查 SQLite |
+| **任务三** | Nexent → MCP → core/nl2sql.py | `demo/task3_interactive_demo/server.py` 直接查 SQLite |
 | **优势** | 证明 Agent 编排能力 | 绕过 Agent/MCP 层，逻辑可独立验证 |
 | **入口** | Nexent 对话界面 | `python kg/build_kg_v2.py` 等 |
 

@@ -40,7 +40,7 @@ cp config.example.yaml config.yaml
 | 服务器连接信息 | `config.yaml` | 修改 `server.host` 与 `server.ssh_user` |
 | DataMate 数据卷路径 | `.env.runtime` | 修改 `CCF_DATASET_VOLUME` 以匹配实际挂载点 |
 
-全部 33 个可配置字段的详细说明见 [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)。
+全部可配置字段的详细说明见 [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)。
 
 ### 第二步：执行部署
 
@@ -133,7 +133,7 @@ python scripts/update_nexent_agents.py
 
 | 文件 | 内容 |
 | --- | --- |
-| [`CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置参考（33 字段表、速查清单） |
+| [`CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置参考（字段表、速查清单） |
 | [`data/README.md`](data/README.md) | 数据库产物、表结构与数据来源管理 |
 | [`DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务验证步骤与示例指令 |
 

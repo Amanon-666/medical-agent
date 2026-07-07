@@ -25,7 +25,7 @@
 | 文件 | 链路 | 说明 |
 |------|------|------|
 | `README.md` | ALL | 项目主文档 |
-| `.env.example` | CONFIG | 环境变量模板 (21 个变量) |
+| `.env.example` | CONFIG | 环境变量模板 (34 个变量) |
 | `config.example.yaml` | CONFIG | YAML 配置模板 |
 | `requirements.txt` | ALL | Python 依赖  |
 | `.gitignore` | ALL | Git 排除规则 |
@@ -201,8 +201,6 @@
 | `06_register_nexent.sh` | MCP 注册 + Agent 发布 |
 | `07_start_demo.sh` | 可视化平台启动 |
 | `08_verify.sh` | 全链路健康验证 |
-| `09_apply_cloudflare_tunnel.sh` | (可选) Cloudflare Tunnel |
-| `10_route_cloudflare_dns.sh` | (可选) Cloudflare DNS |
 | `docker-compose.ccf-override.yml` | 端口覆盖配置 |
 
 ---
@@ -336,7 +334,7 @@ nexent_client.py        ← ALL (Nexent API)
 | data/ | 6+ | ALL |
 | docs/ | 10 | ALL |
 | 根目录 | 5 | ALL |
-| **总计** | **~183** | |
+| **总计** | **173** | |
 
 ---
 
