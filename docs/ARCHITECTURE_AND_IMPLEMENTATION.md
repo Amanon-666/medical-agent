@@ -158,7 +158,7 @@ flowchart LR
 | Nexent | `https://nexent.mashiro.xin/` |
 | DataMate | `https://datamate.mashiro.xin/` |
 
-本地或新服务器部署时，`deploy/` 目录负责把本项目能力接入已有 DataMate 与 Nexent 平台。详细步骤见 `DEPLOYMENT_GUIDE.md`。
+本地或新服务器部署时，`deploy/` 目录负责把本项目能力接入已有 DataMate 与 Nexent 平台。详细步骤见 [`DEPLOY.md`](../DEPLOY.md)。
 
 ## 8. 质量边界
 

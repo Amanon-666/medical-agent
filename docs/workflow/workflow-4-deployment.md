@@ -80,7 +80,7 @@
   task2 (4个): medical_entity_extractor, medical_relation_extractor,
                 medical_triple_generator, medical_text_quality_filter
 
-⚠ runtime_helpers/ 不需要部署到 DataMate 容器
+注意：runtime_helpers/ 不需要部署到 DataMate 容器
   它们在 MCP 进程中运行，不在 DataMate 容器内
 
 依赖:
@@ -124,7 +124,7 @@
   sqlite3 data/task2_medical_kg.db ".tables" → 8 表
   sqlite3 data/task3_analytics.db ".tables" → 16 表
 
-⚠ 需要 CCF_MEDICAL_KG_DATA 环境变量指向 QASystemOnMedicalKG/medical.json
+注意：需要 CCF_MEDICAL_KG_DATA 环境变量指向 QASystemOnMedicalKG/medical.json
   如果未设置 → exit 1，提示用户下载数据源
 
 依赖:
@@ -180,8 +180,8 @@ MCP 服务配置:
 验证:
   curl Nexent API → 检查 >= 3 个 Agent 状态为 published
 
-⚠ 需要 CCF_NEXENT_PASSWORD 环境变量
-⚠ 新环境无预建 Agent (ID 3/4/5)
+注意：需要 CCF_NEXENT_PASSWORD 环境变量
+注意：新环境无预建 Agent (ID 3/4/5)
   → update_nexent_agents.py 需要支持 create-if-missing 逻辑
 
 依赖:
