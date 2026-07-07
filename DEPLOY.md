@@ -134,9 +134,8 @@ python scripts/update_nexent_agents.py
 
 | 文件 | 内容 |
 | --- | --- |
-| [`DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) | 部署流程详解（环境依赖、配置、健康检查、回滚） |
-| [`CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置参考（33 字段表、速查清单、安全注意事项） |
-| [`DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 数据库产物、演示数据集与数据来源管理 |
+| [`CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置参考（33 字段表、速查清单） |
+| [`data/README.md`](data/README.md) | 数据库产物、表结构与数据来源管理 |
 | [`DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务验证步骤与示例指令 |
 
 ---

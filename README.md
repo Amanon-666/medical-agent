@@ -22,11 +22,11 @@
 | 部署前需要改哪些配置 | [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) — 33 个字段速查 |
 | 系统架构和模块职责 | [`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md) |
 | 如何在线验证功能 | [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) |
-| 数据库结构和数据资产 | [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) |
+| 数据库结构和数据资产 | [`data/README.md`](data/README.md) |
 | 任务一清洗的编排细节 | [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) |
 | 代码调用链路追踪 | [`docs/workflow/README.md`](docs/workflow/README.md) — 五条完整链路 |
 | 每个代码文件的作用 | [`docs/workflow/code-inventory.md`](docs/workflow/code-inventory.md) — 183 文件清单 |
-| 每个目录的子文档 | 见下方[目录结构](#目录结构)（每行可点击） |
+| 每个目录的子文档 | 见下方[目录结构](#目录结构) |
 | 全部文档列表 | [`docs/README.md`](docs/README.md) — 文档索引导读 |
 
 ## 在线服务入口
@@ -37,7 +37,7 @@
 | --- | --- | --- |
 | 医学数据智能体可视化平台 | `https://demo.mashiro.xin/` | 已预载知识图谱库（79,600 实体 / 467,400 三元组）与分析库（14,408 疾病），提供疾病关系图、BI 图表、证据表、噪声拦截和 NL2SQL 问答 |
 | Nexent 智能体平台 | `https://nexent.mashiro.xin/` | 已注册 17 个 MCP 工具，已发布任务一/二/三共 3 个智能体，可直接对话执行全流程 |
-| DataMate 数据处理平台 | `https://datamate.mashiro.xin/` | 已预先注册**糖尿病全流程演示数据集**（`txt/csv/json/jsonl` 混合格式，含 4 个文件），已部署 18 个自定义算子 |
+| DataMate 数据处理平台 | `https://datamate.mashiro.xin/` | 已预先注册**糖尿病全流程演示数据集**（`txt/csv/json/jsonl` 混合格式，含 4 个文件）可用于任务演示，已部署 18 个自定义算子 |
 
 演示账号：`suadmin@nexent.com`  
 演示密码：`241002814`
@@ -125,9 +125,7 @@
 | [`docs/README.md`](docs/README.md) | 文档目录索引，说明每份文档的用途和阅读顺序。 |
 | [`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md) | 总体架构、三项任务数据流、模块职责、算子分工和工程边界。 |
 | [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务、演示账号、Notebook 和对话式验证步骤。 |
-| [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) | 新环境复现部署步骤、脚本入口、健康检查和回滚方式。 |
 | [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | **配置总入口**：部署前速查清单 + 全部 33 个环境变量表 + 容器路径说明 + 修改入口。 |
-| [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 演示数据、知识图谱库、分析库和数据来源管理策略。 |
 | [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) | 任务一混合格式清洗编排、格式保留和质量证据。 |
 
 ## 部署复现
