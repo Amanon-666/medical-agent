@@ -159,9 +159,7 @@
 ### 离线构建脚本 (kg/)
 | 文件 | 作用 |
 |------|------|
-| `kg/build_kg.py` | KG 构建脚本 (旧版) |
-| `kg/build_kg_v2.py` | KG 构建脚本 (新版, 支持 CMeEE/CMeIE) |
-| `kg/build_sql_db.py` | 分析库构建 (旧版) |
+| `kg/build_kg_v2.py` | KG 构建脚本 |
 | `kg/build_analytics_v2.py` | 分析库构建 (新版) |
 
 ### DataMate 算子 (任务二专用, 在 DataMate Runtime 内执行)

@@ -27,7 +27,7 @@
 | `README.md` | ALL | 项目主文档 |
 | `.env.example` | CONFIG | 环境变量模板 (21 个变量) |
 | `config.example.yaml` | CONFIG | YAML 配置模板 |
-| `requirements.txt` | ALL | Python 依赖 (⚠ 缺 pandas) |
+| `requirements.txt` | ALL | Python 依赖  |
 | `.gitignore` | ALL | Git 排除规则 |
 
 ---
@@ -151,7 +151,7 @@
 | `operators/whitespace_normalizer/` | T1 | 空白规范化 |
 | `operators/medical_record_splitter/` | T1 | 多段病历拆分 |
 | `operators/unified_jsonl_exporter/` | T1 | JSONL 统一输出 |
-| `operators/table_column_cleaner/` | T1 | CSV 表格清洗 (⚠ 需 pandas) |
+| `operators/table_column_cleaner/` | T1 | CSV 表格清洗  |
 | `operators/json_field_cleaner/` | T1 | JSON/JSONL 字段清洗 |
 
 ### 本地规则 + LLM 辅助算子

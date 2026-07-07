@@ -55,8 +55,6 @@
      - kg/build_analytics_v2.py
      - demo/task3_interactive_demo/server.py
 
-⚠ requirements.txt 当前缺少 pandas
-   影响: table_column_cleaner 算子 ImportError
 
 依赖:
   pip 源可达 (默认 PyPI, 可配置镜像)

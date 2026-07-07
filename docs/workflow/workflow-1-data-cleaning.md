@@ -185,7 +185,7 @@
 | `operators/llm_noise_filter/noise_logger.py` | 可选辅助 | SQLite (try/except 兜底) |
 | `operators/medical_term_normalizer/process.py` | 本地词典 + LLM | term_kb.db, medical_abbrev.py |
 | `operators/medical_term_normalizer/medical_abbrev.py` | 数据文件 | 114 条缩写 (try/except 兜底) |
-| `operators/table_column_cleaner/process.py` | 本地 | **pandas** (⚠ requirements.txt 未列) |
+| `operators/table_column_cleaner/process.py` | 本地 | **pandas** |
 | `operators/json_field_cleaner/process.py` | 本地 | 无外部依赖 |
 | `operators/medical_record_splitter/process.py` | 纯本地 | 无外部依赖 |
 | `operators/unified_jsonl_exporter/process.py` | 纯本地 | 无外部依赖 |

@@ -183,9 +183,7 @@ Stage 3: 任务三 Agent → 数据分析
 |------|------|
 | `demo/start_notebook_demo.bat` | Windows 启动脚本, 设置环境变量 |
 | `demo/interactive_pipeline_demo.ipynb` | 主演示 Notebook (5 cells) |
-| `demo/task1_pipeline_demo.ipynb` | 任务一专项 Notebook (备选) |
 | `clients/nexent_client.py` | Nexent API 客户端 (230 行) |
-| `clients/datamate_client.py` | DataMate API 客户端 (stub) |
 | `clients/__init__.py` | 包导出 |
 
 ## NexentClient API 调用速查
