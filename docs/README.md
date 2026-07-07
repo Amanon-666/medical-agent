@@ -9,10 +9,6 @@
 3. **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** — 任务一混合格式清洗如何保留 `txt/csv/json/jsonl` 源格式和质量证据。
 4. **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** — 配置总入口，含速查清单、全部环境变量表、字段说明和修改入口。
 
----
-
-[← 返回项目首页](../README.md)
-
 ## 文档清单
 
 | 文件 | 内容 |
@@ -36,3 +32,6 @@
 | [`workflow/workflow-5-notebook-demo.md`](workflow/workflow-5-notebook-demo.md) | Notebook 演示：5 个 Cell 逐一解析 |
 | [`workflow/code-inventory.md`](workflow/code-inventory.md) | 完整代码清单：按链路归类 + 复用关系 |
 
+---
+
+[← 返回项目首页](../README.md)

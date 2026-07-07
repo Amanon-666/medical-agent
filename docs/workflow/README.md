@@ -22,7 +22,7 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         评委/用户交互层                              │
+│                         用户交互层                              │
 │                                                                     │
 │   Nexent 对话界面           浏览器                  Jupyter Notebook │
 │   (nexent.mashiro.xin)     (demo.mashiro.xin)    (start_notebook)   │

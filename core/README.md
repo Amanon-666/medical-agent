@@ -41,10 +41,6 @@
 | [`llm_client.py`](llm_client.py) | 统一 LLM 调用出口，所有 LLM 请求经此模块发出。 | ALL |
 | [`__init__.py`](__init__.py) | 包导出，暴露常用模块给外部调用方。 | ALL |
 
----
-
-[← 返回项目首页](../README.md)
-
 ## 调用链
 
 任务二典型调用链：
@@ -73,3 +69,7 @@ Nexent 智能体或可视化平台
 - DataMate 数据集创建、清洗任务创建和状态查询在 `mcp_server/task1/` 与 `mcp_server/datamate/` 中完成。
 - 数据库写入、来源登记和分析库刷新在 `mcp_server/kg/` 与 `kg/` 中完成。
 - 面向用户的页面展示在 `demo/task3_interactive_demo/` 中完成。
+
+---
+
+[← 返回项目首页](../README.md)

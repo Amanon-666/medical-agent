@@ -31,10 +31,6 @@
 
 数据库详细结构见数据库表说明。
 
----
-
-[← 返回项目首页](../README.md)
-
 ## 数据库关系
 
 ```text
@@ -52,3 +48,7 @@
 - 在线可视化平台：`https://demo.mashiro.xin/`
 - 数据处理平台：`https://datamate.mashiro.xin/`
 - 智能体平台：`https://nexent.mashiro.xin/`
+
+---
+
+[← 返回项目首页](../README.md)
