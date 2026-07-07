@@ -104,7 +104,6 @@ python scripts/update_nexent_agents.py
 | [`run_all.sh`](deploy/run_all.sh) | 一键部署入口，串行执行 00–08 |
 | [`00_check_prereqs.sh`](deploy/00_check_prereqs.sh) – [`08_verify.sh`](deploy/08_verify.sh) | 分步部署脚本（对应上表第 1–9 步） |
 | [`docker-compose.ccf-override.yml`](deploy/docker-compose.ccf-override.yml) | 端口覆盖配置 |
-| [`nexent.ccf-clean.env`](deploy/nexent.ccf-clean.env) | Nexent 干净部署环境变量模板 |
 
 ### 配置模板（项目根目录）
 

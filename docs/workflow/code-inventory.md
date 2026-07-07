@@ -204,7 +204,6 @@
 | `09_apply_cloudflare_tunnel.sh` | (可选) Cloudflare Tunnel |
 | `10_route_cloudflare_dns.sh` | (可选) Cloudflare DNS |
 | `docker-compose.ccf-override.yml` | 端口覆盖配置 |
-| `nexent.ccf-clean.env` | Nexent 干净环境变量 |
 
 ---
 
