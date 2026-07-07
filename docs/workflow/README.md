@@ -43,7 +43,7 @@
        ▼                   ▼                        ▼
   DataMate REST        core/ 模块              SQLite 数据库
   API (:18000)         LLM API (DeepSeek)      task2_medical_kg.db
-  算子容器内执行        离线规则 + 在线模型       task3_analytics.db
+  算子容器内执行        本地规则 + 在线模型       task3_analytics.db
                                               noise_kb.db
                                               term_kb.db
 ```
@@ -52,20 +52,20 @@
 
 项目提供了两套并行的验证路径，用户可以任选：
 
-| | Agent 路径（在线） | 直接路径（离线） |
+| | Agent 路径 | 直接脚本路径 |
 |---|---|---|
 | **任务一** | Nexent → MCP → DataMate API → 算子链 | 无（清洗必须走 DataMate） |
-| **任务二** | Nexent → MCP → core/ → LLM API | `kg/build_kg_v2.py` 直接调 core/ |
+| **任务二** | Nexent → MCP → core/ → LLM API | `kg/build_kg_v2.py` 直接调 core/（需外部数据源） |
 | **任务三** | Nexent → MCP → core/nl2sql.py | `demo/server.py` 直接查 SQLite |
-| **优势** | 证明 Agent 编排能力 | 稳定可复现，无网络依赖 |
-| **入口** | `nexent.mashiro.xin` 对话 | `python kg/build_kg_v2.py` 等 |
+| **优势** | 证明 Agent 编排能力 | 绕过 Agent/MCP 层，逻辑可独立验证 |
+| **入口** | Nexent 对话界面 | `python kg/build_kg_v2.py` 等 |
 
 ## 关键外部依赖
 
 | 依赖 | 用途 | 不可用时的后果 |
 |------|------|---------------|
 | DataMate 平台 (:18000) | 任务一清洗执行 | 任务一完全无法工作 |
-| Nexent 平台 (:5010, :5014) | Agent 对话和编排 | Agent 路径不可用（离线路径仍可用） |
+| Nexent 平台 (:5010, :5014) | Agent 对话和编排 | Agent 路径不可用（直接脚本路径仍可用） |
 | DeepSeek API | LLM 调用（NER/RE/NL2SQL） | 回退到本地规则（精度降低） |
 | QASystemOnMedicalKG 数据 | KG 构建源数据 | 无法构建 task2_medical_kg.db |
 | Docker + sudo | 读取 DataMate 清洗结果 | 无法收集清洗输出 |
