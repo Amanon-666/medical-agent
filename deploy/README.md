@@ -18,8 +18,6 @@
 | 7 | [`06_register_nexent.sh`](06_register_nexent.sh) | 注册 MCP 服务并发布任务一、任务二、任务三智能体。 |
 | 8 | [`07_start_demo.sh`](07_start_demo.sh) | 启动医学数据智能体可视化平台。 |
 | 9 | [`08_verify.sh`](08_verify.sh) | 检查服务健康状态和核心接口。 |
-| -- | [`09_apply_cloudflare_tunnel.sh`](09_apply_cloudflare_tunnel.sh) | 可选：应用 Cloudflare Tunnel 配置。 |
-| -- | [`10_route_cloudflare_dns.sh`](10_route_cloudflare_dns.sh) | 可选：注册 Cloudflare 子域名路由。 |
 | -- | [`docker-compose.ccf-override.yml`](docker-compose.ccf-override.yml) | 评审环境 Docker Compose 端口覆盖。 |
 | -- | [`nexent.ccf-clean.env`](nexent.ccf-clean.env) | Nexent 干净部署环境变量模板。 |
 

@@ -95,19 +95,6 @@ python scripts/update_nexent_agents.py
 
 ---
 
-## 可选能力
-
-### 公网访问（Cloudflare Tunnel）
-
-若需通过公网域名而非仅本机访问服务，可使用以下脚本配置 Cloudflare Tunnel：
-
-| 脚本 | 用途 | 使用方式 |
-| --- | --- | --- |
-| [`09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | 应用 Tunnel 配置 | 默认仅预览，追加 `--apply` 执行 |
-| [`10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | 注册 DNS 路由 | 默认仅预览，追加 `--apply --overwrite-dns` 执行 |
-
----
-
 ## 附录 A：文件清单
 
 ### 部署脚本（`deploy/`）
@@ -116,8 +103,6 @@ python scripts/update_nexent_agents.py
 | --- | --- |
 | [`run_all.sh`](deploy/run_all.sh) | 一键部署入口，串行执行 00–08 |
 | [`00_check_prereqs.sh`](deploy/00_check_prereqs.sh) – [`08_verify.sh`](deploy/08_verify.sh) | 分步部署脚本（对应上表第 1–9 步） |
-| [`09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | Cloudflare Tunnel 配置（可选） |
-| [`10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | Cloudflare DNS 路由（可选） |
 | [`docker-compose.ccf-override.yml`](deploy/docker-compose.ccf-override.yml) | 评审环境端口覆盖配置 |
 | [`nexent.ccf-clean.env`](deploy/nexent.ccf-clean.env) | Nexent 干净部署环境变量模板 |
 
@@ -158,9 +143,11 @@ python scripts/update_nexent_agents.py
 
 ## 附录 B：回滚操作
 
-| 故障场景 | 回滚步骤 |
-| --- | --- |
-| 算子部署异常 | 从备份恢复 DataMate 算子目录，执行 `docker restart datamate-runtime` |
-| 数据库构建失败 | 从备份恢复 `data/task2_medical_kg.db` 与 `data/task3_analytics.db` |
-| 智能体发布错误 | 在 Nexent 管理界面切换至上一可用版本 |
-| MCP 代码缺陷 | 从备份恢复 `mcp_server/` 目录，重启 MCP 进程 |
+部署脚本在执行时不会自动创建备份。以下回滚方式依赖操作者提前手动备份或具备原始代码/数据副本。
+
+| 故障场景 | 前置条件 | 回滚步骤 |
+| --- | --- | --- |
+| 算子部署异常 | 保留有上一版本的算子代码 | 用上一版本代码重新执行 `bash deploy/02_deploy_operators.sh`，然后 `docker restart datamate-runtime` |
+| 数据库构建失败 | 保留有上一版本的数据库文件，或数据源可用 | 用上一版本 `.db` 覆盖 `data/` 目录，或重新执行 `bash deploy/04_build_databases.sh` 从源数据重建 |
+| 智能体发布错误 | 发布前版本仍保留在 Nexent 中（`update_nexent_agents.py` 每次发布创建新版本） | 在 Nexent 管理界面选择目标智能体，切换至上一可用版本 |
+| MCP 代码缺陷 | 保留有上一版本的 `mcp_server/` 代码 | 用上一版本代码覆盖 `mcp_server/`，执行 `bash deploy/05_start_mcp.sh` 重启 |

@@ -132,9 +132,9 @@
 
 ## 质量边界
 
-- 清洗效果以工具返回的真实证据为准，不编造未返回的语义噪声明细或术语替换结果。
+- 清洗效果以工具返回的真实证据为准。
 - 任务二以数据库写入和工具返回为成功依据，不把智能体自然语言自述当作成功依据。
-- 当前环境展示 CPU 基线指标；没有真实 NPU 硬件证据时不宣称 NPU 加速。
+- 当前环境无 NPU 加速。
 - 上游 DataMate / Nexent 源码不作为随意修改对象；项目改动通过算子、MCP 工具、数据库产物、部署脚本和文档体现。
 
 ## 相关仓库
@@ -144,4 +144,4 @@
 | 本工程（提交侧） | [github.com/Amanon-666/medical-agent](https://github.com/Amanon-666/medical-agent) | 算子、MCP 工具、Agent 编排、部署脚本与文档 |
 | DataMate（运行平台） | [github.com/ModelEngine-Group/DataMate](https://github.com/ModelEngine-Group/DataMate) | 数据处理平台，提供算子运行时与数据集管理 |
 | Nexent（运行平台） | [github.com/ModelEngine-Group/nexent](https://github.com/ModelEngine-Group/nexent) | 智能体平台，提供 Agent 编排与 MCP 工具调度 |
-- 上游 DataMate / Nexent 源码不作为随意修改对象；项目改动通过算子、MCP 工具、数据库产物、部署脚本和文档体现。
+
