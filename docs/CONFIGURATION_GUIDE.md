@@ -15,7 +15,7 @@
 
 | 序号 | 要做什么 | 文件 | 找哪一行 |
 |:---:|---------|------|---------|
-| 1 | 填入 DeepSeek API Key | [`.env.example`](../.env.example) | `CCF_LLM_API_KEY=` |
+| 1 | 填入 LLM API Key | [`.env.example`](../.env.example) | `CCF_LLM_API_KEY=` |
 | 2 | 设 Nexent 管理员密码 | [`.env.example`](../.env.example) | `CCF_NEXENT_PASSWORD=` |
 | 3 | 换成自己的域名（共 5 个 URL） | [`.env.example`](../.env.example) | 搜索 `mashiro.xin`，全部替换 |
 | 4 | 填服务器 IP 和 SSH 用户名 | [`config.example.yaml`](../config.example.yaml) | `server:` 段 |

@@ -146,7 +146,7 @@
 
 | 文件 | 链路 | 说明 |
 |------|------|------|
-| `operators/emoji_cleaner/` | T1 | Emoji 去除 (⚠ `__init__.py` 空) |
+| `operators/emoji_cleaner/` | T1 | Emoji 去除 |
 | `operators/url_remover/` | T1 | URL/HTML 清理 |
 | `operators/whitespace_normalizer/` | T1 | 空白规范化 |
 | `operators/medical_record_splitter/` | T1 | 多段病历拆分 |
@@ -214,7 +214,6 @@
 |------|------|------|
 | `start_notebook_demo.bat` | DEMO | Windows 启动脚本 |
 | `interactive_pipeline_demo.ipynb` | DEMO | 主演示 Notebook |
-| `task1_pipeline_demo.ipynb` | DEMO | 任务一专项 Notebook |
 | `README.md` | DEMO | demo/ 文档 |
 
 ### demo/task3_interactive_demo/ — 可视化平台
@@ -255,7 +254,6 @@
 |------|------|------|
 | `__init__.py` | ALL | 包导出 |
 | `nexent_client.py` | ALL | **Nexent API 客户端** (230行, 登录/Agent/MCP/KB) |
-| `datamate_client.py` | ALL | DataMate API 客户端 (部分实现) |
 | `README.md` | ALL | clients/ 文档 |
 
 ---
@@ -265,10 +263,8 @@
 | 文件 | 链路 | 说明 |
 |------|------|------|
 | `__init__.py` | T2 | 包初始化 |
-| `build_kg.py` | T2 | KG 构建 (旧版) |
-| `build_kg_v2.py` | T2 | **KG 构建 (新版)**: medical.json + CMeEE/CMeIE |
-| `build_sql_db.py` | T3 | 分析库构建 (旧版) |
-| `build_analytics_v2.py` | T3 | **分析库构建 (新版)**: KG → 16 表 ETL |
+| `build_kg_v2.py` | T2 | 知识图谱库构建 |
+| `build_analytics_v2.py` | T3 | 分析库构建：KG → 16 表 ETL |
 | `README.md` | T2+T3 | kg/ 文档 |
 
 ---
@@ -284,18 +280,6 @@
 | `runtime_env.py` | ALL | 环境变量加载 (被 runtime_helpers 引用) |
 | `start_mcp_server.sh` | DEPLOY | MCP 启动脚本 |
 | `README.md` | ALL | scripts/ 文档 |
-
-### ⚠ 提交侧缺失但服务器有的脚本
-
-| 文件 | 用途 | 重要性 |
-|------|------|--------|
-| `evaluate_task2_cmeee_f1.py` | CMeEE F1 评测 | **必须** |
-| `evaluate_task3_nl2sql_templates.py` | NL2SQL 准确率评测 | **必须** |
-| `e2e_full_pipeline_test.py` | 端到端自动化测试 | 建议 |
-| `judge_reproduce_task2_task3.sh` | 用户复现验证 | 建议 |
-| `validate_task2_task3_local.py` | 本地数据库验证 | 建议 |
-
----
 
 ## data/ — 数据资产
 
@@ -316,12 +300,8 @@
 | `README.md` | 文档索引 |
 | `ARCHITECTURE_AND_IMPLEMENTATION.md` | 架构与实现 |
 | `DEMO_USAGE_GUIDE.md` | 演示使用指南 |
-| `DEPLOYMENT_GUIDE.md` | 部署指南 |
 | `CONFIGURATION_GUIDE.md` | 配置指南 |
-| `DATA_ARTIFACTS.md` | 数据资产说明 |
 | `TASK1_MIXED_ORCHESTRATION.md` | 任务一混合编排 |
-| `TASK3_NL2SQL_EVAL_REPORT.md` | NL2SQL 评测报告 |
-| `PROJECT_ASSETS.md` | 项目资产清单 |
 
 ---
 
