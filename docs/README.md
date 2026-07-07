@@ -4,10 +4,10 @@
 
 ## 阅读顺序
 
-1. `ARCHITECTURE_AND_IMPLEMENTATION.md`：理解系统架构、三项任务的数据流、DataMate 算子与 MCP 算子的分工。
-2. `DEMO_USAGE_GUIDE.md`：按照在线服务入口进行功能验证。
-3. `TASK1_MIXED_ORCHESTRATION.md`：查看任务一混合格式清洗如何保留 `txt/csv/json/jsonl` 源格式和质量证据。
-4. `CONFIGURATION_GUIDE.md`：**配置总入口**，含速查清单、全部环境变量表、字段说明和修改入口。
+1. **[`ARCHITECTURE_AND_IMPLEMENTATION.md`](ARCHITECTURE_AND_IMPLEMENTATION.md)** — 系统架构、三项任务的数据流、DataMate 算子与 MCP 算子的分工。
+2. **[`DEMO_USAGE_GUIDE.md`](DEMO_USAGE_GUIDE.md)** — 在线服务入口的功能验证。
+3. **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** — 任务一混合格式清洗如何保留 `txt/csv/json/jsonl` 源格式和质量证据。
+4. **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** — 配置总入口，含速查清单、全部环境变量表、字段说明和修改入口。
 
 ---
 
@@ -15,12 +15,12 @@
 
 ## 文档清单
 
-| 文件 | 中文标题 | 内容 |
-| --- | --- | --- |
-| `ARCHITECTURE_AND_IMPLEMENTATION.md` | 架构与实现说明 | 总体架构、任务一/二/三实现流程、模块职责、算子分工、部署关系。 |
-| `CONFIGURATION_GUIDE.md` | 配置说明 | 全部 33 个环境变量的字段含义、默认值与消费者。 |
-| `DEMO_USAGE_GUIDE.md` | 演示操作说明 | 在线入口、演示账号、Notebook、Nexent 对话、DataMate 数据查看和可视化平台操作。 |
-| `TASK1_MIXED_ORCHESTRATION.md` | 任务一混合清洗说明 | 混合格式识别、分链清洗、格式保留、血缘和质量证据。 |
+| 文件 | 内容 |
+| --- | --- |
+| **[`ARCHITECTURE_AND_IMPLEMENTATION.md`](ARCHITECTURE_AND_IMPLEMENTATION.md)** | 总体架构、任务一/二/三实现流程、模块职责、算子分工 |
+| **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** | 全部 33 个环境变量的字段含义、默认值与消费者 |
+| **[`DEMO_USAGE_GUIDE.md`](DEMO_USAGE_GUIDE.md)** | 在线入口、演示账号、Notebook、Nexent 对话、DataMate 数据查看 |
+| **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** | 混合格式识别、分链清洗、格式保留、血缘和质量证据 |
 
 ## 工作流追踪文档
 

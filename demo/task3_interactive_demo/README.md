@@ -14,21 +14,21 @@ https://demo.mashiro.xin/
 
 | 区域 | 数据来源 | 作用 |
 | --- | --- | --- |
-| 数据流向 | `data_sources`、统计汇总表 | 展示知识图谱已登记来源、本轮新接入来源和核心指标。 |
-| 自然语言问答 | `query_service.py`、`agent_answer.py` | 识别疾病、检查、治疗、科室和统计类问题，返回结构化答案。 |
-| 图谱洞察 | `dashboard_payloads.py` | 展示关系子图、统计图表、证据表和噪声拦截摘要。 |
-| 来源管理 | `source_management.py` | 支持删除非保护来源；删除前自动备份知识图谱库和分析库。 |
+| 数据流向 | `data_sources`、统计汇总表 | 展示知识图谱已登记来源、本轮新接入来源和核心指标 |
+| 自然语言问答 | [`query_service.py`](query_service.py)、[`agent_answer.py`](agent_answer.py) | 识别疾病、检查、治疗、科室和统计类问题，返回结构化答案 |
+| 图谱洞察 | [`dashboard_payloads.py`](dashboard_payloads.py) | 展示关系子图、统计图表、证据表和噪声拦截摘要 |
+| 来源管理 | [`source_management.py`](source_management.py) | 支持删除非保护来源；删除前自动备份知识图谱库和分析库 |
 
 ## 核心文件
 
 | 文件 | 职责 |
 | --- | --- |
-| `server.py` | HTTP 服务入口，负责静态页面、查询接口和来源管理接口。 |
-| `query_service.py` | 疾病问答和 NL2SQL 查询编排。 |
-| `dashboard_payloads.py` | 构造左侧指标、图谱、图表和质量审计数据。 |
-| `quality.py` | 读取和聚合噪声拦截记录，按类型展示给前端。 |
-| `source_management.py` | 删除来源、备份数据库、保护基线来源。 |
-| `static/` | 前端页面、样式、图谱渲染、Markdown 渲染和图表渲染。 |
+| **[`server.py`](server.py)** | HTTP 服务入口，负责静态页面、查询接口和来源管理接口 |
+| **[`query_service.py`](query_service.py)** | 疾病问答和 NL2SQL 查询编排 |
+| **[`dashboard_payloads.py`](dashboard_payloads.py)** | 构造左侧指标、图谱、图表和质量审计数据 |
+| **[`quality.py`](quality.py)** | 读取和聚合噪声拦截记录，按类型展示给前端 |
+| **[`source_management.py`](source_management.py)** | 删除来源、备份数据库、保护基线来源 |
+| `static/` | 前端页面、样式、图谱渲染、Markdown 渲染和图表渲染 |
 
 ## 依赖数据
 
