@@ -31,13 +31,13 @@
 
 ## 在线服务入口
 
-当前维护了一套可直接访问的在线环境。公网域名首次加载可能略有延迟，刷新后通常可以正常访问。
+当前维护了一套可直接访问的在线环境，以下服务均已预先配置完毕，可直接验证。
 
-| 服务 | 地址 | 主要用途 |
+| 服务 | 地址 | 预置内容 |
 | --- | --- | --- |
-| 医学数据智能体可视化平台 | `https://demo.mashiro.xin/` | 查看数据流、疾病关系图、统计图表、证据表、噪声拦截记录，并进行疾病问答。 |
-| Nexent 智能体平台 | `https://nexent.mashiro.xin/` | 与任务一、任务二、任务三智能体对话，观察 MCP 工具调用、执行指标和任务结果。 |
-| DataMate 数据处理平台 | `https://datamate.mashiro.xin/` | 查看数据集、清洗算子、清洗任务、输出数据集和质量报告。 |
+| 医学数据智能体可视化平台 | `https://demo.mashiro.xin/` | 已预载知识图谱库（79,600 实体 / 467,400 三元组）与分析库（14,408 疾病），提供疾病关系图、BI 图表、证据表、噪声拦截和 NL2SQL 问答 |
+| Nexent 智能体平台 | `https://nexent.mashiro.xin/` | 已注册 17 个 MCP 工具，已发布任务一/二/三共 3 个智能体，可直接对话执行全流程 |
+| DataMate 数据处理平台 | `https://datamate.mashiro.xin/` | 已预先注册**糖尿病全流程演示数据集**（`txt/csv/json/jsonl` 混合格式，含 4 个文件），已部署 18 个自定义算子 |
 
 演示账号：`suadmin@nexent.com`  
 演示密码：`241002814`
@@ -136,15 +136,15 @@
 
 ## 数据资产
 
-| 文件或目录 | 说明 |
-| --- | --- |
-| `data/standard_diabetes_demo/datamate_upload/` | 糖尿病混合格式数据集，覆盖 `txt/csv/json/jsonl`，与在线 DataMate 演示数据保持同类结构。 |
-| `data/task2_medical_kg.db` | 任务二知识图谱库，包含疾病、症状、药物、检查、科室等实体关系。 |
-| `data/task3_analytics.db` | 任务三分析库，服务 NL2SQL、统计图表和疾病详情查询。 |
-| `operators/llm_noise_filter/noise_kb.db` | 语义噪声规则与审计知识库，用于任务一噪声过滤与任务三质量展示。 |
-| `operators/medical_term_normalizer/term_kb.db` | 医学术语标准化知识库，用于常见缩写、同义表达和术语替换。 |
+在线环境已预载以下知识库。数据库属于数据产物，不进 Git，通过 Release 资产包或脚本构建分发。
 
-数据库属于数据产物，可随工程目录提供；通常不纳入 Git 历史。
+| 文件 | 用途 | 使用方 |
+| --- | --- | --- |
+| `data/task2_medical_kg.db` | 知识图谱库：实体（79,600）、三元组（467,400）、关系、别名、来源、质量审计 | 任务二 MCP 工具、任务三查询、可视化平台 |
+| `data/task3_analytics.db` | 分析库：疾病（14,408）、症状、药物、检查、科室、并发症等 16 张表 | 任务三 NL2SQL、统计图表、疾病问答 |
+| `operators/llm_noise_filter/noise_kb.db` | 噪声规则库：431 条语义噪声检测规则 | 任务一 LLMNoiseFilter 算子、可视化平台噪声拦截面板 |
+| `operators/medical_term_normalizer/term_kb.db` | 术语标准化库：114 条医学缩写/别名映射 | 任务一 MedicalTermNormalizer 算子、字段清洗算子 |
+| `data/standard_diabetes_demo/datamate_upload/` | 糖尿病混合格式演示数据（`txt/csv/json/jsonl`，4 文件） | 任务一 DataMate 清洗演示 |
 
 ## 设计边界
 
