@@ -19,9 +19,10 @@ usage() {
 Usage: bash deploy/00_check_prereqs.sh
 
   检查项目运行所需的前置条件：
-  - DataMate (18000) 和 Nexent (5010) API 可达
   - .env.runtime 配置文件存在
   - Python >= 3.10
+  - screen、docker 系统命令可用
+  - DataMate (18000) 和 Nexent (5010) API 可达
 
   环境变量覆盖:
     CCF_DATAMATE_BASE     DataMate API 地址（默认 http://127.0.0.1:18000）
@@ -34,7 +35,7 @@ echo "=== CCF 环境检查 ==="
 echo ""
 
 # 1. .env.runtime
-echo "[1/4] 配置文件..."
+echo "[1/5] 配置文件..."
 if [ -f "$ROOT/.env.runtime" ]; then
   check ".env.runtime 存在" true
   set -a; source "$ROOT/.env.runtime"; set +a
@@ -45,9 +46,10 @@ else
 fi
 
 # 2. Python
-echo "[2/4] Python 环境..."
-PY_VER=$($PYTHON --version 2>&1 | grep -oP '\d+\.\d+' | head -1 || echo "0")
-if [ "$(echo "$PY_VER >= 3.10" | bc -l 2>/dev/null || echo 0)" = "1" ] || [ "${PY_VER%%.*}" -ge 3 -a "${PY_VER#*.}" -ge 10 ] 2>/dev/null; then
+echo "[2/5] Python 环境..."
+PY_VER=$($PYTHON -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')" 2>/dev/null || echo "0")
+PY_MAJOR="${PY_VER%%.*}"; PY_MINOR="${PY_VER#*.}"
+if [ "$PY_MAJOR" -gt 3 ] 2>/dev/null || { [ "$PY_MAJOR" -eq 3 ] 2>/dev/null && [ "$PY_MINOR" -ge 10 ] 2>/dev/null; }; then
   check "Python $PY_VER >= 3.10" true
 else
   warn "Python 版本: $PY_VER (需要 >= 3.10)"
@@ -55,15 +57,20 @@ else
 fi
 [ -d "$ROOT/.venv" ] && check ".venv/ 已存在" true || warn ".venv/ 不存在，运行 deploy/01_setup_python.sh"
 
-# 3. DataMate
-echo "[3/4] DataMate 连接..."
+# 3. 系统命令
+echo "[3/5] 系统命令..."
+command -v screen >/dev/null 2>&1 && check "screen 已安装" true || { warn "screen 未安装（MCP 和 Demo 需要后台运行）"; fail=$((fail+1)); }
+command -v docker >/dev/null 2>&1 && check "docker 已安装" true || { warn "docker 未安装"; fail=$((fail+1)); }
+
+# 4. DataMate
+echo "[4/5] DataMate 连接..."
 DM_URL="${CCF_DATAMATE_BASE:-$DATAMATE}"
 DM_CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "$DM_URL" 2>/dev/null || echo "000")
 if [ "$DM_CODE" != "000" ]; then check "DataMate $DM_URL (HTTP $DM_CODE)" true
 else warn "DataMate $DM_URL 不可达，请确认服务已启动"; fail=$((fail+1)); fi
 
-# 4. Nexent
-echo "[4/4] Nexent 连接..."
+# 5. Nexent
+echo "[5/5] Nexent 连接..."
 NX_URL="${CCF_NEXENT_CONFIG_BASE:-$NEXENT}"
 NX_CODE=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "$NX_URL/user/signin" -X POST -H 'Content-Type: application/json' -d '{"email":"test","password":"test"}' 2>/dev/null || echo "000")
 if [ "$NX_CODE" != "000" ]; then check "Nexent $NX_URL (HTTP $NX_CODE)" true
