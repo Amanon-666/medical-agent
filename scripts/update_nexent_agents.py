@@ -151,7 +151,7 @@ def _resolve_agent_id(client: NexentClient, preferred_id: int, keywords: list[st
 
     raise RuntimeError(
         f"Nexent agent {preferred_id} was not reachable ({preferred_error}) and no agent matched "
-        f"keywords {keywords}. In a clean judge environment, create the Task 2/3 agents first "
+        f"keywords {keywords}. In a clean deployment environment, create the Task 2/3 agents first "
         "or set CCF_TASK2_AGENT_ID/CCF_TASK3_AGENT_ID to existing agent IDs, then rerun this script."
     )
 

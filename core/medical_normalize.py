@@ -9,9 +9,7 @@
   - operators/medical_term_normalizer/
   - mcp_server/ (normalize_terms 工具)
 
-TODO（后续填充）：
-  - 考虑「规则词典 + LLM」混合：常见缩写用词典直接替换（快、准），
-    罕见的交给 LLM，降低延迟和幻觉风险
+采用规则词典优先 + LLM 兜底的混合策略：常见缩写用词典直接替换，罕见术语交由 LLM 处理。
 """
 from .llm_client import LLMClient
 

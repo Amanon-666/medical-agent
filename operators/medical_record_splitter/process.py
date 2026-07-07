@@ -2,7 +2,7 @@
 """
 多段病历分段算子。
 
-DataMate 默认以“文件”为处理粒度；比赛任务一需要能处理一个 txt 内包含多份
+DataMate 默认以文件为处理粒度；该算子支持处理一个 txt 内包含多份
 病历/多位患者的情况。本算子通常放在标准清洗链末尾，把已清洗文本切成 JSONL：
   {source_file, record_id, cleaned_text, noise_score, data_type}
 """

@@ -82,7 +82,7 @@ def main() -> None:
         "-- This script is idempotent for t_operator.id and t_operator_category_relation(category_id, operator_id).",
         "BEGIN;",
         "",
-        "-- CCF custom operators",
+        "-- Medical AI custom operators",
     ]
     for row in op_rows:
         lines.append(insert_sql("t_operator", op_columns, row, ["id"]))
