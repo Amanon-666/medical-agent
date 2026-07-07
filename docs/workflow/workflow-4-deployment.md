@@ -8,21 +8,19 @@
 
 ```
 用户拿到提交包
-    │
     ▼
 1. 准备环境: Docker Compose 启动 DataMate + Nexent
 2. 填写配置: .env.example → .env.runtime
 3. 一键部署: bash deploy/run_all.sh
-    │
-    ├─ 00_check_prereqs.sh  检查环境
-    ├─ 01_setup_python.sh   安装 Python 依赖
-    ├─ 02_deploy_operators.sh  部署算子到 DataMate 容器
-    ├─ 03_register_operators.sh  注册算子元数据
-    ├─ 04_build_databases.sh  构建 KG + 分析库
-    ├─ 05_start_mcp.sh  启动 MCP 服务
-    ├─ 06_register_nexent.sh  注册 Agent 到 Nexent
-    ├─ 07_start_demo.sh  启动可视化平台
-    └─ 08_verify.sh  全链路健康检查
+    00_check_prereqs.sh  检查环境
+    01_setup_python.sh   安装 Python 依赖
+    02_deploy_operators.sh  部署算子到 DataMate 容器
+    03_register_operators.sh  注册算子元数据
+    04_build_databases.sh  构建 KG + 分析库
+    05_start_mcp.sh  启动 MCP 服务
+    06_register_nexent.sh  注册 Agent 到 Nexent
+    07_start_demo.sh  启动可视化平台
+    08_verify.sh  全链路健康检查
 ```
 
 ---
@@ -169,17 +167,17 @@ MCP 服务配置:
 
   [1/2] 注册 MCP 服务:
     python scripts/register_mcp.py
-    ├── POST /user/signin → JWT token
-    ├── GET /mcp/list → 检查是否已注册
-    ├── POST /mcp/add?mcp_url=...&service_name=... → 注册
-    └── GET /tool/scan_tool → 扫描工具到 tool 表
+    POST /user/signin → JWT token
+    GET /mcp/list → 检查是否已注册
+    POST /mcp/add?mcp_url=...&service_name=... → 注册
+    GET /tool/scan_tool → 扫描工具到 tool 表
 
   [2/2] 发布 Agent:
     python scripts/update_nexent_agents.py
-    ├── 获取/创建 3 个 Agent (task1/task2/task3)
-    ├── 更新 duty_prompt + constraint_prompt
-    ├── 绑定 enabled_tool_ids (17个 MCP 工具分配给 3 个 Agent)
-    └── POST /agent/{id}/publish → 发布新版本
+    获取/创建 3 个 Agent (task1/task2/task3)
+    更新 duty_prompt + constraint_prompt
+    绑定 enabled_tool_ids (17个 MCP 工具分配给 3 个 Agent)
+    POST /agent/{id}/publish → 发布新版本
 
 验证:
   curl Nexent API → 检查 >= 3 个 Agent 状态为 published
@@ -255,20 +253,20 @@ Demo 服务:
 
 ```
 外部依赖 (用户需自行准备):
-  ├── Docker + Docker Compose
-  ├── DataMate 镜像/源码 (官方)
-  ├── Nexent 镜像/源码 (官方)
-  ├── QASystemOnMedicalKG 数据集
-  ├── DeepSeek API Key
-  └── (可选) Cloudflare 账号 + 域名
+    Docker + Docker Compose
+    DataMate 镜像/源码 (官方)
+    Nexent 镜像/源码 (官方)
+    QASystemOnMedicalKG 数据集
+    DeepSeek API Key
+    (可选) Cloudflare 账号 + 域名
 
 提交侧提供:
-  ├── 全部 Python 代码 (core/, mcp_server/, operators/, demo/, clients/, kg/)
-  ├── 部署脚本 (deploy/00-10, run_all.sh)
-  ├── 配置模板 (.env.example, config.example.yaml)
-  ├── 预构建 SQLite 数据库 (data/*.db) ← 或通过 04 脚本构建
-  ├── Demo 数据集 (data/standard_diabetes_demo/)
-  └── 文档 (docs/, README.md)
+    全部 Python 代码 (core/, mcp_server/, operators/, demo/, clients/, kg/)
+    部署脚本 (deploy/00-10, run_all.sh)
+    配置模板 (.env.example, config.example.yaml)
+    预构建 SQLite 数据库 (data/*.db) ← 或通过 04 脚本构建
+    Demo 数据集 (data/standard_diabetes_demo/)
+    文档 (docs/, README.md)
 
 运行时的数据流:
   用户的 API Key → .env.runtime → MCP Server 环境变量
