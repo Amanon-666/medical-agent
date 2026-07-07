@@ -47,7 +47,7 @@
 1. 打开 `https://demo.mashiro.xin/`，确认页面标题为“医学数据智能体可视化平台”，页面可加载数据来源、统计指标、关系子图、图表、证据表和噪声拦截记录。
 2. 打开 `https://nexent.mashiro.xin/`，使用演示账号登录，选择任务一、任务二或任务三智能体进行对话。
 3. 打开 `https://datamate.mashiro.xin/`，使用演示账号登录，在数据管理中查看糖尿病混合格式数据集及其任务一清洗结果。
-4. 如需 Notebook 演示，双击 `demo/start_notebook_demo.bat`。Notebook 默认连接已部署服务并使用演示账号。
+4. 如需 Notebook 演示，双击 `demo/start_notebook_demo.bat`。Notebook 默认连接已部署服务并使用演示账号，提供固定数据集全流程一键演示。
 
 可直接输入 Nexent 的示例指令：
 
@@ -67,16 +67,16 @@
 
 | 目录 | 作用 | 详细说明 |
 | --- | --- | --- |
-| `clients/` | DataMate 与 Nexent HTTP 客户端封装。 | [`clients/README.md`](clients/README.md) |
-| `core/` | 医学实体识别、关系抽取、三元组生成、疾病查询、NL2SQL 等领域能力。 | [`core/README.md`](core/README.md) |
-| `operators/` | 注册到 DataMate 的自定义算子，包括医学术语标准化、结构化字段清洗、语义噪声过滤等。 | [`operators/README.md`](operators/README.md) |
-| `mcp_server/` | 暴露给 Nexent 的 MCP 工具服务，负责任务一、二、三的工具入口和流程编排。 | [`mcp_server/README.md`](mcp_server/README.md) |
-| `kg/` | 知识图谱库与分析库的构建脚本。 | [`kg/README.md`](kg/README.md) |
-| `demo/` | Notebook 演示和医学数据智能体可视化平台。 | [`demo/README.md`](demo/README.md) |
-| `data/` | 糖尿病混合格式数据、任务二知识图谱库、任务三分析库。 | [`data/README.md`](data/README.md) |
-| `deploy/` | 环境检查、算子部署、数据库构建、MCP 启动、Agent 发布、可视化平台启动和健康检查。 | [`deploy/README.md`](deploy/README.md) |
-| `docs/` | 架构、任务实现、部署、配置、演示和数据资产说明。 | [`docs/README.md`](docs/README.md) |
-| `scripts/` | 部署流程调用的平台注册脚本。 | [`scripts/README.md`](scripts/README.md) |
+| `clients/` | DataMate 与 Nexent HTTP 客户端封装 | **[`clients/README.md`](clients/README.md)** |
+| `core/` | 医学实体识别、关系抽取、三元组生成、疾病查询、NL2SQL 等领域能力 | **[`core/README.md`](core/README.md)** |
+| `operators/` | 注册到 DataMate 的自定义算子，包括医学术语标准化、结构化字段清洗、语义噪声过滤等 | **[`operators/README.md`](operators/README.md)** |
+| `mcp_server/` | 暴露给 Nexent 的 MCP 工具服务，负责任务一、二、三的工具入口和流程编排 | **[`mcp_server/README.md`](mcp_server/README.md)** |
+| `kg/` | 知识图谱库与分析库的构建脚本 | **[`kg/README.md`](kg/README.md)** |
+| `demo/` | Notebook 演示和医学数据智能体可视化平台 | **[`demo/README.md`](demo/README.md)** |
+| `data/` | 糖尿病混合格式数据、任务二知识图谱库、任务三分析库 | **[`data/README.md`](data/README.md)** |
+| `deploy/` | 环境检查、算子部署、数据库构建、MCP 启动、Agent 发布、可视化平台启动和健康检查 | **[`deploy/README.md`](deploy/README.md)** |
+| `docs/` | 架构、任务实现、部署、配置、演示和数据资产说明 | **[`docs/README.md`](docs/README.md)** |
+| `scripts/` | 部署流程调用的平台注册脚本 | **[`scripts/README.md`](scripts/README.md)** |
 
 ## 三项任务实现方法
 
@@ -118,15 +118,15 @@
 - `demo/task3_interactive_demo/`：医学数据智能体可视化平台。
 - `data/task3_analytics.db`：任务三分析库。
 
-## 文档入口
+## 文档入口（点击跳转）
 
 | 文档 | 内容 |
 | --- | --- |
-| [`docs/README.md`](docs/README.md) | 文档目录索引，说明每份文档的用途和阅读顺序。 |
-| [`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md) | 总体架构、三项任务数据流、模块职责、算子分工和工程边界。 |
-| [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务、演示账号、Notebook 和对话式验证步骤。 |
-| [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | **配置总入口**：部署前速查清单 + 全部 33 个环境变量表 + 容器路径说明 + 修改入口。 |
-| [`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md) | 任务一混合格式清洗编排、格式保留和质量证据。 |
+| **[`docs/README.md`](docs/README.md)** | 文档目录索引与阅读顺序 |
+| **[`docs/ARCHITECTURE_AND_IMPLEMENTATION.md`](docs/ARCHITECTURE_AND_IMPLEMENTATION.md)** | 总体架构、三项任务数据流、模块职责、算子分工 |
+| **[`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md)** | 在线服务、演示账号、Notebook 和对话式验证 |
+| **[`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)** | 配置总入口：部署前速查清单 + 33 个环境变量表 + 容器路径说明 |
+| **[`docs/TASK1_MIXED_ORCHESTRATION.md`](docs/TASK1_MIXED_ORCHESTRATION.md)** | 任务一混合格式清洗编排、格式保留和质量证据 |
 
 ## 部署复现
 
