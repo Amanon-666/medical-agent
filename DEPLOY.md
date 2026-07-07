@@ -1,157 +1,166 @@
 # 部署指南
 
-本文是项目部署的**唯一总入口**。按顺序完成以下步骤即可在新环境复现全部服务。
+本文档为项目部署的权威参考。以下流程覆盖从空白环境到全服务可用的完整过程。
 
 ---
 
-## 前提
+## 环境要求
 
-| 依赖 | 版本要求 | 说明 |
+| 组件 | 版本 | 说明 |
 | --- | --- | --- |
-| Linux 服务器 | — | 运行 MCP、可视化平台和部署脚本 |
-| Python | ≥ 3.10 | 见 [`requirements.txt`](requirements.txt) |
-| Docker + Docker Compose | — | 运行 DataMate 和 Nexent 容器 |
-| SQLite | — | 已预装在大多数 Linux 发行版中 |
-| DataMate | 官方镜像/源码 | [github.com/ModelEngine-Group/DataMate](https://github.com/ModelEngine-Group/DataMate) |
-| Nexent | 官方镜像/源码 | [github.com/ModelEngine-Group/nexent](https://github.com/ModelEngine-Group/nexent) |
+| 操作系统 | Linux（任意发行版） | 用于运行 MCP Server、可视化平台及部署脚本 |
+| Python | ≥ 3.10 | 依赖清单见 [`requirements.txt`](requirements.txt) |
+| Docker Engine + Compose | 最新稳定版 | 用于运行 DataMate 与 Nexent 容器 |
+| SQLite | 系统自带 | 存储知识图谱与分析数据库 |
+| DataMate | 官方镜像或源码 | [github.com/ModelEngine-Group/DataMate](https://github.com/ModelEngine-Group/DataMate) |
+| Nexent | 官方镜像或源码 | [github.com/ModelEngine-Group/nexent](https://github.com/ModelEngine-Group/nexent) |
+
+> DataMate 与 Nexent 需预先部署并处于运行状态。本工程不包含这两个平台的安装流程。
 
 ---
 
-## 部署步骤
+## 部署流程
 
-### 0. 复制并填写配置
+### 第一步：配置环境
+
+从模板文件创建运行时配置：
 
 ```bash
 cp .env.example .env.runtime
 cp config.example.yaml config.yaml
 ```
 
-| 你要改什么 | 去哪个文件 | 找什么 |
-|-----------|-----------|--------|
-| DeepSeek API Key | [`.env.example`](.env.example) → `.env.runtime` | `CCF_LLM_API_KEY=` |
-| Nexent 管理员密码 | 同上 | `CCF_NEXENT_PASSWORD=` |
-| 替换为自己的域名（5 个 URL） | 同上 | 搜索 `mashiro.xin`，全部替换 |
-| 填服务器地址 | [`config.example.yaml`](config.example.yaml) → `config.yaml` | `server:` 段 |
-| 确认 Docker 路径 | [`.env.example`](.env.example) → `.env.runtime` | `CCF_DATASET_VOLUME` |
+按目标环境修改以下配置项：
 
-全部字段说明见 [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)。
+| 配置项 | 所在文件 | 修改方式 |
+| --- | --- | --- |
+| LLM API Key | `.env.runtime` | 填入 `CCF_LLM_API_KEY=` |
+| Nexent 管理员凭据 | `.env.runtime` | 填入 `CCF_NEXENT_PASSWORD=` |
+| 服务域名（共 5 处） | `.env.runtime` | 搜索 `mashiro.xin` 并替换为目标域名 |
+| 服务器连接信息 | `config.yaml` | 修改 `server.host` 与 `server.ssh_user` |
+| DataMate 数据卷路径 | `.env.runtime` | 修改 `CCF_DATASET_VOLUME` 以匹配实际挂载点 |
 
-### 1. 一键部署
+全部 33 个可配置字段的详细说明见 [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md)。
+
+### 第二步：执行部署
 
 ```bash
 bash deploy/run_all.sh
 ```
 
-这串行执行以下 9 个脚本。如某步失败可单独重跑。
+该命令按依赖顺序串行执行以下脚本。任意步骤失败将中断后续步骤，修正后可单独重新执行该步。
 
-| 步骤 | 脚本 | 做什么 | 失败时检查 |
+| 序号 | 脚本 | 职责 | 常见失败原因 |
 |:---:| --- | --- | --- |
-| 1 | [`00_check_prereqs.sh`](deploy/00_check_prereqs.sh) | 检查 Docker、Python、配置文件、DataMate/Nexent 可达性 | `.env.runtime` 是否已创建 |
-| 2 | [`01_setup_python.sh`](deploy/01_setup_python.sh) | 创建 `.venv` + `pip install` | 网络 / pip 源 |
-| 3 | [`02_deploy_operators.sh`](deploy/02_deploy_operators.sh) | `docker cp` 算子代码到 DataMate Runtime 容器 | 容器名是否匹配 |
-| 4 | [`03_register_operators.sh`](deploy/03_register_operators.sh) | 在 DataMate PostgreSQL 中注册算子元数据 | SQL 文件是否生成 |
-| 5 | [`04_build_databases.sh`](deploy/04_build_databases.sh) | 构建 `task2_medical_kg.db` 和 `task3_analytics.db` | `CCF_MEDICAL_KG_DATA` 是否指向源数据 |
-| 6 | [`05_start_mcp.sh`](deploy/05_start_mcp.sh) | 启动 MCP 服务（screen 后台，端口 8900） | `screen` 是否安装 |
-| 7 | [`06_register_nexent.sh`](deploy/06_register_nexent.sh) | 注册 MCP 工具 + 发布 3 个智能体 | Nexent API 是否可达 |
-| 8 | [`07_start_demo.sh`](deploy/07_start_demo.sh) | 启动可视化平台（screen 后台，端口 8765） | `.db` 文件是否存在 |
-| 9 | [`08_verify.sh`](deploy/08_verify.sh) | 健康检查：API、数据库、智能体 | 查看输出定位失败项 |
+| 1 | [`00_check_prereqs.sh`](deploy/00_check_prereqs.sh) | 验证运行时依赖（Docker、Python、配置文件、平台可达性） | `.env.runtime` 未创建或配置项缺失 |
+| 2 | [`01_setup_python.sh`](deploy/01_setup_python.sh) | 创建 Python 虚拟环境并安装依赖 | 网络不可达或 pip 源受限 |
+| 3 | [`02_deploy_operators.sh`](deploy/02_deploy_operators.sh) | 将自定义算子及依赖文件同步至 DataMate Runtime 容器 | 容器名称与配置不一致 |
+| 4 | [`03_register_operators.sh`](deploy/03_register_operators.sh) | 向 DataMate 数据库注册算子元数据 | 注册 SQL 未成功生成 |
+| 5 | [`04_build_databases.sh`](deploy/04_build_databases.sh) | 构建知识图谱库与分析库 | 外部数据源路径未正确配置 |
+| 6 | [`05_start_mcp.sh`](deploy/05_start_mcp.sh) | 启动 MCP Server（监听 `0.0.0.0:8900`） | GNU Screen 未安装 |
+| 7 | [`06_register_nexent.sh`](deploy/06_register_nexent.sh) | 向 Nexent 注册 MCP 服务并发布三个智能体 | Nexent 配置接口不可达 |
+| 8 | [`07_start_demo.sh`](deploy/07_start_demo.sh) | 启动可视化平台（监听 `0.0.0.0:8765`） | 数据库文件尚未构建 |
+| 9 | [`08_verify.sh`](deploy/08_verify.sh) | 全链路健康检查 | 根据脚本输出定位具体失败项 |
 
-### 2. 验证部署
+`run_all.sh` 支持部分执行：
+
+```bash
+bash deploy/run_all.sh --from 3 --to 6   # 仅重跑第 3-6 步
+bash deploy/run_all.sh --dry-run          # 预览而不实际执行
+```
+
+### 第三步：验证
 
 ```bash
 bash deploy/08_verify.sh
 ```
 
-通过后访问：
+验证通过后，以下入口应均可访问：
 
-| 服务 | 默认入口 |
+| 服务 | 入口地址（由环境变量决定） |
 | --- | --- |
-| 可视化平台 | `CCF_TASK3_DEMO_URL`（默认 `https://demo.mashiro.xin/`） |
-| Nexent | `CCF_NEXENT_FRONTEND_URL`（默认 `https://nexent.mashiro.xin/`） |
-| DataMate | `CCF_DATAMATE_FRONTEND_URL`（默认 `https://datamate.mashiro.xin/`） |
+| 医学数据智能体可视化平台 | `CCF_TASK3_DEMO_URL` |
+| Nexent 智能体平台 | `CCF_NEXENT_FRONTEND_URL` |
+| DataMate 数据处理平台 | `CCF_DATAMATE_FRONTEND_URL` |
 
-### 3. 发布智能体（首次部署或工具变更后）
+### 第四步：发布智能体
+
+首次部署或 MCP 工具集合发生变更后，需执行智能体发布脚本：
 
 ```bash
 python scripts/update_nexent_agents.py
 ```
 
-该脚本将三个智能体的 system prompt 和工具绑定推送到 Nexent。首次部署或 MCP 工具集合变化后必须执行。详见 [`scripts/README.md`](scripts/README.md)。
+该脚本将三个智能体的 system prompt 与工具绑定写入 Nexent。更多细节见 [`scripts/README.md`](scripts/README.md)。
 
 ---
 
-## 可选：公网访问
+## 可选能力
 
-如果评委需要通过公网访问服务（而非仅本机），可配置 Cloudflare Tunnel：
+### 公网访问（Cloudflare Tunnel）
 
-| 脚本 | 作用 | 备注 |
+若需通过公网域名而非仅本机访问服务，可使用以下脚本配置 Cloudflare Tunnel：
+
+| 脚本 | 用途 | 使用方式 |
 | --- | --- | --- |
-| [`09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | 应用 Cloudflare Tunnel 配置 | 默认只预览，加 `--apply` 执行 |
-| [`10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | 注册 Cloudflare DNS 路由 | 默认只预览，加 `--apply --overwrite-dns` 执行 |
+| [`09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | 应用 Tunnel 配置 | 默认仅预览，追加 `--apply` 执行 |
+| [`10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | 注册 DNS 路由 | 默认仅预览，追加 `--apply --overwrite-dns` 执行 |
 
 ---
 
-## 文件索引
+## 附录 A：文件清单
 
-### 部署脚本
+### 部署脚本（`deploy/`）
 
-| 文件 | 作用 |
+| 文件 | 职责 |
 | --- | --- |
-| [`deploy/run_all.sh`](deploy/run_all.sh) | 一键串联执行 00-08 |
-| [`deploy/00_check_prereqs.sh`](deploy/00_check_prereqs.sh) | 环境检查 |
-| [`deploy/01_setup_python.sh`](deploy/01_setup_python.sh) | Python 环境 |
-| [`deploy/02_deploy_operators.sh`](deploy/02_deploy_operators.sh) | 算子部署 |
-| [`deploy/03_register_operators.sh`](deploy/03_register_operators.sh) | 算子注册 |
-| [`deploy/04_build_databases.sh`](deploy/04_build_databases.sh) | 数据库构建 |
-| [`deploy/05_start_mcp.sh`](deploy/05_start_mcp.sh) | MCP 启动 |
-| [`deploy/06_register_nexent.sh`](deploy/06_register_nexent.sh) | Nexent 注册 |
-| [`deploy/07_start_demo.sh`](deploy/07_start_demo.sh) | 可视化平台启动 |
-| [`deploy/08_verify.sh`](deploy/08_verify.sh) | 健康检查 |
-| [`deploy/09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | Cloudflare Tunnel（可选） |
-| [`deploy/10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | Cloudflare DNS（可选） |
-| [`deploy/docker-compose.ccf-override.yml`](deploy/docker-compose.ccf-override.yml) | 评审环境端口覆盖 |
-| [`deploy/nexent.ccf-clean.env`](deploy/nexent.ccf-clean.env) | Nexent 干净部署环境变量 |
+| [`run_all.sh`](deploy/run_all.sh) | 一键部署入口，串行执行 00–08 |
+| [`00_check_prereqs.sh`](deploy/00_check_prereqs.sh) – [`08_verify.sh`](deploy/08_verify.sh) | 分步部署脚本（对应上表第 1–9 步） |
+| [`09_apply_cloudflare_tunnel.sh`](deploy/09_apply_cloudflare_tunnel.sh) | Cloudflare Tunnel 配置（可选） |
+| [`10_route_cloudflare_dns.sh`](deploy/10_route_cloudflare_dns.sh) | Cloudflare DNS 路由（可选） |
+| [`docker-compose.ccf-override.yml`](deploy/docker-compose.ccf-override.yml) | 评审环境端口覆盖配置 |
+| [`nexent.ccf-clean.env`](deploy/nexent.ccf-clean.env) | Nexent 干净部署环境变量模板 |
 
-### 配置模板
+### 配置模板（项目根目录）
 
-| 文件 | 作用 |
+| 文件 | 职责 |
 | --- | --- |
-| [`.env.example`](.env.example) | 环境变量模板 → 复制为 `.env.runtime` |
-| [`config.example.yaml`](config.example.yaml) | YAML 配置模板 → 复制为 `config.yaml` |
-| [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 全部 33 个字段说明 + 速查清单 |
+| [`.env.example`](.env.example) | 环境变量模板，复制为 `.env.runtime` 后填写 |
+| [`config.example.yaml`](config.example.yaml) | 结构化配置模板，复制为 `config.yaml` 后填写 |
+| [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 全部 33 个配置字段的说明、默认值与消费者 |
 
-### 注册脚本
+### 注册与维护脚本（`scripts/`）
 
-| 文件 | 作用 | 何时运行 |
+| 文件 | 职责 | 调用方 |
 | --- | --- | --- |
-| [`scripts/register_mcp.py`](scripts/register_mcp.py) | 将 MCP 服务登记到 Nexent | `deploy/06` 调用 |
-| [`scripts/update_nexent_agents.py`](scripts/update_nexent_agents.py) | 发布/更新三个智能体 | `deploy/06` 调用 |
-| [`scripts/generate_datamate_registration_sql.py`](scripts/generate_datamate_registration_sql.py) | 生成算子注册 SQL | `deploy/03` 调用 |
-| [`scripts/start_mcp_server.sh`](scripts/start_mcp_server.sh) | 启动 MCP 服务 | `deploy/05` 调用 |
+| [`register_mcp.py`](scripts/register_mcp.py) | 将 MCP 服务登记至 Nexent | `deploy/06` |
+| [`update_nexent_agents.py`](scripts/update_nexent_agents.py) | 发布/更新三个智能体的 prompt 与工具绑定 | `deploy/06` |
+| [`generate_datamate_registration_sql.py`](scripts/generate_datamate_registration_sql.py) | 生成 DataMate 算子注册 SQL | `deploy/03` |
+| [`start_mcp_server.sh`](scripts/start_mcp_server.sh) | 启动 MCP Server | `deploy/05` |
 
-### 构建脚本
+### 数据库构建脚本（`kg/`）
 
-| 文件 | 作用 |
+| 文件 | 职责 |
 | --- | --- |
-| [`kg/build_kg_v2.py`](kg/build_kg_v2.py) | 构建知识图谱库 |
-| [`kg/build_analytics_v2.py`](kg/build_analytics_v2.py) | 构建分析库 |
+| [`build_kg_v2.py`](kg/build_kg_v2.py) | 从医学知识源构建知识图谱数据库 |
+| [`build_analytics_v2.py`](kg/build_analytics_v2.py) | 从知识图谱数据库派生统计分析库 |
 
-### 文档
+### 相关文档（`docs/`）
 
 | 文件 | 内容 |
 | --- | --- |
-| [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) | 部署流程详解（环境依赖 / 配置 / 回滚） |
-| [`docs/CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置总入口（33 个字段表 + 速查清单） |
-| [`docs/DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 数据资产与数据库说明 |
-| [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线验证步骤 |
+| [`DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md) | 部署流程详解（环境依赖、配置、健康检查、回滚） |
+| [`CONFIGURATION_GUIDE.md`](docs/CONFIGURATION_GUIDE.md) | 配置参考（33 字段表、速查清单、安全注意事项） |
+| [`DATA_ARTIFACTS.md`](docs/DATA_ARTIFACTS.md) | 数据库产物、演示数据集与数据来源管理 |
+| [`DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线服务验证步骤与示例指令 |
 
 ---
 
-## 回滚
+## 附录 B：回滚操作
 
-| 场景 | 操作 |
+| 故障场景 | 回滚步骤 |
 | --- | --- |
-| 算子部署出错 | 恢复 DataMate 算子目录备份 → `docker restart datamate-runtime` |
-| 数据库构建出错 | 恢复 `data/task2_medical_kg.db` 和 `data/task3_analytics.db` 备份 |
-| Agent 发布出错 | 在 Nexent 中切回旧版本 |
-| MCP 代码问题 | 恢复 `mcp_server/` 备份 → 重启 MCP |
+| 算子部署异常 | 从备份恢复 DataMate 算子目录，执行 `docker restart datamate-runtime` |
+| 数据库构建失败 | 从备份恢复 `data/task2_medical_kg.db` 与 `data/task3_analytics.db` |
+| 智能体发布错误 | 在 Nexent 管理界面切换至上一可用版本 |
+| MCP 代码缺陷 | 从备份恢复 `mcp_server/` 目录，重启 MCP 进程 |
