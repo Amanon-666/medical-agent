@@ -155,7 +155,8 @@
 
 | 仓库 | 地址 | 说明 |
 | --- | --- | --- |
-| 本工程（提交侧） | [github.com/Amanon-666/medical-agent](https://github.com/Amanon-666/medical-agent) | 算子、MCP 工具、Agent 编排、部署脚本与文档 |
+| 本工程（GitLink） | [gitlink.org.cn/Elmana/MediFlow](https://www.gitlink.org.cn/Elmana/MediFlow) | 算子、MCP 工具、Agent 编排、部署脚本与文档 |
+| 本工程（GitHub 镜像） | [github.com/Amanon-666/medical-agent](https://github.com/Amanon-666/medical-agent) | 同上 |
 | DataMate（运行平台） | [github.com/ModelEngine-Group/DataMate](https://github.com/ModelEngine-Group/DataMate) | 数据处理平台，提供算子运行时与数据集管理 |
 | Nexent（运行平台） | [github.com/ModelEngine-Group/nexent](https://github.com/ModelEngine-Group/nexent) | 智能体平台，提供 Agent 编排与 MCP 工具调度 |
 
