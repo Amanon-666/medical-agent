@@ -6,7 +6,7 @@
 
 1. **[`ARCHITECTURE_AND_IMPLEMENTATION.md`](ARCHITECTURE_AND_IMPLEMENTATION.md)** — 系统架构、三项任务的数据流、DataMate 算子与 MCP 算子的分工。
 2. **[`DEMO_USAGE_GUIDE.md`](DEMO_USAGE_GUIDE.md)** — 在线服务入口的功能验证。
-3. **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** — 任务一混合格式清洗如何保留 `txt/csv/json/jsonl` 源格式和质量证据。
+3. **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** — 任务一混合格式清洗、PDF 前置解析、源格式保留和质量证据。
 4. **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** — 配置总入口，含速查清单、全部环境变量表、字段说明和修改入口。
 
 ## 文档清单

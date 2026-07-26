@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import os
 
@@ -24,11 +24,26 @@ DM_BASE = os.environ["CCF_DATAMATE_BASE"]
 DATASET_VOLUME = os.environ["CCF_DATASET_VOLUME"]
 
 
-def op(op_id: str) -> Dict:
-    return {"id": op_id, "name": op_id, "inputs": "text", "outputs": "text", "overrides": {}}
+OperatorSpec = Union[str, Dict]
 
 
-def run_pipeline(dataset: Dict, operators: List[str], label: str, timeout_seconds: int = 900) -> Dict:
+def op(spec: OperatorSpec) -> Dict:
+    """把简写算子 ID 或完整算子配置标准化为 DataMate 任务实例。"""
+    if isinstance(spec, str):
+        return {"id": spec, "name": spec, "inputs": "text", "outputs": "text", "overrides": {}}
+    operator_id = str(spec.get("id") or "").strip()
+    if not operator_id:
+        raise ValueError("operator spec requires id")
+    return {
+        "id": operator_id,
+        "name": spec.get("name") or operator_id,
+        "inputs": spec.get("inputs") or "text",
+        "outputs": spec.get("outputs") or "text",
+        "overrides": dict(spec.get("overrides") or {}),
+    }
+
+
+def run_pipeline(dataset: Dict, operators: List[OperatorSpec], label: str, timeout_seconds: int = 900) -> Dict:
     created_at = int(time.time())
     payload = {
         "name": f"任务一-{label}-源格式清洗-{created_at}",
@@ -291,7 +306,7 @@ def _file_type(path: Path) -> str:
     return suffix or "txt"
 
 
-def register_final_delivery(outputs_dir: Path, name: str) -> Dict:
+def register_final_delivery(outputs_dir: Path, name: str, description: str = "") -> Dict:
     files = []
     for path in sorted(outputs_dir.glob("*")):
         if path.is_file():
@@ -302,7 +317,7 @@ def register_final_delivery(outputs_dir: Path, name: str) -> Dict:
         name,
         files,
         dataset_format,
-        description="任务一最终交付：保留源数据格式，清理噪声与格式错误，并保留质量证据",
+        description=description or "任务一最终交付：保留源数据格式，清理噪声与格式错误，并保留质量证据",
     )
 
 

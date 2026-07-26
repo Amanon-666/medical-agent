@@ -60,12 +60,13 @@ def inspect_dataset(dataset_id: str) -> dict:
       file_count          文件总数
       type_distribution   {文件类型: 数量}，如 {"txt": 8, "csv": 2}
       samples             前若干文件的预览 [{name, type, preview, looks_multi_record}]
-      recommendation      "table_chain"(纯表格) | "text_chain"(纯文本) | "mixed"(混合)
+      recommendation      "table_chain" | "text_chain" | "pdf_chain" | "mixed"
       multi_record_hint   是否检测到文件内含多段病历（建议先分段）
 
     智能体据此选择工具：
       table_chain 使用 DataMate 表格清洗链；
       text_chain 使用 DataMate 文本清洗链；
+      pdf_chain 使用 MinerU 先提取 TXT，再执行文本清洗链；
       mixed 使用 run_task1_mixed_cleaning 按类型分批处理。
     """
     return _inspect_datamate_dataset(dataset_id, dataset_volume=_DATASET_VOLUME)
@@ -197,8 +198,8 @@ def run_task1_mixed_cleaning(
 ) -> dict:
     """执行任务一混合格式数据集清洗编排。
 
-    Use this tool for mixed txt/csv/json/jsonl DataMate datasets. It keeps source
-    formats, runs per-type cleaning chains, registers a final delivery dataset,
+    Use this tool for mixed txt/csv/json/jsonl/pdf DataMate datasets. It keeps
+    source formats except that PDF is explicitly converted to TXT, runs per-type chains,
     and returns lineage, quality evidence and DataMate task IDs.
     """
     return _run_task1_mixed_cleaning_service(

@@ -76,6 +76,10 @@
 | `CCF_EMBED_BASE_URL` | 向量嵌入接口地址 | `https://api.siliconflow.cn/v1/embeddings` | 同上 |
 | `CCF_EMBED_MODEL` | 向量嵌入模型 | `BAAI/bge-large-zh-v1.5` | 同上 |
 | `CCF_TASK1_AGENT_ID` | 任务一 Agent ID（覆盖脚本默认值 3） | `3` | [`update_nexent_agents.py`](../scripts/update_nexent_agents.py) |
+| `CCF_MINERU_API` | MinerU Agent 轻量解析 API 基址 | `https://mineru.net/api/v1/agent` | PDF 前置解析适配器 |
+| `CCF_MINERU_TIMEOUT_SECONDS` | 单个 PDF 解析总等待时间（秒） | `300` | PDF 前置解析适配器 |
+| `CCF_MINERU_POLL_INTERVAL_SECONDS` | 解析状态轮询间隔（秒） | `2` | PDF 前置解析适配器 |
+| `CCF_MINERU_REQUEST_TIMEOUT_SECONDS` | 单次远程请求超时（秒） | `30` | PDF 前置解析适配器 |
 | `CCF_TASK2_AGENT_ID` | 任务二 Agent ID | `4` | 同上 |
 | `CCF_TASK3_AGENT_ID` | 任务三 Agent ID | `5` | 同上 |
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |

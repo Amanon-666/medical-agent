@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 
 
-TASK1_FILE_GROUPS = ("text", "csv", "json", "jsonl")
+TASK1_FILE_GROUPS = ("text", "csv", "json", "jsonl", "pdf")
 
 
 def classify_source_file(file_name: str, file_type: str = "") -> tuple[str | None, str | None]:
@@ -20,6 +20,8 @@ def classify_source_file(file_name: str, file_type: str = "") -> tuple[str | Non
         return "jsonl", "jsonl"
     if lower.endswith(".json") or declared == "json":
         return "json", "json"
+    if lower.endswith(".pdf") or declared in {"pdf", "application/pdf"}:
+        return "pdf", "pdf"
     if lower.endswith((".txt", ".md")) or declared in {"txt", "text", ""}:
         return "text", "txt"
     return None, None

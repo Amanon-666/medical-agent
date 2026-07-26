@@ -1,6 +1,6 @@
 # 任务一混合格式清洗编排
 
-任务一面向 DataMate 中的医学混合格式数据集。系统先识别数据集文件类型，再按 `txt/csv/json/jsonl` 分派到不同清洗链，最后把清洗后的文件重新登记为同一个最终数据集，并写入血缘、质量标签和清洗证据。
+任务一面向 DataMate 中的医学混合格式数据集。系统先识别数据集文件类型，再按 `txt/csv/json/jsonl/pdf` 分派到不同清洗链，最后把清洗后的文件重新登记为同一个最终数据集，并写入血缘、质量标签和清洗证据。
 
 ## 编排流程
 
@@ -15,7 +15,7 @@ inspect_dataset
       -> 写入质量报告和血缘关系
 ```
 
-最终数据集保留输入文件格式：源 `txt` 输出为 `txt`，源 `csv` 输出为 `csv`，源 `json` 输出为 `json`，源 `jsonl` 输出为 `jsonl`。统一 JSONL 只作为任务二入口的可选转换，不作为任务一默认交付结果。
+最终数据集保留 `txt/csv/json/jsonl` 的输入格式。PDF 属于显式格式转换：源 `pdf` 先提取为 `txt`，再执行文本清洗链。统一 JSONL 只作为任务二入口的可选转换，不作为任务一默认交付结果。
 
 ## 清洗链设计
 
@@ -24,6 +24,19 @@ inspect_dataset
 | `txt` | 文本清洗链 | 适合病历、问答、指南片段等非结构化文本。 |
 | `csv` | 表格字段清洗链 | 保留列名、行结构、逗号、引号和日期等字段。 |
 | `json` / `jsonl` | JSON 字段清洗链 | 保留对象、数组、键名、数值、布尔值和空值结构。 |
+| `pdf` | PDF 解析与文本清洗链 | MinerU 提取文本并导出 TXT，再复用文本清洗链。 |
+
+### PDF 处理链
+
+智能体先调用数据集探查工具；当发现 PDF 时，MCP 编排层检查 MinerU 官方 Agent 轻量接口是否可达。DataMate 内置 `MineruFormatter` 使用另一种远程推理协议，不能直接连接该云接口，因此工程通过独立适配器完成前置解析，不修改 DataMate 上游代码。检查通过后，编排顺序为：
+
+1. `MinerUAgentRemoteParser` 以签名上传方式提交 PDF，轮询并下载 Markdown 结果；
+2. 将 Markdown 规范化为 TXT，注册为 DataMate 临时子数据集；
+3. 基础字符、URL、HTML、乱码和空白清理；
+4. 文档质量过滤、医学术语标准化和语义噪声过滤；
+5. 登记远程任务 ID、解析耗时、PDF 到 TXT 血缘和转换证据。
+
+解析服务未就绪时，任务返回 `pdf_parser_unavailable`，不会跳过 PDF 后继续声称成功。Agent 轻量接口无需 Token，单文件限制为 10 MB、20 页且受 IP 限频；扫描版 PDF 的识别质量取决于原始页面质量。
 
 ### 文本清洗链
 
@@ -80,7 +93,13 @@ JSON 链递归遍历字符串字段，只清理字段值，不改变对象层级
 ```
 
 3. 打开 `https://datamate.mashiro.xin/`，进入数据管理，查看任务一最终数据集。
-4. 确认最终数据集仍包含 `txt/csv/json/jsonl` 四类文件，且质量报告中的变化与文件预览一致。
+4. 确认最终数据集仍包含 `txt/csv/json/jsonl` 四类源格式；若输入包含 PDF，则同时生成带转换血缘的 TXT 解析产物，且质量报告中的变化与文件预览一致。
+
+## PDF 混合处理
+
+探查阶段识别到 PDF 后，编排服务先检查 MinerU 远程解析能力是否可用。解析成功时，PDF 被转换为结构化文本并保留与源文件关联的转换证据；其余 TXT、CSV、JSON 和 JSONL 文件继续沿用各自的格式专用清洗链。解析结果随后与其他子集一并登记到最终数据集。
+
+该设计避免将所有文件强制转换为纯文本：PDF 的交付格式为可追溯 TXT，其他格式保持原有结构，便于任务二继续读取记录、实体、关系及来源字段。
 
 ## 实现位置
 
@@ -88,6 +107,8 @@ JSON 链递归遍历字符串字段，只清理字段值，不改变对象层级
 | --- | --- |
 | `mcp_server/tools/task1_data.py` | Nexent 可调用的任务一 MCP 工具入口。 |
 | `mcp_server/task1/inspection.py` | 数据集探查和格式识别。 |
+| `mcp_server/task1/mineru_client.py` | MinerU 远程接口、任务轮询和结果下载适配。 |
+| `mcp_server/task1/pdf_support.py` | PDF 能力检查、解析结果规范化和质量证据。 |
 | `mcp_server/task1/mixed_cleaning_service.py` | 混合格式清洗编排。 |
 | `mcp_server/task1/postprocess.py` | 最终数据集整理与格式保留。 |
 | `mcp_server/task1/evidence.py` | 清洗证据汇总。 |

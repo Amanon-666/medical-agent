@@ -25,6 +25,9 @@ datamate:
   data_root: "data/standard_diabetes_demo/datamate_upload"
   runtime_container: "datamate-runtime"
   db_container: "datamate-database"
+  # PDF 由 MCP 前置调用 MinerU 官方 Agent 轻量接口解析，再进入 DataMate 文本清洗链。
+  # 该接口无需 Token，单文件上限 10 MB、20 页；可通过 CCF_MINERU_API 覆盖。
+  mineru_api: "https://mineru.net/api/v1/agent"
 
 nexent:
   # Nexent API 地址。在线服务公网入口为 https://nexent.mashiro.xin/。

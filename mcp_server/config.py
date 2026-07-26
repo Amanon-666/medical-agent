@@ -51,6 +51,10 @@ LLM_MODEL = os.environ.get('CCF_LLM_MODEL', CONFIG.get('ollama', {}).get('model'
 DATAMATE_BASE = os.environ.get('CCF_DATAMATE_BASE', CONFIG.get('datamate', {}).get('api_base', 'http://localhost:18000'))
 DATAMATE_GATEWAY = os.environ.get('CCF_DATAMATE_GATEWAY', CONFIG.get('datamate', {}).get('gateway_base', 'http://localhost:8080'))
 DATASET_VOLUME = os.environ.get('CCF_DATASET_VOLUME', CONFIG.get('datamate', {}).get('dataset_volume', ''))
+MINERU_API = os.environ.get(
+    'CCF_MINERU_API',
+    CONFIG.get('datamate', {}).get('mineru_api', 'https://mineru.net/api/v1/agent'),
+)
 SUDO_PW = os.environ.get('CCF_SUDO_PW', '')
 
 # 知识图谱与分析库路径

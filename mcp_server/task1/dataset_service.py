@@ -14,10 +14,11 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from mcp_server.config import DATASET_VOLUME
+from mcp_server.config import DATAMATE_BASE, DATASET_VOLUME
 from mcp_server.datamate.client import _sudo_command
 from mcp_server.datamate.resolver import _task2_resolve_datamate_dataset
 from mcp_server.task1.inspection import build_preview_samples, recommend_chain, summarize_file_types
+from mcp_server.task1.pdf_support import inspect_pdf_capability
 
 
 Completed = subprocess.CompletedProcess[str]
@@ -98,7 +99,7 @@ def inspect_datamate_dataset(
     samples, multi_hint = build_preview_samples(rows, dataset_volume, did, read_file)
     recommendation, advice = recommend_chain(set(type_dist.keys()), multi_hint)
 
-    return {
+    payload = {
         "status": "ok",
         "dataset_id": did,
         "dataset_name": resolved_dataset["name"],
@@ -112,6 +113,9 @@ def inspect_datamate_dataset(
         "recommendation": recommendation,
         "advice": advice,
     }
+    if "pdf" in {value.lower() for value in type_dist}:
+        payload["pdf_capability"] = inspect_pdf_capability(DATAMATE_BASE)
+    return payload
 
 
 def upload_text_dataset(

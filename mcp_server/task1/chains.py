@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-
 def operator_config(operator_id: str, name: str) -> dict:
     return {"id": operator_id, "name": name, "inputs": "text", "outputs": "text", "overrides": {}}
 
@@ -26,7 +25,7 @@ DEFAULT_OPERATORS = [
 ]
 
 
-def task1_mixed_chain_map() -> dict[str, list[str]]:
+def task1_mixed_chain_map() -> dict[str, list[str | dict]]:
     base = [
         "EmojiCleaner",
         "UrlRemover",
@@ -48,6 +47,7 @@ def task1_mixed_chain_map() -> dict[str, list[str]]:
         "csv": base + ["TableColumnCleaner"],
         "json": base + ["JsonFieldCleaner"],
         "jsonl": base + ["JsonFieldCleaner"],
+        "pdf": base + text_filters + ["MedicalTermNormalizer", "LLMNoiseFilter"],
     }
 
 
@@ -57,4 +57,5 @@ def task1_mixed_chain_descriptions() -> dict[str, str]:
         "csv": "表格链：TableColumnCleaner，按单元格/字段清理内容并保持 CSV 输出。",
         "json": "JSON链：JsonFieldCleaner，递归清理文本字段并保持 JSON 输出。",
         "jsonl": "JSONL链：JsonFieldCleaner，逐行清理文本字段并保持 JSONL 输出。",
+        "pdf": "PDF链：MCP 前置调用远程 MinerU 提取 TXT，再由 DataMate 执行文本噪声清理、字符规范化和医学术语标准化。",
     }

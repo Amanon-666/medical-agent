@@ -11,6 +11,16 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .lineage_store import persist_task1_lineage
+
+
+def _dataset_id(payload: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, dict) and value.get("id"):
+            return str(value["id"])
+    return ""
+
 
 def register_governance(report_path: Path) -> dict[str, Any]:
     """读取任务一报告并返回治理元数据摘要。
@@ -30,11 +40,28 @@ def register_governance(report_path: Path) -> dict[str, Any]:
     except Exception as exc:
         return {"status": "skipped", "reason": f"invalid_report: {exc}", "report_path": str(path)}
 
+    source_dataset_id = _dataset_id(payload, "source_mixed_dataset", "source_dataset")
+    final_dataset_id = _dataset_id(
+        payload,
+        "delivery_dataset",
+        "final_delivery_dataset",
+        "final_dataset",
+    )
+    if not source_dataset_id or not final_dataset_id:
+        return {
+            "status": "skipped",
+            "reason": "dataset_ids_missing",
+            "source_dataset_id": source_dataset_id,
+            "final_dataset_id": final_dataset_id,
+            "report_path": str(path),
+        }
+
+    lineage = persist_task1_lineage(source_dataset_id, final_dataset_id, payload)
     return {
-        "status": "recorded_in_report",
-        "source_dataset_id": payload.get("source_dataset", {}).get("id"),
-        "final_dataset_id": payload.get("final_delivery_dataset", {}).get("id")
-        or payload.get("final_dataset", {}).get("id"),
+        "status": "persisted",
+        "source_dataset_id": source_dataset_id,
+        "final_dataset_id": final_dataset_id,
+        "lineage": lineage,
         "quality_report": payload.get("quality_report") or payload.get("reports"),
         "report_path": str(path),
     }

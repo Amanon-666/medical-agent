@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from mcp_server.config import DATASET_VOLUME
+from mcp_server.config import DATAMATE_BASE, DATASET_VOLUME
 from mcp_server.datamate.resolver import _task2_resolve_datamate_dataset
 from mcp_server.task1.chains import (
     task1_mixed_chain_descriptions as _task1_mixed_chain_descriptions,
@@ -22,6 +22,12 @@ from mcp_server.task1.datasets import (
     datamate_dataset_host_path,
 )
 from mcp_server.task1.evidence import summarize_cleaning_evidence
+from mcp_server.task1.pdf_support import (
+    PARSER_ID,
+    inspect_pdf_capability,
+    parse_pdf_files,
+    summarize_pdf_evidence,
+)
 from mcp_server.task1.status import (
     task1_async_status_path as _task1_async_status_path,
     write_task1_async_status as _write_task1_async_status,
@@ -40,7 +46,7 @@ def run_task1_mixed_cleaning_service(
 ) -> dict:
     """执行任务一混合格式数据集清洗编排。
 
-    Use this tool when a DataMate dataset contains mixed txt/csv/json files or
+    Use this tool when a DataMate dataset contains mixed txt/csv/json/jsonl/pdf files or
     when the user asks for Task 1 final delivery. The tool does not rely on the
     agent to guess a single chain. It performs:
 
@@ -54,6 +60,7 @@ def run_task1_mixed_cleaning_service(
        - txt: deterministic text cleaning + MedicalTermNormalizer + LLMNoiseFilter
        - csv: TableColumnCleaner, preserving CSV
        - json/jsonl: JsonFieldCleaner, preserving JSON/JSONL
+       - pdf: MinerU PDF extraction to TXT, followed by the text cleaning chain
     4. collect cleaned source-format outputs
     5. register one final Task 1 delivery dataset
     6. register DataMate quality tags, lineage, and statistics
@@ -139,6 +146,16 @@ def run_task1_mixed_cleaning_service(
         chain_map = _task1_mixed_chain_map()
         chain_descriptions = _task1_mixed_chain_descriptions()
         type_counts, unsupported_preview = count_source_file_groups(rows)
+        if type_counts.get("pdf"):
+            pdf_capability = inspect_pdf_capability(DATAMATE_BASE)
+            if not pdf_capability["available"]:
+                return {
+                    "status": "pdf_parser_unavailable",
+                    "error": "PDF 文件已识别，但 MinerU PDF 解析能力尚未就绪",
+                    "pdf_capability": pdf_capability,
+                    "source_dataset": {"id": did, "name": source_name},
+                    "next_action": pdf_capability["deployment_hint"],
+                }
 
         effective_threshold = max(1, int(async_file_threshold or 50))
         if not wait and len(rows) > effective_threshold:
@@ -161,6 +178,7 @@ def run_task1_mixed_cleaning_service(
                 "operators_plan": {
                     group: {
                         "operators": chain_map[group],
+                        "preprocessor": PARSER_ID if group == "pdf" else None,
                         "description": chain_descriptions[group],
                         "file_count": type_counts.get(group, 0),
                     }
@@ -219,14 +237,23 @@ def run_task1_mixed_cleaning_service(
                 raise RuntimeError(cp.stderr.strip() or cp.stdout.strip())
             grouped[group].append((local_path, out_type))
 
+        source_group_names = {group: [path.name for path, _ in files] for group, files in grouped.items()}
+        pdf_source_paths = [path for path, _ in grouped.get("pdf", [])]
+        pdf_parse_reports: list[dict] = []
+        if pdf_source_paths:
+            grouped["pdf"], pdf_parse_reports = parse_pdf_files(
+                pdf_source_paths,
+                raw_dir / "pdf_text",
+            )
+
         if not any(grouped.values()):
-            return {"status": "error", "error": "no supported txt/csv/json files found", "unsupported": unsupported}
+            return {"status": "error", "error": "no supported txt/csv/json/jsonl/pdf files found", "unsupported": unsupported}
         missing_chains = sorted(group for group, files in grouped.items() if files and group not in chain_map)
         if missing_chains:
             return {
                 "status": "error",
                 "error": f"missing Task 1 cleaning chain for file groups: {missing_chains}",
-                "source_groups": {k: [path.name for path, _ in v] for k, v in grouped.items()},
+                    "source_groups": source_group_names,
                 "unsupported_files": unsupported,
             }
 
@@ -256,7 +283,7 @@ def run_task1_mixed_cleaning_service(
         subset_datasets = {}
         for group, files in grouped.items():
             if files:
-                group_name = {"text": "文本", "csv": "表格", "json": "JSON", "jsonl": "JSONL"}[group]
+                group_name = {"text": "文本", "csv": "表格", "json": "JSON", "jsonl": "JSONL", "pdf": "PDF"}[group]
                 subset_name = _dm_name(
                     f"{short_prefix}_{group_name}子集_{stamp[-8:]}",
                     f"任务一_{group_name}子集_{stamp[-8:]}",
@@ -265,7 +292,7 @@ def run_task1_mixed_cleaning_service(
                 subset_datasets[group] = register_dataset(
                     subset_name,
                     files,
-                    "txt" if group == "text" else group,
+                    "txt" if group in {"text", "pdf"} else group,
                     description=f"任务一混合清洗临时子数据集，来源：{source_name}",
                 )
 
@@ -281,7 +308,7 @@ def run_task1_mixed_cleaning_service(
                 continue
             result = run_pipeline(dataset, chain_map[group], group)
             paths = collect_outputs(result["dest_dataset_id"], outputs_dir, group, set())
-            if group == "text":
+            if group in {"text", "pdf"}:
                 paths = merge_numbered_text_chunks(paths)
             if group in {"json", "jsonl"}:
                 paths = restore_structured_output_suffix(paths, group)
@@ -297,15 +324,18 @@ def run_task1_mixed_cleaning_service(
                     f"{_json.dumps(report.get('totals', {}), ensure_ascii=False)}"
                 )
             reports[group] = report["totals"]
-            evidence_by_group[group] = summarize_cleaning_evidence(
-                [path for path, _out_type in grouped[group]],
-                paths,
+            source_paths = pdf_source_paths if group == "pdf" else [path for path, _out_type in grouped[group]]
+            evidence_by_group[group] = (
+                summarize_pdf_evidence(source_paths, paths, pdf_parse_reports)
+                if group == "pdf"
+                else summarize_cleaning_evidence(source_paths, paths)
             )
             total_records += int(report["totals"].get("records", 0) or 0)
             task_results[group] = {
                 "task_id": result["task_id"],
                 "dest_dataset_id": result["dest_dataset_id"],
                 "operators": chain_map[group],
+                "preprocessor": PARSER_ID if group == "pdf" else None,
                 "outputs": [str(path) for path in paths],
                 "artifact_cleanup": artifact_cleanup_report,
                 "postprocess": postprocess_report,
@@ -315,6 +345,11 @@ def run_task1_mixed_cleaning_service(
         delivery_dataset = register_final_delivery(
             outputs_dir,
             final_dataset_name,
+            description=(
+                "任务一最终交付：PDF 已通过远程 MinerU 提取为 TXT，其余文件保持源格式；完成噪声清理、质量检查和血缘登记"
+                if grouped.get("pdf")
+                else ""
+            ),
         )
         db_health = check_db_health()
         elapsed_seconds = round(_time.time() - started_at, 2)
@@ -334,11 +369,12 @@ def run_task1_mixed_cleaning_service(
             "status": "success",
             "work_dir": str(work_dir),
             "source_mixed_dataset": source_mixed_dataset,
-            "source_groups": {k: [path.name for path, _ in v] for k, v in grouped.items()},
+            "source_groups": source_group_names,
             "unsupported_files": unsupported,
             "operators_plan": {
                 group: {
                     "operators": chain_map[group],
+                    "preprocessor": PARSER_ID if group == "pdf" else None,
                     "description": chain_descriptions[group],
                     "file_count": len(grouped.get(group, [])),
                 }
@@ -367,7 +403,8 @@ def run_task1_mixed_cleaning_service(
         summary["explanation"] = (
             "Mixed dataset was split by file type, cleaned with per-type chains, "
             "then collected into one final Task 1 delivery dataset that preserves "
-            "the cleaned source formats. JSONL conversion is left to Task 2 or an "
+            "the cleaned source formats, while PDF inputs are explicitly converted "
+            "to TXT before text cleaning. JSONL conversion is left to Task 2 or an "
             "explicit user instruction."
         )
         return summary

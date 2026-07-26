@@ -4,6 +4,9 @@
 
 ## 任务一清洗算子
 
+PDF 不直接交给文本算子读取。MCP 编排层先调用 MinerU 官方远程接口生成 TXT，
+再把 TXT 注册为临时子数据集并执行下列 DataMate 文本清洗算子；因此无需修改 DataMate 上游内置 `MineruFormatter`。
+
 | 算子 | 作用 | 目录 |
 | --- | --- | --- |
 | EmojiCleaner | 移除 Emoji 和表情符号。 | [`emoji_cleaner/`](emoji_cleaner/) |

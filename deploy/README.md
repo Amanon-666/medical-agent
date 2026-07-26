@@ -20,6 +20,12 @@
 | 9 | [`08_verify.sh`](08_verify.sh) | 检查服务健康状态和核心接口。 |
 | -- | [`docker-compose.ccf-override.yml`](docker-compose.ccf-override.yml) | 端口覆盖配置。 |
 
+## 可选 PDF 解析能力
+
+PDF 清洗链默认连接 MinerU 官方 Agent 轻量解析接口，不需要部署本地解析容器，也不需要 Token。`.env.runtime` 中保持 `CCF_MINERU_API=https://mineru.net/api/v1/agent` 即可；如使用兼容代理服务，可覆盖该地址和请求超时参数。
+
+任务一在发现 PDF 后先验证远程接口，再执行签名上传、状态轮询、Markdown 下载和 TXT 规范化，随后把 TXT 交给 DataMate 文本清洗链。远程服务不可达、触发限频或文件超过 10 MB / 20 页时会停止该任务并返回明确原因，原有 TXT、CSV、JSON 和 JSONL 链不受影响。
+
 ## 2. 配置文件
 
 部署前复制模板并填写目标环境参数。字段说明见 [`docs/CONFIGURATION_GUIDE.md`](../docs/CONFIGURATION_GUIDE.md)。
