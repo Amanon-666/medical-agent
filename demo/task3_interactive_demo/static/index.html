@@ -38,12 +38,15 @@
           <div class="panel-head">
             <div>
               <h2>自然语言问答</h2>
-              <p>规则优先识别问句类型，生成只读查询，返回证据和图表</p>
+              <p>智能体理解分析目标，生成并校验只读 SQL，返回同源证据与图表</p>
             </div>
-            <label class="mode-toggle" title="开启后，问题会先转发给 Nexent 任务三智能体，再同步生成前端证据和图表">
-              <input id="agentModeToggle" type="checkbox" checked />
-              <span>Nexent智能体</span>
-            </label>
+            <div class="panel-actions">
+              <button class="outline-button" id="exportReport" type="button" disabled>导出报告</button>
+              <label class="mode-toggle" title="开启后，由 Nexent 任务三智能体编排只读分析工具">
+                <input id="agentModeToggle" type="checkbox" checked />
+                <span>Nexent智能体</span>
+              </label>
+            </div>
           </div>
           <div class="sample-row" id="sampleQuestions"></div>
           <div class="chat-log" id="chatLog"></div>
@@ -106,8 +109,8 @@
     <script src="/static/workspace_layout.js?v=20260703c"></script>
     <script src="/static/markdown_renderer.js?v=20260703c"></script>
     <script src="/static/quality_renderer.js?v=20260703d"></script>
-    <script src="/static/visualization_renderer.js?v=20260704a"></script>
+    <script src="/static/visualization_renderer.js?v=20260727a"></script>
     <script src="/static/graph_renderer.js?v=20260704a"></script>
-    <script src="/static/app.js?v=20260704d"></script>
+    <script src="/static/app.js?v=20260727b"></script>
   </body>
 </html>

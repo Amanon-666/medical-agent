@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-可视化平台只读查询服务。
-
-该模块负责疾病详情、图谱子图、统计查询和证据表读取。
-"""
+"""Read-only medical query service for the Task 3 demo."""
 
 from __future__ import annotations
 
@@ -11,6 +7,7 @@ import re
 import sqlite3
 from typing import Any
 
+from analysis_runtime import analyze_question
 from db_utils import connect, query_dicts
 from paths import ANALYTICS_DB
 from quality import filter_suspicious_rows
@@ -213,7 +210,7 @@ def infer_chart(rows: list[dict[str, Any]]) -> dict[str, Any] | None:
     return None
 
 
-def query_medical(question: str) -> dict[str, Any]:
+def query_medical_legacy(question: str) -> dict[str, Any]:
     if not ANALYTICS_DB.exists():
         return {
             "question": question,
@@ -345,3 +342,23 @@ def query_medical(question: str) -> dict[str, Any]:
             ]
         )
         return make_table_result(question, "fallback_search", sql, rows, steps)
+
+
+def query_medical(question: str) -> dict[str, Any]:
+    """执行统一的智能分析链，失败时显式降级到既有只读查询。"""
+
+    try:
+        return analyze_question(question)
+    except Exception as exc:
+        result = query_medical_legacy(question)
+        result["degraded"] = True
+        result["degraded_reason"] = str(exc)
+        result.setdefault("steps", []).insert(
+            0,
+            {
+                "name": "智能分析链",
+                "status": "warn",
+                "detail": "统一分析链不可用，已使用既有只读查询",
+            },
+        )
+        return result

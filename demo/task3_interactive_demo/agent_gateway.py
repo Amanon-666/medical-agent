@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-"""
-可视化平台智能体网关模块。
+"""Nexent 任务三智能体网关。
 
-该模块负责连接 Nexent 运行时，并在服务不可用时返回明确的降级原因。
+智能体负责理解与编排，医学事实、证据表和图表只采用结构化分析工具
+的实际返回值，避免把模型补写内容当作数据库结论。
 """
 
 from __future__ import annotations
 
+import ast
 import json
 import os
 import sys
-from typing import Any
+from json import JSONDecoder
+from typing import Any, Iterator
 
-from agent_answer import choose_agent_display_answer
+from analysis_runtime import remember_analysis
 from db_utils import connect, has_table, query_dicts
 from paths import DEFAULT_TASK3_AGENT_ID, KG_DB, ROOT
-from query_service import detect_stats_query, make_table_result, query_medical
+from query_service import make_table_result, query_medical
 
 
 NEXENT_TOOL_NAMES = (
@@ -31,7 +33,6 @@ NEXENT_TOOL_NAMES = (
 SOURCE_ORCHESTRATION_KEYWORDS = (
     "数据来源",
     "已接入来源",
-    "来源",
     "新增数据源",
     "新增数据来源",
     "接入",
@@ -51,6 +52,8 @@ def is_source_orchestration_question(question: str) -> bool:
 
 
 def source_projection_result(question: str) -> dict[str, Any]:
+    """读取已入库来源，来源管理不进入医学 NL2SQL 分析链。"""
+
     rows: list[dict[str, Any]] = []
     if KG_DB.exists():
         with connect(KG_DB) as conn:
@@ -68,58 +71,69 @@ def source_projection_result(question: str) -> dict[str, Any]:
                     """,
                 )
     steps = [
-        {"name": "识别任务类型", "status": "done", "detail": "数据来源/入库编排问题，不执行疾病实体检索"},
-        {"name": "读取来源清单", "status": "done", "detail": f"当前 KG 登记 {len(rows)} 个来源"},
+        {"name": "识别任务类型", "status": "done", "detail": "数据来源管理"},
+        {"name": "读取来源清单", "status": "done", "detail": f"当前登记 {len(rows)} 个来源"},
     ]
-    result = make_table_result(question, "kg_sources_projection", "SELECT ... FROM kg_sources", rows, steps)
-    result["answer"] = f"当前知识图谱已登记 {len(rows)} 个数据来源。数据源新增由 Nexent 智能体工具链执行，刷新按钮只重新读取已入库状态。"
+    result = make_table_result(
+        question,
+        "kg_sources_projection",
+        "SELECT ... FROM kg_sources",
+        rows,
+        steps,
+    )
+    result["answer"] = (
+        f"当前知识图谱已登记 {len(rows)} 个数据来源。"
+        "刷新操作仅重新读取已入库状态，不会重复接入数据。"
+    )
     return result
 
 
-def is_deterministic_visualization_question(question: str) -> bool:
-    return is_source_orchestration_question(question) or detect_stats_query(question) is not None
+def _decoded_objects(text: str) -> Iterator[Any]:
+    """从事件文本中提取 JSON 或 Python 字面量对象。"""
+
+    raw = str(text or "").strip()
+    if not raw:
+        return
+    decoder = JSONDecoder()
+    for index, char in enumerate(raw):
+        if char not in "[{":
+            continue
+        try:
+            value, _ = decoder.raw_decode(raw[index:])
+        except (TypeError, ValueError):
+            continue
+        yield value
+    if raw[:1] in "[{" and raw[-1:] in "]}":
+        try:
+            yield ast.literal_eval(raw)
+        except (SyntaxError, ValueError):
+            return
 
 
-def local_agent_projection(question: str, visual: dict[str, Any], reason: str) -> dict[str, Any]:
-    steps = [
-        {
-            "name": "识别展示型问题",
-            "status": "done",
-            "detail": reason,
-        },
-        {
-            "name": "执行本地只读查询",
-            "status": "done",
-            "detail": f"返回 {visual.get('row_count', 0)} 行证据/图表",
-        },
-    ]
-    return {
-        "mode": "nexent_agent",
-        "question": question,
-        "answer": str(visual.get("answer") or "查询完成。"),
-        "steps": steps,
-        "events_summary": {
-            "event_count": 0,
-            "event_types": [],
-            "tool_names": [],
-            "tool_records": [],
-            "bypass_reason": reason,
-        },
-        "visualization": visual,
-        "rows": visual.get("rows", []),
-        "columns": visual.get("columns", []),
-        "row_count": visual.get("row_count", 0),
-        "chart": visual.get("chart"),
-        "disease": visual.get("disease"),
-        "template": f"local_readonly+{visual.get('template', '-')}",
-    }
+def _walk_payload(value: Any) -> Iterator[dict[str, Any]]:
+    if isinstance(value, dict):
+        yield value
+        for nested in value.values():
+            yield from _walk_payload(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _walk_payload(nested)
+    elif isinstance(value, str):
+        for decoded in _decoded_objects(value):
+            yield from _walk_payload(decoded)
+
+
+def _is_analysis_result(payload: dict[str, Any]) -> bool:
+    return bool(payload.get("analysis_id")) and isinstance(payload.get("analyses"), list)
 
 
 def summarize_nexent_events(events: list[dict[str, Any]]) -> dict[str, Any]:
+    """汇总事件，并提取分析工具返回的结构化事实。"""
+
     final_answer = ""
+    structured_result: dict[str, Any] | None = None
     event_types: list[str] = []
     tool_names: list[str] = []
-    tool_records: list[dict[str, str]] = []
     for event in events:
         event_type = str(event.get("type") or event.get("event") or "")
         if event_type:
@@ -129,36 +143,71 @@ def summarize_nexent_events(events: list[dict[str, Any]]) -> dict[str, Any]:
             final_answer = content
         text = json.dumps(event, ensure_ascii=False)
         for tool_name in NEXENT_TOOL_NAMES:
-            if tool_name in text:
-                if tool_name not in tool_names:
-                    tool_names.append(tool_name)
-                if len(tool_records) < 12:
-                    detail = str(content)[:180] if content else text[:180]
-                    tool_records.append({"tool": tool_name, "detail": detail})
-    if not final_answer:
-        for event in reversed(events):
-            content = event.get("content") or event.get("answer") or event.get("data")
-            if isinstance(content, str) and content.strip():
-                final_answer = content
-                break
+            if tool_name in text and tool_name not in tool_names:
+                tool_names.append(tool_name)
+        for payload in _walk_payload(event):
+            if _is_analysis_result(payload):
+                structured_result = payload
+
     return {
         "event_count": len(events),
         "event_types": sorted(set(event_types)),
         "tool_names": tool_names,
-        "tool_records": tool_records,
+        "tool_records": [{"tool": name, "detail": "已调用"} for name in tool_names],
         "final_answer": final_answer,
+        "structured_result": structured_result,
     }
 
 
+def _with_agent_context(
+    result: dict[str, Any],
+    summary: dict[str, Any],
+    *,
+    degraded_reason: str | None = None,
+) -> dict[str, Any]:
+    payload = dict(result)
+    tool_names = summary.get("tool_names") or []
+    agent_step = {
+        "name": "Nexent 智能体编排",
+        "status": "done" if not degraded_reason else "warn",
+        "detail": (
+            "、".join(tool_names)
+            if tool_names and not degraded_reason
+            else degraded_reason or "已调用结构化分析工具"
+        ),
+    }
+    payload["steps"] = [agent_step, *(payload.get("steps") or [])]
+    payload["mode"] = "nexent_agent"
+    payload["events_summary"] = {
+        key: value
+        for key, value in summary.items()
+        if key not in {"final_answer", "structured_result"}
+    }
+    payload["degraded"] = bool(degraded_reason)
+    if degraded_reason:
+        payload["degraded_reason"] = degraded_reason
+    return payload
+
+
 def query_nexent_agent(question: str) -> dict[str, Any]:
-    """转发问题到 Nexent 任务三智能体，并补充本地可视化数据。"""
-    started_visual = source_projection_result(question) if is_source_orchestration_question(question) else query_medical(question)
-    if is_deterministic_visualization_question(question):
-        return local_agent_projection(question, started_visual, "统计/来源类问题使用本地分析库只读查询，避免智能体生成工具草稿")
+    """让 Nexent 编排任务三工具，并以工具结构化结果驱动页面。"""
+
+    if is_source_orchestration_question(question):
+        result = source_projection_result(question)
+        result["mode"] = "source_management"
+        return result
+
+    empty_summary = {
+        "event_count": 0,
+        "event_types": [],
+        "tool_names": [],
+        "tool_records": [],
+    }
     try:
         if str(os.environ.get("CCF_DEMO_DISABLE_NEXENT", "")).lower() in {"1", "true", "yes"}:
-            raise RuntimeError("Nexent agent mode disabled by CCF_DEMO_DISABLE_NEXENT")
-        sys.path.insert(0, str(ROOT)) if str(ROOT) not in sys.path else None
+            raise RuntimeError("Nexent 智能体模式未启用")
+        if str(ROOT) not in sys.path:
+            sys.path.insert(0, str(ROOT))
         from clients.nexent_client import NexentClient  # noqa: WPS433
 
         client = NexentClient(
@@ -168,68 +217,22 @@ def query_nexent_agent(question: str) -> dict[str, Any]:
             os.environ.get("CCF_NEXENT_PASSWORD", ""),
         )
         client.login()
-        events = list(client.run_agent_stream(DEFAULT_TASK3_AGENT_ID, question))
-        summary = summarize_nexent_events(events)
-        answer, answer_degraded = choose_agent_display_answer(
-            summary["final_answer"] or "Nexent 智能体已返回事件流，但没有 final_answer。",
-            started_visual,
+        summary = summarize_nexent_events(
+            list(client.run_agent_stream(DEFAULT_TASK3_AGENT_ID, question))
         )
-        steps = [
-            {"name": "转发到 Nexent Agent", "status": "done", "detail": f"agent_id={DEFAULT_TASK3_AGENT_ID}"},
-            {
-                "name": "智能体工具编排",
-                "status": "done" if summary["tool_names"] else "warn",
-                "detail": "、".join(summary["tool_names"]) or "未在事件流中识别到工具名",
-            },
-            {
-                "name": "回答展示净化",
-                "status": "warn" if answer_degraded else "done",
-                "detail": "Nexent 返回包含工具执行文本，已改用本地只读查询回答" if answer_degraded else "未发现工具调用草稿泄露",
-            },
-            {
-                "name": "前端可视化投影",
-                "status": "done",
-                "detail": f"本地任务三 API 同步生成 {started_visual.get('row_count', 0)} 行证据/图表用于验收展示",
-            },
-        ]
-        return {
-            "mode": "nexent_agent",
-            "question": question,
-            "answer": answer,
-            "steps": steps,
-            "events_summary": {
-                key: value
-                for key, value in summary.items()
-                if key != "final_answer"
-            },
-            "visualization": started_visual,
-            "rows": started_visual.get("rows", []),
-            "columns": started_visual.get("columns", []),
-            "row_count": started_visual.get("row_count", 0),
-            "chart": started_visual.get("chart"),
-            "disease": started_visual.get("disease"),
-            "template": f"nexent_agent+{started_visual.get('template', '-')}",
-        }
+        structured = summary.get("structured_result")
+        if structured:
+            remember_analysis(structured)
+            return _with_agent_context(structured, summary)
+
+        fallback = query_medical(question)
+        reason = "智能体事件流未返回可验证的结构化分析结果，已执行同源只读分析"
+        return _with_agent_context(fallback, summary, degraded_reason=reason)
     except Exception as exc:
-        return {
-            "mode": "nexent_agent",
-            "question": question,
-            "answer": f"Nexent 智能体调用失败，已保留本地任务三 API 结果作为降级展示。失败原因：{exc}",
-            "steps": [
-                {"name": "转发到 Nexent Agent", "status": "error", "detail": str(exc)[:240]},
-                {
-                    "name": "本地任务三 API 降级",
-                    "status": "done",
-                    "detail": f"返回 {started_visual.get('row_count', 0)} 行证据/图表",
-                },
-            ],
-            "events_summary": {"event_count": 0, "event_types": [], "tool_names": [], "tool_records": []},
-            "visualization": started_visual,
-            "rows": started_visual.get("rows", []),
-            "columns": started_visual.get("columns", []),
-            "row_count": started_visual.get("row_count", 0),
-            "chart": started_visual.get("chart"),
-            "disease": started_visual.get("disease"),
-            "template": f"agent_error+{started_visual.get('template', '-')}",
-            "error": str(exc),
-        }
+        fallback = query_medical(question)
+        fallback["agent_error"] = str(exc)
+        return _with_agent_context(
+            fallback,
+            empty_summary,
+            degraded_reason="Nexent 智能体暂不可用，已执行同源只读分析",
+        )

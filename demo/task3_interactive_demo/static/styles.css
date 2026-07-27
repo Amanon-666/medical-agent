@@ -1024,3 +1024,25 @@ td {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chart-list {
+  display: grid;
+  gap: 18px;
+}
+
+.chart-block {
+  min-width: 0;
+  border-bottom: 1px solid var(--border, #dfe6f1);
+  padding-bottom: 14px;
+}
+
+.chart-block:last-child {
+  border-bottom: 0;
+}

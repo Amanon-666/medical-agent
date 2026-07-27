@@ -1,4 +1,3 @@
-// 页面主编排：负责数据流、问答请求和右侧图谱/图表面板刷新。
 const {
   $,
   api,
@@ -13,7 +12,7 @@ const {
 const { initResizableWorkspace } = window.CCFWorkspaceLayout;
 const { renderMarkdown } = window.CCFMarkdown;
 const { renderQuality: renderQualityPanel, updateQualityDetails: updateQualityDetailsPanel } = window.CCFQualityRenderer;
-const { renderTable, renderBarChart } = window.CCFVisualizationRenderer;
+const { renderTable, renderBarChart, renderCharts } = window.CCFVisualizationRenderer;
 const { renderGraph: renderGraphPanel, renderDiseaseChart } = window.CCFGraphRenderer;
 
 const state = {
@@ -27,6 +26,8 @@ const state = {
   qualityDetailsOpen: false,
   lastRefreshAt: null,
   sourceDeleteEnabled: false,
+  querySequence: 0,
+  latestQuerySequence: 0,
 };
 
 async function refreshOverviewAndLineage() {
@@ -152,45 +153,51 @@ function renderMetrics(overview) {
 function renderEvaluation(evaluation) {
   const container = $("#evaluationPanel");
   if (!container) return;
+  const live = evaluation.live || {};
   const task2 = evaluation.task2 || {};
   const cmeee = task2.cmeee_baseline || {};
-  const cmeie = task2.cmeie_selfcheck || {};
   const nl2sql = (evaluation.task3 || {}).nl2sql || {};
-  const npu = evaluation.npu || {};
+  const updatedAt = live.database_updated_at
+    ? new Date(live.database_updated_at).toLocaleString("zh-CN", { hour12: false })
+    : "暂无时间";
   const cards = [
     {
-      label: "任务二抽取链",
-      value: task2.extractor_label || "本地知识抽取链",
-      detail: "用于实体识别、关系抽取和三元组生成",
+      label: "分析库更新时间",
+      value: updatedAt,
+      detail: `疾病 ${formatNumber(live.disease_count || 0)}；知识事实 ${formatNumber(live.fact_count || 0)}`,
     },
     {
-      label: "实体识别评测",
+      label: "当前知识图谱",
+      value: `${formatNumber(live.entity_count || 0)} / ${formatNumber(live.triple_count || 0)}`,
+      detail: "实体数 / 三元组数，来自当前运行数据库",
+    },
+    {
+      label: "质量拦截",
+      value: formatNumber(live.quality_issue_count || 0),
+      detail: "已隔离且未进入主知识图谱的质量问题",
+    },
+    {
+      label: "登记数据来源",
+      value: formatNumber(live.source_count || 0),
+      detail: "当前知识图谱中可追溯的数据来源",
+    },
+    {
+      label: "实体识别词典基线",
       value: formatPercent(cmeee.f1),
-      detail: cmeee.exists ? `样本 ${formatNumber(cmeee.sample_count || 0)}；精确率 ${formatPercent(cmeee.precision)} / 召回率 ${formatPercent(cmeee.recall)}` : "未找到报告",
+      detail: cmeee.exists
+        ? `CMeEE ${formatNumber(cmeee.sample_count || 0)} 条基线；精确率 ${formatPercent(cmeee.precision)} / 召回率 ${formatPercent(cmeee.recall)}`
+        : "未找到基线报告",
     },
     {
-      label: "关系抽取自检",
-      value: formatPercent(cmeie.f1),
-      detail: cmeie.exists ? `诊断样本 ${formatNumber(cmeie.sample_count || 0)} 条` : "未找到报告",
-    },
-    {
-      label: "NL2SQL 准确率",
+      label: "NL2SQL 固定回归",
       value: formatPercent(nl2sql.accuracy),
-      detail: nl2sql.exists ? `${formatNumber(nl2sql.passed || 0)}/${formatNumber(nl2sql.total || 0)} 通过；85% 阈值 ${nl2sql.meets_85_percent ? "已满足" : "未满足"}` : "未找到报告",
-    },
-    {
-      label: "任务二运行效率",
-      value: "随任务返回",
-      detail: task2.runtime_metric_label || "展示吞吐量、平均耗时和入库数量",
-    },
-    {
-      label: "NPU 状态",
-      value: npu.status || "-",
-      detail: npu.note || "",
+      detail: nl2sql.exists
+        ? `${formatNumber(nl2sql.passed || 0)}/${formatNumber(nl2sql.total || 0)} 条固定问题通过；不代表开放问答准确率`
+        : "未找到回归报告",
     },
   ];
   container.innerHTML = `
-    <div class="section-title">评测概览</div>
+    <div class="section-title">运行与质量概览</div>
     <div class="eval-grid">
       ${cards
         .map(
@@ -267,6 +274,60 @@ function renderAgentSummary(summary) {
   `;
 }
 
+function collectEvidenceRows(result) {
+  const analyses = result.analyses || [];
+  if (!analyses.length) return result.rows || [];
+  return analyses.flatMap((analysis) =>
+    (analysis.rows || []).map((row) => ({
+      分析项: analysis.title || "分析结果",
+      ...row,
+    })),
+  );
+}
+
+function reportFilename(response) {
+  const disposition = response.headers.get("content-disposition") || "";
+  const encoded = disposition.match(/filename\\*=UTF-8''([^;]+)/i)?.[1];
+  return encoded ? decodeURIComponent(encoded) : "医学数据分析报告.zip";
+}
+
+async function exportLastReport() {
+  const result = state.lastQuery;
+  if (!result?.analysis_id && !result?.question) return;
+  const button = $("#exportReport");
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "生成中...";
+  try {
+    const response = await fetch("/api/export_report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        analysis_id: result.analysis_id || "",
+        question: result.question || "",
+      }),
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || `请求失败（${response.status}）`);
+    }
+    const blob = await response.blob();
+    const href = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = href;
+    link.download = reportFilename(response);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(href);
+  } catch (error) {
+    addMessage("assistant", `报告导出失败：${error.message}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
 function activateTab(name) {
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.classList.toggle("active", tab.dataset.tab === name);
@@ -329,6 +390,8 @@ async function loadInitialData() {
 }
 
 async function submitQuestion(question) {
+  const requestSequence = ++state.querySequence;
+  state.latestQuerySequence = requestSequence;
   addMessage("user", question);
   const useAgent = $("#agentModeToggle")?.checked;
   const loading = addMessage(
@@ -349,15 +412,22 @@ async function submitQuestion(question) {
       method: "POST",
       body: JSON.stringify({ question }),
     });
-    state.lastQuery = result;
     loading.querySelector(".bubble").innerHTML = `
       ${renderMarkdown(result.answer || "查询完成。")}
       ${renderSteps(result.steps || [])}
       ${renderAgentSummary(result.events_summary)}
-      <div class="hint">模板：${escapeHtml(result.template || "-")}；返回 ${formatNumber(result.row_count || 0)} 行</div>
+      <div class="hint">分析计划：${formatNumber(result.plan?.queries?.length || 0)} 项；返回 ${formatNumber(result.row_count || 0)} 行；分析编号：${escapeHtml(result.analysis_id || "-")}</div>
     `;
-    renderTable($("#evidenceTable"), result.rows || [], 120);
-    renderBarChart(result.chart);
+
+    // 多个查询并发返回时，右侧洞察区只跟随最后一次提交的问题。
+    // 较早请求仍保留在对话记录中，但不能覆盖较新问题的图表和证据。
+    if (requestSequence !== state.latestQuerySequence) return;
+
+    state.lastQuery = result;
+    $("#exportReport").disabled = !result.analysis_id;
+    const evidenceRows = collectEvidenceRows(result);
+    renderTable($("#evidenceTable"), evidenceRows, 120);
+    renderCharts(result.charts || (result.chart ? [result.chart] : []));
     if (result.disease) {
       $("#diseaseInput").value = result.disease;
       api(`/api/disease_graph?disease=${encodeURIComponent(result.disease)}`)
@@ -370,8 +440,8 @@ async function submitQuestion(question) {
     } else {
       loadQuality(question).catch(() => {});
     }
-    if (result.rows && result.rows.length) {
-      activateTab(result.chart ? "chart" : "evidence");
+    if (evidenceRows.length) {
+      activateTab((result.charts || []).length || result.chart ? "chart" : "evidence");
     }
   } catch (error) {
     loading.querySelector(".bubble").innerHTML = renderMarkdown(`处理失败：${error.message}`);
@@ -452,6 +522,8 @@ document.addEventListener("DOMContentLoaded", () => {
     state.qualityDetailsOpen = !state.qualityDetailsOpen;
     updateQualityDetailsPanel(state.qualityDetailsOpen);
   });
+
+  $("#exportReport").addEventListener("click", exportLastReport);
 
   loadInitialData();
 });

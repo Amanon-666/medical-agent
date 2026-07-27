@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-医学数据智能体可视化平台服务入口。
-
-该模块提供页面、健康检查、问答、图谱、图表和数据来源维护接口。
-"""
+"""Task 2/3 interactive demo HTTP server."""
 
 from __future__ import annotations
 
@@ -11,8 +7,9 @@ import argparse
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from urllib.parse import parse_qs, unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
+from analysis_runtime import analyze_question, get_cached_analysis
 from agent_gateway import query_nexent_agent
 from dashboard_payloads import (
     disease_graph_payload,
@@ -25,6 +22,7 @@ from dashboard_payloads import (
 from http_utils import json_response, read_json, static_response
 from paths import ANALYTICS_DB, KG_DB, STATIC_DIR
 from query_service import detect_stats_query, query_medical
+from task3.report import build_report_archive
 from source_management import delete_kg_source, maintenance_token_configured
 
 
@@ -60,6 +58,7 @@ class DemoHandler(BaseHTTPRequestHandler):
                         "analytics_db": str(ANALYTICS_DB),
                         "kg_db": str(KG_DB),
                         "source_delete_enabled": maintenance_token_configured(),
+                        "analysis_export_enabled": True,
                     },
                 )
             elif path == "/api/overview":
@@ -94,6 +93,26 @@ class DemoHandler(BaseHTTPRequestHandler):
                     json_response(self, query_nexent_agent(question))
                 else:
                     json_response(self, query_medical(question))
+            elif parsed.path == "/api/export_report":
+                payload = read_json(self)
+                analysis_id = str(payload.get("analysis_id") or "")
+                question = str(payload.get("question") or "").strip()
+                result = get_cached_analysis(analysis_id)
+                if result is None and question:
+                    result = analyze_question(question)
+                if result is None:
+                    raise ValueError("分析记录已失效，请重新提交问题后导出")
+                filename, content = build_report_archive(result)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header(
+                    "Content-Disposition",
+                    f"attachment; filename*=UTF-8''{quote(filename)}",
+                )
+                self.send_header("Content-Length", str(len(content)))
+                self.send_header("Access-Control-Allow-Origin", "*")
+                self.end_headers()
+                self.wfile.write(content)
             elif parsed.path == "/api/delete_source":
                 payload = read_json(self)
                 result = delete_kg_source(
