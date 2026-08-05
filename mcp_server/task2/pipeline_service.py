@@ -142,6 +142,8 @@ def run_kg_pipeline_service(
     record_results: list[dict] = []
     generated_triple_count = 0
     inserted_triple_count = 0
+    candidate_triple_count = 0
+    rejected_triple_count = 0
     extraction_errors: list[dict] = []
     extraction_elapsed_total = 0.0
     persistence_elapsed_total = 0.0
@@ -178,10 +180,20 @@ def run_kg_pipeline_service(
                 if source_id is None:
                     source_id = ensure_source(conn, ds, len(selected_records))
                 persist_start = time.time()
-                inserted = persist_triples(conn, triples, record.get("source_file", ""), source_id)
+                persistence_result = persist_triples(
+                    conn,
+                    triples,
+                    record.get("source_file", ""),
+                    source_id,
+                    return_details=True,
+                )
                 persistence_elapsed_total += time.time() - persist_start
-                record_result["inserted_triples"] = inserted
-                inserted_triple_count += inserted
+                record_result["inserted_triples"] = persistence_result["inserted"]
+                record_result["candidate_triples"] = persistence_result["candidate"]
+                record_result["rejected_triples"] = persistence_result["rejected"]
+                inserted_triple_count += persistence_result["inserted"]
+                candidate_triple_count += persistence_result["candidate"]
+                rejected_triple_count += persistence_result["rejected"]
 
             record_results.append(record_result)
             tool_call_trace.append({"tool": f"record_{index}", **record_result})
@@ -211,6 +223,8 @@ def run_kg_pipeline_service(
             "label": "三元组入库",
             "status": "done" if persist else "skipped",
             "inserted_triple_count": inserted_triple_count,
+            "candidate_triple_count": candidate_triple_count,
+            "rejected_triple_count": rejected_triple_count,
             "duration_seconds": round(persistence_elapsed_total + commit_elapsed, 4),
         }
     )
@@ -269,6 +283,8 @@ def run_kg_pipeline_service(
         "relation_count": sum(item.get("relations", 0) for item in record_results),
         "generated_triple_count": generated_triple_count,
         "inserted_triple_count": inserted_triple_count,
+        "candidate_triple_count": candidate_triple_count,
+        "rejected_triple_count": rejected_triple_count,
         "triple_count": inserted_triple_count,
         "performance": {
             "extractor_backend": selected_backend,
@@ -286,7 +302,8 @@ def run_kg_pipeline_service(
             f"处理 {processed_records} 条"
             f"{'（跨文件均衡抽样）' if len(selected_records) < len(records) else ''}，"
             f"覆盖 {len(source_file_summary)} 个来源文件，生成 {generated_triple_count} 条三元组，"
-            f"新增入库 {inserted_triple_count} 条，总耗时 {format_stage_duration(elapsed)}，"
+            f"新增入库 {inserted_triple_count} 条，待复核 {candidate_triple_count} 条，"
+            f"拦截 {rejected_triple_count} 条，总耗时 {format_stage_duration(elapsed)}，"
             f"抽取吞吐 {throughput} records/s。"
         ),
         "analytics_summary": analytics_summary,

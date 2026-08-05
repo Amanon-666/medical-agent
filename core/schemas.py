@@ -16,6 +16,8 @@ class Entity:
     end_idx: Optional[int] = None
     confidence: float = 1.0
     evidence: str = ""
+    extraction_method: str = ""
+    reliability_level: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         d = {"text": self.text, "type": self.type}
@@ -25,6 +27,10 @@ class Entity:
         d["confidence"] = round(float(self.confidence), 4)
         if self.evidence:
             d["evidence"] = self.evidence
+        if self.extraction_method:
+            d["extraction_method"] = self.extraction_method
+        if self.reliability_level:
+            d["reliability_level"] = self.reliability_level
         return d
 
 
@@ -38,6 +44,8 @@ class Relation:
     object_type: str = ""
     confidence: float = 1.0
     evidence: str = ""
+    extraction_method: str = ""
+    reliability_level: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         data = {
@@ -52,18 +60,25 @@ class Relation:
             data["object_type"] = self.object_type
         if self.evidence:
             data["evidence"] = self.evidence
+        if self.extraction_method:
+            data["extraction_method"] = self.extraction_method
+        if self.reliability_level:
+            data["reliability_level"] = self.reliability_level
         return data
 
 
 @dataclass
 class Triple:
-    """知识三元组（带置信度，用于入图谱）"""
+    """知识三元组及其内部质量审计信息。"""
     subject: str
     predicate: str
     object: str
     confidence: float = 1.0
     subject_type: str = ""
     object_type: str = ""
+    evidence: str = ""
+    extraction_method: str = ""
+    reliability_level: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

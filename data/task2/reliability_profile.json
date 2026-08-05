@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "meaning": "grouped validation precision; not per-item probability",
+  "groups": {
+    "entity|dictionary_exact|dis": {
+      "predicted": 1982,
+      "true_positive": 1312,
+      "precision": 0.661958,
+      "level": "medium"
+    },
+    "entity|dictionary_exact|sym": {
+      "predicted": 1005,
+      "true_positive": 511,
+      "precision": 0.508458,
+      "level": "medium"
+    },
+    "entity|dictionary_exact|dru": {
+      "predicted": 512,
+      "true_positive": 340,
+      "precision": 0.664062,
+      "level": "medium"
+    },
+    "entity|dictionary_exact|bod": {
+      "predicted": 1507,
+      "true_positive": 650,
+      "precision": 0.431321,
+      "level": "low"
+    },
+    "entity|dictionary_exact|ite": {
+      "predicted": 672,
+      "true_positive": 211,
+      "precision": 0.313988,
+      "level": "low"
+    },
+    "entity|dictionary_exact|pro": {
+      "predicted": 727,
+      "true_positive": 437,
+      "precision": 0.6011,
+      "level": "medium"
+    },
+    "entity|dictionary_exact|mic": {
+      "predicted": 106,
+      "true_positive": 52,
+      "precision": 0.490566,
+      "level": "low"
+    },
+    "entity|dictionary_exact|dep": {
+      "predicted": 39,
+      "true_positive": 34,
+      "precision": 0.871795,
+      "level": "high"
+    },
+    "entity|dictionary_exact|equ": {
+      "predicted": 43,
+      "true_positive": 21,
+      "precision": 0.488372,
+      "level": "low"
+    },
+    "relation|known_pair|手术治疗": {
+      "predicted": 35,
+      "true_positive": 16,
+      "precision": 0.457143,
+      "level": "low"
+    },
+    "relation|sentence_rule|并发症": {
+      "predicted": 452,
+      "true_positive": 20,
+      "precision": 0.044248,
+      "level": "low"
+    },
+    "relation|known_pair|发病部位": {
+      "predicted": 91,
+      "true_positive": 25,
+      "precision": 0.274725,
+      "level": "low"
+    },
+    "relation|sentence_rule|药物治疗": {
+      "predicted": 344,
+      "true_positive": 36,
+      "precision": 0.104651,
+      "level": "low"
+    },
+    "relation|known_pair|相关（转化）": {
+      "predicted": 35,
+      "true_positive": 4,
+      "precision": 0.114286,
+      "level": "low"
+    },
+    "relation|sentence_rule|病因": {
+      "predicted": 2036,
+      "true_positive": 16,
+      "precision": 0.007859,
+      "level": "low"
+    },
+    "relation|known_pair|同义词": {
+      "predicted": 161,
+      "true_positive": 121,
+      "precision": 0.751553,
+      "level": "medium"
+    },
+    "relation|sentence_rule|相关（导致）": {
+      "predicted": 167,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|高危因素": {
+      "predicted": 21,
+      "true_positive": 4,
+      "precision": 0.190476,
+      "level": "low"
+    },
+    "relation|sentence_rule|辅助治疗": {
+      "predicted": 350,
+      "true_positive": 7,
+      "precision": 0.02,
+      "level": "low"
+    },
+    "relation|known_pair|病理分型": {
+      "predicted": 72,
+      "true_positive": 54,
+      "precision": 0.75,
+      "level": "medium"
+    },
+    "relation|known_pair|临床表现": {
+      "predicted": 299,
+      "true_positive": 150,
+      "precision": 0.501672,
+      "level": "medium"
+    },
+    "relation|known_pair|鉴别诊断": {
+      "predicted": 81,
+      "true_positive": 34,
+      "precision": 0.419753,
+      "level": "low"
+    },
+    "relation|context_rule|发病部位": {
+      "predicted": 255,
+      "true_positive": 1,
+      "precision": 0.003922,
+      "level": "low"
+    },
+    "relation|context_rule|临床表现": {
+      "predicted": 161,
+      "true_positive": 14,
+      "precision": 0.086957,
+      "level": "low"
+    },
+    "relation|sentence_rule|鉴别诊断": {
+      "predicted": 217,
+      "true_positive": 10,
+      "precision": 0.046083,
+      "level": "low"
+    },
+    "relation|known_pair|组织学检查": {
+      "predicted": 13,
+      "true_positive": 4,
+      "precision": 0.307692,
+      "level": "low"
+    },
+    "relation|sentence_rule|组织学检查": {
+      "predicted": 23,
+      "true_positive": 2,
+      "precision": 0.086957,
+      "level": "low"
+    },
+    "relation|known_pair|实验室检查": {
+      "predicted": 51,
+      "true_positive": 27,
+      "precision": 0.529412,
+      "level": "medium"
+    },
+    "relation|sentence_rule|实验室检查": {
+      "predicted": 331,
+      "true_positive": 25,
+      "precision": 0.075529,
+      "level": "low"
+    },
+    "relation|context_rule|辅助检查": {
+      "predicted": 192,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|sentence_rule|临床表现": {
+      "predicted": 631,
+      "true_positive": 75,
+      "precision": 0.118859,
+      "level": "low"
+    },
+    "relation|sentence_rule|发病部位": {
+      "predicted": 123,
+      "true_positive": 6,
+      "precision": 0.04878,
+      "level": "low"
+    },
+    "relation|known_pair|病因": {
+      "predicted": 40,
+      "true_positive": 18,
+      "precision": 0.45,
+      "level": "low"
+    },
+    "relation|known_pair|相关（导致）": {
+      "predicted": 35,
+      "true_positive": 16,
+      "precision": 0.457143,
+      "level": "low"
+    },
+    "relation|known_pair|药物治疗": {
+      "predicted": 201,
+      "true_positive": 102,
+      "precision": 0.507463,
+      "level": "medium"
+    },
+    "relation|sentence_rule|影像学检查": {
+      "predicted": 157,
+      "true_positive": 12,
+      "precision": 0.076433,
+      "level": "low"
+    },
+    "relation|context_rule|辅助治疗": {
+      "predicted": 146,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|并发症": {
+      "predicted": 75,
+      "true_positive": 26,
+      "precision": 0.346667,
+      "level": "low"
+    },
+    "relation|known_pair|内窥镜检查": {
+      "predicted": 3,
+      "true_positive": 2,
+      "precision": 0.666667,
+      "level": "low"
+    },
+    "relation|sentence_rule|内窥镜检查": {
+      "predicted": 26,
+      "true_positive": 3,
+      "precision": 0.115385,
+      "level": "low"
+    },
+    "relation|known_pair|辅助治疗": {
+      "predicted": 22,
+      "true_positive": 15,
+      "precision": 0.681818,
+      "level": "medium"
+    },
+    "relation|known_pair|影像学检查": {
+      "predicted": 52,
+      "true_positive": 24,
+      "precision": 0.461538,
+      "level": "low"
+    },
+    "relation|sentence_rule|手术治疗": {
+      "predicted": 231,
+      "true_positive": 4,
+      "precision": 0.017316,
+      "level": "low"
+    },
+    "relation|sentence_rule|同义词": {
+      "predicted": 368,
+      "true_positive": 10,
+      "precision": 0.027174,
+      "level": "low"
+    },
+    "relation|context_rule|药物治疗": {
+      "predicted": 23,
+      "true_positive": 2,
+      "precision": 0.086957,
+      "level": "low"
+    },
+    "relation|known_pair|相关（症状）": {
+      "predicted": 11,
+      "true_positive": 8,
+      "precision": 0.727273,
+      "level": "medium"
+    },
+    "relation|sentence_rule|预防": {
+      "predicted": 58,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|风险评估因素": {
+      "predicted": 6,
+      "true_positive": 2,
+      "precision": 0.333333,
+      "level": "low"
+    },
+    "relation|known_pair|辅助检查": {
+      "predicted": 21,
+      "true_positive": 9,
+      "precision": 0.428571,
+      "level": "low"
+    },
+    "relation|known_pair|外侵部位": {
+      "predicted": 5,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|转移部位": {
+      "predicted": 10,
+      "true_positive": 1,
+      "precision": 0.1,
+      "level": "low"
+    },
+    "relation|context_rule|病因": {
+      "predicted": 11,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|化疗": {
+      "predicted": 6,
+      "true_positive": 3,
+      "precision": 0.5,
+      "level": "low"
+    },
+    "relation|known_pair|放射治疗": {
+      "predicted": 13,
+      "true_positive": 3,
+      "precision": 0.230769,
+      "level": "low"
+    },
+    "relation|known_pair|多发群体": {
+      "predicted": 3,
+      "true_positive": 3,
+      "precision": 1.0,
+      "level": "low"
+    },
+    "relation|known_pair|阶段": {
+      "predicted": 3,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    },
+    "relation|known_pair|预防": {
+      "predicted": 1,
+      "true_positive": 1,
+      "precision": 1.0,
+      "level": "low"
+    },
+    "relation|known_pair|筛查": {
+      "predicted": 5,
+      "true_positive": 4,
+      "precision": 0.8,
+      "level": "high"
+    },
+    "relation|known_pair|治疗后症状": {
+      "predicted": 1,
+      "true_positive": 0,
+      "precision": 0.0,
+      "level": "low"
+    }
+  }
+}

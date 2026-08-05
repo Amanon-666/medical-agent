@@ -1,0 +1,48 @@
+{
+  "split": {
+    "cmeee_calibration": 2500,
+    "cmeee_evaluation": 2500,
+    "cmeie_calibration": 1792,
+    "cmeie_evaluation": 1793
+  },
+  "metrics": {
+    "entity": {
+      "gold": 13419,
+      "predicted": 7023,
+      "true_positive": 3968,
+      "precision": 0.565001,
+      "recall": 0.2957,
+      "f1": 0.38822
+    },
+    "relation": {
+      "gold": 5305,
+      "predicted": 8297,
+      "true_positive": 951,
+      "precision": 0.11462,
+      "recall": 0.179265,
+      "f1": 0.139832
+    },
+    "relation_decisions": {
+      "accepted_high": 1,
+      "candidate_medium": 824,
+      "rejected_low": 7472
+    },
+    "relation_decision_quality": {
+      "high": {
+        "predicted": 1,
+        "true_positive": 1,
+        "precision": 1.0
+      },
+      "medium": {
+        "predicted": 824,
+        "true_positive": 482,
+        "precision": 0.584951
+      },
+      "low": {
+        "predicted": 7472,
+        "true_positive": 468,
+        "precision": 0.062634
+      }
+    }
+  }
+}

@@ -87,7 +87,7 @@ def extract_medical_knowledge(
             raise ValueError("llm backend requires an LLMClient")
         entities = extract_entities_llm(text, llm)
         relations = extract_relations_llm(text, llm, entities=entities)
-        triples = relations_to_triples(relations, min_confidence=0.7)
+        triples = relations_to_triples(relations, min_confidence=0.0)
         return ExtractionBundle(
             entities=entities,
             relations=relations,
@@ -109,7 +109,7 @@ def extract_medical_knowledge(
             merged_relations = _merge_relations(relations, llm_relations)
             entities = merged_entities
             relations = merged_relations
-            triples = relations_to_triples(relations, min_confidence=0.7)
+            triples = relations_to_triples(relations, min_confidence=0.0)
         except Exception as exc:
             llm_error = f"{type(exc).__name__}: {str(exc)[:240]}"
 

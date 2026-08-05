@@ -112,6 +112,33 @@ def _task2_ensure_kg_schema(conn: sqlite3.Connection) -> None:
         WHERE s.entity_type = 'disease';
         """
     )
+    triple_columns = {row[1] for row in conn.execute("PRAGMA table_info(kg_triples)")}
+    if "reliability_level" not in triple_columns:
+        conn.execute("ALTER TABLE kg_triples ADD COLUMN reliability_level TEXT")
+    conn.execute("DROP VIEW IF EXISTS v_disease_facts")
+    conn.execute(
+        """
+        CREATE VIEW v_disease_facts AS
+        SELECT
+            s.canonical_name AS disease,
+            s.entity_type AS subject_type,
+            r.relation_code,
+            r.display_name AS relation_name,
+            o.canonical_name AS object,
+            o.entity_type AS object_type,
+            t.evidence,
+            t.confidence,
+            t.extractor,
+            t.reliability_level,
+            src.source_name
+        FROM kg_triples t
+        JOIN kg_entities s ON t.subject_id = s.entity_id
+        JOIN kg_entities o ON t.object_id = o.entity_id
+        JOIN kg_relations r ON t.relation_code = r.relation_code
+        LEFT JOIN kg_sources src ON t.source_id = src.source_id
+        WHERE s.entity_type = 'disease'
+        """
+    )
 
 
 def _task2_psql_rows(sql: str) -> list[list[str]]:

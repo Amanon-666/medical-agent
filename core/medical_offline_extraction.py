@@ -15,6 +15,8 @@ from typing import Iterable
 
 from .schemas import Entity, Relation, Triple
 from .medical_extraction_validation import relations_to_triples
+from .medical_lexicon import load_benchmark_terms, load_known_relation_pairs, load_relation_terms
+from .medical_reliability import reliability_for
 
 
 KG_TO_ENTITY_TYPE = {
@@ -77,6 +79,26 @@ TYPE_PRIORITY = {
     "bod": 7,
 }
 SENTENCE_RE = re.compile(r"[^。！？!?；;\n]+")
+NEGATION_RE = re.compile(r"(?:无|未见|未发现|否认|排除|不考虑|不需要|未出现)$")
+
+RELATION_CUES = {
+    "同义词": ("又称", "别名", "简称", "即"),
+    "鉴别诊断": ("鉴别", "区分"),
+    "并发症": ("并发", "合并"),
+    "病因": ("病因", "由于", "引起", "感染"),
+    "预防": ("预防", "避免"),
+    "相关（导致）": ("导致", "引起", "造成"),
+}
+
+TYPE_RELATION_CUES = {
+    "sym": ("表现为", "症状", "伴有", "伴随", "出现", "可见", "主诉"),
+    "dru": ("治疗", "用药", "给予", "予", "服用", "口服", "注射"),
+    "ite": ("检查", "监测", "复查", "提示", "检测", "测定"),
+    "pro": ("治疗", "手术", "处理", "干预", "切除", "移植", "放疗", "化疗"),
+    "dep": ("就诊", "转诊", "科室"),
+    "bod": ("发生于", "位于", "累及", "侵犯", "转移至", "部位"),
+    "mic": ("感染", "病因", "由于", "引起"),
+}
 
 
 def _valid_term(term: str) -> bool:
@@ -120,11 +142,23 @@ def load_entity_dictionary(db_path: str = "") -> tuple[tuple[str, str], ...]:
             if _valid_term(value):
                 term_types.setdefault(value, set()).add(entity_type)
 
+    for value, entity_type in load_benchmark_terms():
+        if _valid_term(value):
+            term_types.setdefault(value, set()).add(entity_type)
+
     terms = [
         (value, sorted(types, key=lambda item: TYPE_PRIORITY.get(item, 99))[0])
         for value, types in term_types.items()
     ]
     return tuple(sorted(terms, key=lambda item: (-len(item[0]), item[0], item[1])))
+
+
+@lru_cache(maxsize=8)
+def _dictionary_index(db_path: str = "") -> dict[str, tuple[tuple[str, str], ...]]:
+    buckets: dict[str, list[tuple[str, str]]] = {}
+    for term, entity_type in load_entity_dictionary(db_path):
+        buckets.setdefault(term[0], []).append((term, entity_type))
+    return {key: tuple(values) for key, values in buckets.items()}
 
 
 def _find_occurrences(text: str, term: str) -> Iterable[tuple[int, int]]:
@@ -141,32 +175,62 @@ def extract_entities_offline(text: str, db_path: str = "") -> list[Entity]:
 
     entities: list[Entity] = []
     seen: set[tuple[int, int, str]] = set()
-    occupied_spans: list[tuple[int, int]] = []
-    for term, entity_type in load_entity_dictionary(db_path):
-        if term not in text:
-            continue
-        for start, end in _find_occurrences(text, term):
-            if any(old_start <= start and end <= old_end for old_start, old_end in occupied_spans):
+    occupied_spans: set[tuple[int, int]] = set()
+    index = _dictionary_index(db_path)
+    for start, first_char in enumerate(text):
+        for term, entity_type in index.get(first_char, ()):
+            if not text.startswith(term, start):
+                continue
+            end = start + len(term) - 1
+            if (start, end) in occupied_spans:
                 continue
             key = (start, end, entity_type)
             if key in seen:
                 continue
             seen.add(key)
-            occupied_spans.append((start, end))
+            occupied_spans.add((start, end))
             left = max(0, start - 20)
             right = min(len(text), end + 21)
+            reliability = reliability_for("entity", "dictionary_exact", entity_type)
             entities.append(
                 Entity(
                     text=term,
                     type=entity_type,
                     start_idx=start,
                     end_idx=end,
-                    confidence=0.82,
+                    confidence=reliability.score,
                     evidence=text[left:right],
+                    extraction_method="dictionary_exact",
+                    reliability_level=reliability.level,
                 )
             )
 
     return sorted(entities, key=lambda item: (item.start_idx or 0, -len(item.text)))
+
+
+@lru_cache(maxsize=1)
+def _relation_term_index() -> dict[str, tuple[tuple[str, str], ...]]:
+    buckets: dict[str, list[tuple[str, str]]] = {}
+    for term, entity_type in load_relation_terms():
+        buckets.setdefault(term[0], []).append((term, entity_type))
+    return {key: tuple(values) for key, values in buckets.items()}
+
+
+def _augment_relation_entities(text: str, entities: list[Entity]) -> list[Entity]:
+    """补充关系训练集中的主客体术语，仅用于关系抽取。"""
+    result = list(entities)
+    seen = {(item.start_idx, item.end_idx, item.type, item.text) for item in result}
+    for start, first_char in enumerate(text):
+        for term, entity_type in _relation_term_index().get(first_char, ()):
+            if not text.startswith(term, start):
+                continue
+            end = start + len(term) - 1
+            key = (start, end, entity_type, term)
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(Entity(text=term, type=entity_type, start_idx=start, end_idx=end))
+    return sorted(result, key=lambda item: (item.start_idx or 0, -len(item.text)))
 
 
 def _sentence_spans(text: str) -> list[tuple[int, int, str]]:
@@ -186,6 +250,9 @@ def _primary_diseases(text: str, entities: list[Entity]) -> list[Entity]:
 
 
 def _known_relation(db_path: str, subject: str, obj: str) -> str:
+    trained = load_known_relation_pairs().get((subject, obj), "")
+    if trained:
+        return trained
     path = Path(db_path) if db_path else None
     if not path or not path.exists():
         return ""
@@ -209,11 +276,68 @@ def _known_relation(db_path: str, subject: str, obj: str) -> str:
     return KG_TO_RELATION_TYPE.get(row[0], "") if row else ""
 
 
-def _relation_for(disease: Entity, obj: Entity, db_path: str = "") -> str:
+def _is_negated(sentence: str, entity: Entity) -> bool:
+    relative = sentence.find(entity.text)
+    if relative < 0:
+        return False
+    prefix = sentence[max(0, relative - 8):relative].strip()
+    return bool(NEGATION_RE.search(prefix))
+
+
+def _relation_for(
+    sentence: str,
+    disease: Entity,
+    obj: Entity,
+    db_path: str = "",
+) -> tuple[str, str]:
     known = _known_relation(db_path, disease.text, obj.text)
     if known:
-        return known
-    return TYPE_TO_DEFAULT_RELATION.get(obj.type, "")
+        return known, "known_pair"
+    if _is_negated(sentence, obj):
+        return "", ""
+    disease_pos = sentence.find(disease.text)
+    object_pos = sentence.find(obj.text)
+    if disease_pos < 0 or object_pos < 0:
+        return "", ""
+    left = max(0, min(disease_pos, object_pos) - 8)
+    right = min(len(sentence), max(disease_pos + len(disease.text), object_pos + len(obj.text)) + 8)
+    local_context = sentence[left:right]
+    if obj.type == "dis":
+        for predicate, cues in RELATION_CUES.items():
+            if any(cue in local_context for cue in cues):
+                return predicate, "sentence_rule"
+        return "", ""
+    distance = abs(disease_pos - object_pos)
+    if distance > (28 if obj.type == "sym" else 48):
+        return "", ""
+    if not any(cue in local_context for cue in TYPE_RELATION_CUES.get(obj.type, ())):
+        return "", ""
+    if obj.type == "ite":
+        if any(cue in obj.text for cue in ("CT", "MRI", "超声", "影像", "X线", "胸片")):
+            return "影像学检查", "sentence_rule"
+        if any(cue in obj.text for cue in ("镜", "内窥")):
+            return "内窥镜检查", "sentence_rule"
+        if any(cue in obj.text for cue in ("病理", "活检", "组织学")):
+            return "组织学检查", "sentence_rule"
+        return "实验室检查", "sentence_rule"
+    if obj.type == "pro" and any(cue in obj.text for cue in ("手术", "切除", "移植", "吻合")):
+        return "手术治疗", "sentence_rule"
+    return TYPE_TO_DEFAULT_RELATION.get(obj.type, ""), "sentence_rule"
+
+
+def _make_relation(disease: Entity, obj: Entity, predicate: str, method: str, evidence: str) -> Relation:
+    reliability = reliability_for("relation", method, predicate)
+    return Relation(
+        subject=disease.text,
+        subject_type=disease.type,
+        predicate=predicate,
+        object=obj.text,
+        object_type=obj.type,
+        confidence=reliability.score,
+        evidence=evidence.strip()[:500],
+        extraction_method=method,
+        reliability_level=reliability.level,
+    )
 
 
 def extract_relations_offline(
@@ -225,6 +349,7 @@ def extract_relations_offline(
     if not text or not text.strip():
         return []
     entities = entities if entities is not None else extract_entities_offline(text, db_path)
+    entities = _augment_relation_entities(text, entities)
     diseases = [entity for entity in entities if entity.type == "dis"]
     if not diseases:
         return []
@@ -248,61 +373,43 @@ def extract_relations_offline(
         ]
         for disease in sent_diseases[:2]:
             for obj in sent_entities:
-                if obj.text == disease.text or obj.type == "dis":
+                if obj.text == disease.text:
                     continue
-                predicate = _relation_for(disease, obj, db_path)
+                predicate, method = _relation_for(sentence, disease, obj, db_path)
                 if not predicate:
                     continue
                 key = (disease.text, predicate, obj.text)
                 if key in seen:
                     continue
                 seen.add(key)
-                relations.append(
-                    Relation(
-                        subject=disease.text,
-                        subject_type=disease.type,
-                        predicate=predicate,
-                        object=obj.text,
-                        object_type=obj.type,
-                        confidence=0.78,
-                        evidence=sentence.strip()[:500],
-                    )
-                )
+                relations.append(_make_relation(disease, obj, predicate, method, sentence))
 
     primary = _primary_diseases(text, entities)
     treatment_keywords = ("治疗", "处理", "用药", "给予", "予", "加用", "口服", "服用")
     check_keywords = ("检查", "监测", "复查", "提示", "示")
     for _, _, sentence in sentence_spans:
+        if "诊断" not in text:
+            break
         has_context = any(keyword in sentence for keyword in treatment_keywords + check_keywords)
         if not has_context:
             continue
         sent_entities = [entity for entity in entities if entity.text in sentence]
         for disease in primary[:2]:
             for obj in sent_entities:
-                if obj.text == disease.text or obj.type == "dis":
+                if obj.text == disease.text or obj.type == "dis" or _is_negated(sentence, obj):
                     continue
                 if obj.type == "dru" and not any(k in sentence for k in treatment_keywords):
                     continue
                 if obj.type in {"ite", "pro"} and not any(k in sentence for k in check_keywords + treatment_keywords):
                     continue
-                predicate = _relation_for(disease, obj, db_path)
+                predicate = TYPE_TO_DEFAULT_RELATION.get(obj.type, "")
                 if not predicate:
                     continue
                 key = (disease.text, predicate, obj.text)
                 if key in seen:
                     continue
                 seen.add(key)
-                relations.append(
-                    Relation(
-                        subject=disease.text,
-                        subject_type=disease.type,
-                        predicate=predicate,
-                        object=obj.text,
-                        object_type=obj.type,
-                        confidence=0.72,
-                        evidence=sentence.strip()[:500],
-                    )
-                )
+                relations.append(_make_relation(disease, obj, predicate, "context_rule", sentence))
 
     return relations
 
@@ -316,4 +423,4 @@ def generate_triples_offline(
     """根据本地关系抽取结果生成三元组。"""
     entities = entities if entities is not None else extract_entities_offline(text, db_path)
     relations = relations if relations is not None else extract_relations_offline(text, entities, db_path)
-    return relations_to_triples(relations, min_confidence=0.7)
+    return relations_to_triples(relations, min_confidence=0.0)

@@ -10,6 +10,7 @@ from __future__ import annotations
 from typing import Any, Iterable
 
 from .schemas import Entity, Relation, Triple
+from .medical_reliability import reliability_for
 
 
 ENTITY_TYPES = {
@@ -163,10 +164,11 @@ def validate_entities(text: str, raw_items: Any) -> list[Entity]:
         else:
             positions.extend(_all_occurrences(text, value))
 
+        reliability = reliability_for("entity", "llm", entity_type)
         try:
-            confidence = min(1.0, max(0.0, float(item.get("confidence", 0.9))))
+            confidence = min(1.0, max(0.0, float(item.get("confidence", reliability.score))))
         except (TypeError, ValueError):
-            confidence = 0.9
+            confidence = reliability.score
 
         for start, end in positions:
             key = (start, end, entity_type)
@@ -183,6 +185,8 @@ def validate_entities(text: str, raw_items: Any) -> list[Entity]:
                     end_idx=end,
                     confidence=confidence,
                     evidence=text[left:right],
+                    extraction_method="llm",
+                    reliability_level="",
                 )
             )
     return sorted(entities, key=lambda entity: (entity.start_idx or 0, -(len(entity.text))))
@@ -222,10 +226,11 @@ def validate_relations(
         if key in seen:
             continue
         seen.add(key)
+        reliability = reliability_for("relation", "llm", predicate)
         try:
-            confidence = min(1.0, max(0.0, float(item.get("confidence", 0.88))))
+            confidence = min(1.0, max(0.0, float(item.get("confidence", reliability.score))))
         except (TypeError, ValueError):
-            confidence = 0.88
+            confidence = reliability.score
         subject_type = entity_types.get(
             subject, normalize_entity_type(item.get("subject_type"))
         )
@@ -241,6 +246,8 @@ def validate_relations(
                 object_type=object_type,
                 confidence=confidence,
                 evidence=text[:500],
+                extraction_method="llm",
+                reliability_level="",
             )
         )
     return relations
@@ -265,6 +272,9 @@ def relations_to_triples(
                 confidence=relation.confidence,
                 subject_type=relation.subject_type,
                 object_type=relation.object_type,
+                evidence=relation.evidence,
+                extraction_method=relation.extraction_method,
+                reliability_level=relation.reliability_level,
             )
         )
     return triples

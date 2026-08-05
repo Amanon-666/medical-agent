@@ -4,6 +4,7 @@
 该模块负责三元组入库、来源登记、重复过滤和写入统计。
 """
 
+import json
 import time
 from dataclasses import asdict, is_dataclass
 from typing import Any
@@ -75,11 +76,43 @@ def _triple_to_dict(value: Any) -> dict[str, Any]:
     raise TypeError(f"unsupported triple payload type: {type(value).__name__}")
 
 
-def persist_triples(conn, record_triples, source_file='', source_id=None):
+def persist_triples(conn, record_triples, source_file='', source_id=None, return_details=False):
     count = 0
+    candidate_count = 0
+    rejected_count = 0
     c = conn.cursor()
     for raw_triple in record_triples:
         t = _triple_to_dict(raw_triple)
+        reliability = str(t.get('reliability_level') or '').strip().lower()
+        evidence = t.get('evidence') or source_file
+        method = t.get('extraction_method') or t.get('method') or 'llm'
+        if reliability in {'medium', 'low'}:
+            c.execute(
+                '''INSERT INTO kg_quality_issues(source_id, field_name, value, issue_type,
+                   evidence, created_at) VALUES(?,?,?,?,?,?)''',
+                (
+                    source_id,
+                    'triple',
+                    json.dumps(
+                        {
+                            'subject': t.get('subject', ''),
+                            'predicate': t.get('predicate', ''),
+                            'object': t.get('object', ''),
+                            'extraction_method': method,
+                            'reliability_level': reliability,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    'candidate_fact' if reliability == 'medium' else 'rejected_fact',
+                    evidence,
+                    time.strftime('%Y-%m-%dT%H:%M:%S'),
+                ),
+            )
+            if reliability == 'medium':
+                candidate_count += 1
+            else:
+                rejected_count += 1
+            continue
         sid = ensure_entity(conn, t.get('subject',''), t.get('subject_type', ''))
         oid = ensure_entity(conn, t.get('object',''), t.get('object_type', ''))
         rel = ensure_relation(conn, t.get('predicate',''), '')
@@ -87,18 +120,26 @@ def persist_triples(conn, record_triples, source_file='', source_id=None):
             continue
         c.execute(
             '''INSERT OR IGNORE INTO kg_triples(subject_id, relation_code, object_id, source_id,
-               evidence, confidence, extractor, created_at) VALUES(?,?,?,?,?,?,?,?)''',
+               evidence, confidence, extractor, reliability_level, created_at)
+               VALUES(?,?,?,?,?,?,?,?,?)''',
             (
                 sid,
                 rel,
                 oid,
                 source_id,
-                t.get('evidence') or source_file,
+                evidence,
                 t.get('confidence', 0.7),
-                t.get('method', 'llm'),
+                method,
+                reliability or None,
                 time.strftime('%Y-%m-%dT%H:%M:%S'),
             ),
         )
         count += max(c.rowcount, 0)
     conn.commit()
+    if return_details:
+        return {
+            'inserted': count,
+            'candidate': candidate_count,
+            'rejected': rejected_count,
+        }
     return count
