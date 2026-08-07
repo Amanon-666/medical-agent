@@ -35,7 +35,7 @@ def _llm_for_backend(backend: str) -> LLMClient | None:
 
 
 @mcp.tool
-def extract_medical_entities(text: str, backend: str = "offline") -> list:
+def extract_medical_entities(text: str, backend: str = "hybrid") -> list:
     """抽取医学实体，支持本地规则、大模型或混合后端。"""
     result = extract_medical_knowledge(
         text,
@@ -46,7 +46,7 @@ def extract_medical_entities(text: str, backend: str = "offline") -> list:
     return _jsonable(result.entities)
 
 @mcp.tool
-def extract_medical_relations(text: str, backend: str = "offline") -> list:
+def extract_medical_relations(text: str, backend: str = "hybrid") -> list:
     """抽取医学关系，支持本地规则、大模型或混合后端。"""
     result = extract_medical_knowledge(
         text,
@@ -57,7 +57,7 @@ def extract_medical_relations(text: str, backend: str = "offline") -> list:
     return _jsonable(result.relations)
 
 @mcp.tool
-def generate_medical_triples(text: str, backend: str = "offline") -> list:
+def generate_medical_triples(text: str, backend: str = "hybrid") -> list:
     """生成医学 SPO 三元组，支持本地规则、大模型或混合后端。"""
     result = extract_medical_knowledge(
         text,

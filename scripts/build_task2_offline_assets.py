@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -26,6 +27,14 @@ CMEIE_TYPE_MAP = {
     "其他治疗": "pro",
     "部位": "bod",
 }
+
+
+_HTML_MARKUP_RE = re.compile(r"</?[A-Za-z][^>]*>", re.IGNORECASE)
+
+
+def is_clean_term(term: str) -> bool:
+    """过滤训练数据中残留的 HTML 标签词条。"""
+    return bool(term) and not _HTML_MARKUP_RE.search(term)
 
 
 def load_json(path: Path) -> list[dict[str, Any]]:
@@ -102,12 +111,14 @@ def build_assets(
     selected_terms = {
         key: value
         for key, value in terms.items()
+        if is_clean_term(key)
         if cmeee_term_frequency[key] >= 1
         and cmeee_term_frequency[key] / max(1, term_occurrences[key]) >= 0.5
     }
     relation_terms = {
         key: value
         for key, value in terms.items()
+        if is_clean_term(key)
         if cmeie_term_frequency[key] >= 2
     }
     lexicon_payload = {

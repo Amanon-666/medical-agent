@@ -81,6 +81,8 @@
 | `CCF_MINERU_POLL_INTERVAL_SECONDS` | 解析状态轮询间隔（秒） | `2` | PDF 前置解析适配器 |
 | `CCF_MINERU_REQUEST_TIMEOUT_SECONDS` | 单次远程请求超时（秒） | `30` | PDF 前置解析适配器 |
 | `CCF_TASK2_AGENT_ID` | 任务二 Agent ID | `4` | 同上 |
+| `CCF_TASK2_BACKEND` | 任务二抽取后端；`hybrid` 为离线优先并由 LLM 查缺补漏，`offline` 为显式纯离线回退 | `hybrid` | 任务二 DataMate 算子入口；MCP/流水线默认同样为 `hybrid` |
+| `CCF_TASK2_CASCADE_MAX_GAP_SEGMENTS` | 单条记录最多交给 LLM 补漏的句子数 | `12` | `core/task2_cascade.py` |
 | `CCF_TASK3_AGENT_ID` | 任务三 Agent ID | `5` | 同上 |
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |
 | `CCF_MEDICAL_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |

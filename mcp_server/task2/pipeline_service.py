@@ -6,10 +6,23 @@
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 from collections import Counter
 
 from core.llm_client import LLMClient
-from core.medical_extraction_service import extract_medical_knowledge, normalize_backend
+from core.medical_extraction_service import (
+    ExtractionBundle,
+    extract_medical_knowledge,
+    normalize_backend,
+)
+from core.task2_cascade import (
+    apply_cascade_merge,
+    build_gap_review_candidates,
+    count_skipped_offline_candidates,
+    dedupe_review_candidates,
+    prepare_cascade_targets,
+)
+from core.task2_verifier import extract_gap_facts, review_candidates
 from mcp_server.config import KG_DB, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from mcp_server.datamate.resolver import (
     _task2_read_datamate_dataset,
@@ -55,6 +68,195 @@ def _backend_label(backend: str) -> str:
     }.get(backend, "本地知识抽取链")
 
 
+def _triple_value(triple, key: str, default=""):
+    if isinstance(triple, dict):
+        return triple.get(key, default)
+    return getattr(triple, key, default)
+
+
+def _classify_generated_triples(triples: list) -> dict[str, int]:
+    """Classify generated triples without writing quality-issue rows."""
+
+    counts = {"accepted_high": 0, "candidate": 0, "rejected": 0, "invalid": 0}
+    for triple in triples:
+        reliability = str(_triple_value(triple, "reliability_level") or "").strip().lower()
+        method = str(
+            _triple_value(triple, "extraction_method")
+            or _triple_value(triple, "method")
+            or "unknown"
+        ).strip().lower()
+        if reliability not in {"high", "medium", "low"}:
+            reliability = "medium" if method == "llm" else "low"
+        if reliability == "high":
+            counts["accepted_high"] += 1
+        elif reliability == "medium":
+            counts["candidate"] += 1
+        else:
+            counts["rejected"] += 1
+    return counts
+
+
+_MAX_BATCH_REVIEW_CANDIDATES = 200
+
+
+def _batch_cascade_precompute(
+    selected_records: list[dict],
+    llm: LLMClient | None,
+    kg_db_path: str,
+) -> dict[int, ExtractionBundle]:
+    """Run hybrid extraction in two phases with record-scoped candidates."""
+
+    phase_start = time.perf_counter()
+    per_record: list[dict] = []
+    offline_candidates: list = []
+    for record_index, record in enumerate(selected_records):
+        text = record.get("text", "")
+        if not text.strip():
+            continue
+        bundle = extract_medical_knowledge(
+            text,
+            backend="offline",
+            kg_db_path=kg_db_path,
+        )
+        scope = f"r{record_index}"
+        gap_segments, candidates = prepare_cascade_targets(
+            text,
+            bundle.entities,
+            bundle.relations,
+            candidate_scope=scope,
+        )
+        per_record.append(
+            {
+                "index": record_index,
+                "text": text,
+                "offline_bundle": bundle,
+                "scope": scope,
+                "gap_segments": gap_segments,
+                "offline_candidates": candidates,
+                "offline_review_skipped_count": count_skipped_offline_candidates(
+                    bundle.entities,
+                    bundle.relations,
+                    candidates,
+                ),
+                "gap_entities": [],
+                "gap_relations": [],
+                "gap_candidates": [],
+                "gap_error": "",
+            }
+        )
+        offline_candidates.extend(candidates)
+
+    if not per_record:
+        return {}
+
+    gap_results: dict[int, tuple[list, list]] = {}
+    if llm is not None:
+        max_workers = max(1, min(4, len(per_record)))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                item["index"]: executor.submit(
+                    extract_gap_facts,
+                    item["text"],
+                    item["gap_segments"],
+                    llm,
+                )
+                for item in per_record
+                if item["gap_segments"]
+            }
+            for record_index, future in futures.items():
+                try:
+                    gap_results[record_index] = future.result(timeout=45)
+                except Exception as exc:
+                    gap_results[record_index] = ([], [])
+                    for item in per_record:
+                        if item["index"] == record_index:
+                            item["gap_error"] = (
+                                f"gap extraction failed: {type(exc).__name__}: {str(exc)[:200]}"
+                            )
+                            break
+    else:
+        for item in per_record:
+            if item["gap_segments"]:
+                item["gap_error"] = "LLM client is not configured"
+
+    gap_candidates: list = []
+    for item in per_record:
+        gap_entities, gap_relations = gap_results.get(item["index"], ([], []))
+        item["gap_entities"] = gap_entities
+        item["gap_relations"] = gap_relations
+        item["gap_candidates"] = build_gap_review_candidates(
+            gap_entities,
+            gap_relations,
+            item["gap_segments"],
+            candidate_scope=item["scope"],
+        )
+        gap_candidates.extend(item["gap_candidates"])
+
+    # Gap candidates are the augmentation path, so they get priority at the
+    # batch safety cap. Offline candidates fill the remaining review slots.
+    review_queue = dedupe_review_candidates(
+        gap_candidates + offline_candidates
+    )[:_MAX_BATCH_REVIEW_CANDIDATES]
+    reviewed_candidate_ids = {candidate.candidate_id for candidate in review_queue}
+    decisions: dict = {}
+    review_error = ""
+    if review_queue and llm is not None:
+        try:
+            decisions = review_candidates(llm, review_queue)
+        except Exception as exc:
+            review_error = (
+                f"candidate review failed: {type(exc).__name__}: {str(exc)[:200]}"
+            )
+            reviewed_candidate_ids = set()
+    elif review_queue:
+        review_error = "LLM client is not configured"
+        reviewed_candidate_ids = set()
+
+    elapsed_per_record = (time.perf_counter() - phase_start) / max(1, len(per_record))
+    result: dict[int, ExtractionBundle] = {}
+    for item in per_record:
+        offline_bundle = item["offline_bundle"]
+        try:
+            cascade = apply_cascade_merge(
+                text=item["text"],
+                entities=offline_bundle.entities,
+                relations=offline_bundle.relations,
+                gap_segments=item["gap_segments"],
+                review_candidates=item["offline_candidates"],
+                decisions=decisions,
+                gap_entities=item["gap_entities"],
+                gap_relations=item["gap_relations"],
+                candidate_scope=item["scope"],
+                reviewed_candidate_ids=reviewed_candidate_ids,
+                offline_review_skipped_count=item["offline_review_skipped_count"],
+            )
+            errors = [value for value in (item["gap_error"], review_error) if value]
+            result[item["index"]] = ExtractionBundle(
+                entities=cascade.entities,
+                relations=cascade.relations,
+                triples=cascade.triples,
+                backend="hybrid",
+                elapsed_seconds=round(elapsed_per_record, 4),
+                llm_error="; ".join(errors),
+                gap_segment_count=cascade.gap_segment_count,
+                gap_candidate_count=cascade.gap_candidate_count,
+                reviewed_candidate_count=cascade.reviewed_candidate_count,
+                review_skipped_candidate_count=cascade.review_skipped_candidate_count,
+                rejected_candidate_count=cascade.rejected_candidate_count,
+                llm_added_count=cascade.llm_added_count,
+            )
+        except Exception as exc:
+            result[item["index"]] = ExtractionBundle(
+                entities=offline_bundle.entities,
+                relations=offline_bundle.relations,
+                triples=offline_bundle.triples,
+                backend="hybrid",
+                elapsed_seconds=round(elapsed_per_record, 4),
+                llm_error=f"cascade merge failed: {type(exc).__name__}: {str(exc)[:240]}",
+            )
+    return result
+
+
 def run_kg_pipeline_service(
     *,
     dataset_id: str,
@@ -63,7 +265,7 @@ def run_kg_pipeline_service(
     dry_run: bool = False,
     persist: bool = True,
     refresh_analytics: bool = True,
-    backend: str = "offline",
+    backend: str = "hybrid",
 ) -> dict:
     """执行任务二知识图谱流水线并返回结构化 MCP 结果。"""
     t0 = time.time()
@@ -71,6 +273,8 @@ def run_kg_pipeline_service(
     backend_label = _backend_label(selected_backend)
     progress_log: list[dict] = []
     tool_call_trace: list[dict] = []
+    persistence_enabled = bool(persist and not dry_run)
+    analytics_enabled = bool(refresh_analytics and not dry_run)
 
     if not dataset_id:
         return {"status": "error", "error": "需要 dataset_id"}
@@ -101,17 +305,6 @@ def run_kg_pipeline_service(
         progress_log[-1].update({"status": "error", "duration_seconds": round(time.time() - stage_start, 4)})
         return {"status": "error", "error": str(exc), "progress_log": progress_log}
 
-    if dry_run:
-        return {
-            "status": "dry_run",
-            "backend": selected_backend,
-            "backend_label": backend_label,
-            "dataset": ds,
-            "file_count": len(files),
-            "plan": "数据集解析 -> 文件读取 -> 混合格式记录解析 -> 知识抽取 -> 三元组入库 -> 分析库刷新",
-            "progress_log": progress_log,
-        }
-
     stage_start = time.time()
     progress_log.append({"step": "parse", "label": "记录解析", "status": "running", "time": _now()})
     records, stats = parse_files(files)
@@ -134,7 +327,7 @@ def run_kg_pipeline_service(
         }
     )
 
-    conn = connect_kg() if persist else None
+    conn = connect_kg() if persistence_enabled else None
     if conn:
         _task2_ensure_kg_schema(conn)
 
@@ -144,11 +337,24 @@ def run_kg_pipeline_service(
     inserted_triple_count = 0
     candidate_triple_count = 0
     rejected_triple_count = 0
+    accepted_high_triple_count = 0
+    deduplicated_triple_count = 0
+    invalid_triple_count = 0
     extraction_errors: list[dict] = []
     extraction_elapsed_total = 0.0
     persistence_elapsed_total = 0.0
     llm_degraded_count = 0
+    cascade_gap_segment_count = 0
+    cascade_gap_candidate_count = 0
+    cascade_reviewed_candidate_count = 0
+    cascade_review_skipped_candidate_count = 0
+    cascade_rejected_candidate_count = 0
+    cascade_llm_added_count = 0
     llm = _llm_for_backend(selected_backend)
+
+    precomputed_bundles: dict[int, ExtractionBundle] = {}
+    if selected_backend == "hybrid" and llm is not None:
+        precomputed_bundles = _batch_cascade_precompute(selected_records, llm, KG_DB)
 
     stage_start = time.time()
     progress_log.append({"step": "extract", "label": "实体关系三元组生成", "status": "running", "time": _now()})
@@ -157,10 +363,19 @@ def run_kg_pipeline_service(
         if not text.strip():
             continue
         try:
-            bundle = extract_medical_knowledge(text, backend=selected_backend, kg_db_path=KG_DB, llm=llm)
+            if precomputed_bundles:
+                bundle = precomputed_bundles[index]
+            else:
+                bundle = extract_medical_knowledge(text, backend=selected_backend, kg_db_path=KG_DB, llm=llm)
             extraction_elapsed_total += bundle.elapsed_seconds
             if bundle.llm_error:
                 llm_degraded_count += 1
+            cascade_gap_segment_count += bundle.gap_segment_count
+            cascade_gap_candidate_count += bundle.gap_candidate_count
+            cascade_reviewed_candidate_count += bundle.reviewed_candidate_count
+            cascade_review_skipped_candidate_count += bundle.review_skipped_candidate_count
+            cascade_rejected_candidate_count += bundle.rejected_candidate_count
+            cascade_llm_added_count += bundle.llm_added_count
 
             triples = bundle.triples
             generated_triple_count += len(triples)
@@ -172,11 +387,23 @@ def run_kg_pipeline_service(
                 "relations": len(bundle.relations),
                 "triples": len(triples),
                 "elapsed_seconds": bundle.elapsed_seconds,
+                "gap_segments": bundle.gap_segment_count,
+                "gap_candidates": bundle.gap_candidate_count,
+                "reviewed_candidates": bundle.reviewed_candidate_count,
+                "review_skipped_candidates": bundle.review_skipped_candidate_count,
+                "rejected_candidates": bundle.rejected_candidate_count,
+                "llm_added_facts": bundle.llm_added_count,
+                "inserted_triples": 0,
+                "candidate_triples": 0,
+                "rejected_triples": 0,
+                "accepted_high_triples": 0,
+                "deduplicated_triples": 0,
+                "invalid_triples": 0,
             }
             if bundle.llm_error:
                 record_result["llm_error"] = bundle.llm_error
 
-            if persist and conn and triples:
+            if persistence_enabled and conn and triples:
                 if source_id is None:
                     source_id = ensure_source(conn, ds, len(selected_records))
                 persist_start = time.time()
@@ -186,14 +413,31 @@ def run_kg_pipeline_service(
                     record.get("source_file", ""),
                     source_id,
                     return_details=True,
+                    include_quality_metrics=True,
                 )
                 persistence_elapsed_total += time.time() - persist_start
                 record_result["inserted_triples"] = persistence_result["inserted"]
                 record_result["candidate_triples"] = persistence_result["candidate"]
                 record_result["rejected_triples"] = persistence_result["rejected"]
+                record_result["accepted_high_triples"] = persistence_result.get("accepted_high", 0)
+                record_result["deduplicated_triples"] = persistence_result.get("deduplicated", 0)
+                record_result["invalid_triples"] = persistence_result.get("invalid", 0)
                 inserted_triple_count += persistence_result["inserted"]
                 candidate_triple_count += persistence_result["candidate"]
                 rejected_triple_count += persistence_result["rejected"]
+                accepted_high_triple_count += persistence_result.get("accepted_high", 0)
+                deduplicated_triple_count += persistence_result.get("deduplicated", 0)
+                invalid_triple_count += persistence_result.get("invalid", 0)
+            else:
+                quality_counts = _classify_generated_triples(triples)
+                record_result["candidate_triples"] = quality_counts["candidate"]
+                record_result["rejected_triples"] = quality_counts["rejected"]
+                record_result["accepted_high_triples"] = quality_counts["accepted_high"]
+                record_result["invalid_triples"] = quality_counts["invalid"]
+                candidate_triple_count += quality_counts["candidate"]
+                rejected_triple_count += quality_counts["rejected"]
+                accepted_high_triple_count += quality_counts["accepted_high"]
+                invalid_triple_count += quality_counts["invalid"]
 
             record_results.append(record_result)
             tool_call_trace.append({"tool": f"record_{index}", **record_result})
@@ -221,16 +465,20 @@ def run_kg_pipeline_service(
         {
             "step": "persist",
             "label": "三元组入库",
-            "status": "done" if persist else "skipped",
+            "status": "done" if persistence_enabled else "skipped",
+            "reason": "dry_run" if dry_run else ("persist=false" if not persist else ""),
             "inserted_triple_count": inserted_triple_count,
             "candidate_triple_count": candidate_triple_count,
             "rejected_triple_count": rejected_triple_count,
+            "accepted_high_triple_count": accepted_high_triple_count,
+            "deduplicated_triple_count": deduplicated_triple_count,
+            "invalid_triple_count": invalid_triple_count,
             "duration_seconds": round(persistence_elapsed_total + commit_elapsed, 4),
         }
     )
 
-    analytics_refresh_result = {"status": "skipped", "reason": "refresh_analytics=false"}
-    if refresh_analytics:
+    analytics_refresh_result = {"status": "skipped", "reason": "dry_run" if dry_run else "refresh_analytics=false"}
+    if analytics_enabled:
         stage_start = time.time()
         if inserted_triple_count > 0:
             try:
@@ -249,13 +497,21 @@ def run_kg_pipeline_service(
         }
     )
 
-    if extraction_errors and not record_results:
+    if dry_run and not extraction_errors:
+        status = "dry_run"
+    elif extraction_errors and not record_results:
         status = "error"
     elif extraction_errors:
         status = "partial_success"
     else:
         status = "success"
-    status_label = {"success": "完成", "partial_success": "部分完成", "error": "失败"}.get(status, status)
+    status_label = {
+        "success": "\u5b8c\u6210",
+        "dry_run": "\u8bd5\u8fd0\u884c\u5b8c\u6210",
+        "partial_success": "\u90e8\u5206\u5b8c\u6210",
+        "error": "\u5931\u8d25",
+    }.get(status, status)
+
 
     elapsed = round(time.time() - t0, 1)
     processed_records = len(record_results)
@@ -285,7 +541,18 @@ def run_kg_pipeline_service(
         "inserted_triple_count": inserted_triple_count,
         "candidate_triple_count": candidate_triple_count,
         "rejected_triple_count": rejected_triple_count,
+        "accepted_high_triple_count": accepted_high_triple_count,
+        "deduplicated_triple_count": deduplicated_triple_count,
+        "invalid_triple_count": invalid_triple_count,
         "triple_count": inserted_triple_count,
+        "cascade": {
+            "gap_segment_count": cascade_gap_segment_count,
+            "gap_candidate_count": cascade_gap_candidate_count,
+            "reviewed_candidate_count": cascade_reviewed_candidate_count,
+            "review_skipped_candidate_count": cascade_review_skipped_candidate_count,
+            "rejected_candidate_count": cascade_rejected_candidate_count,
+            "llm_added_count": cascade_llm_added_count,
+        },
         "performance": {
             "extractor_backend": selected_backend,
             "extractor_label": backend_label,
@@ -302,8 +569,11 @@ def run_kg_pipeline_service(
             f"处理 {processed_records} 条"
             f"{'（跨文件均衡抽样）' if len(selected_records) < len(records) else ''}，"
             f"覆盖 {len(source_file_summary)} 个来源文件，生成 {generated_triple_count} 条三元组，"
-            f"新增入库 {inserted_triple_count} 条，待复核 {candidate_triple_count} 条，"
-            f"拦截 {rejected_triple_count} 条，总耗时 {format_stage_duration(elapsed)}，"
+            f"高可靠通过 {accepted_high_triple_count} 条（新入库 {inserted_triple_count} 条，"
+            f"已存在 {deduplicated_triple_count} 条），中可靠待复核 {candidate_triple_count} 条，"
+            f"低可靠门禁拦截 {rejected_triple_count} 条，级联实际复核 {cascade_reviewed_candidate_count} 条，"
+            f"未送复核 {cascade_review_skipped_candidate_count} 条，LLM 补充入选 {cascade_llm_added_count} 条，"
+            f"总耗时 {format_stage_duration(elapsed)}，"
             f"抽取吞吐 {throughput} records/s。"
         ),
         "analytics_summary": analytics_summary,

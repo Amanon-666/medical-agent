@@ -73,7 +73,7 @@ class MedicalTripleGenerator(Mapper):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.backend = normalize_backend(kwargs.get("backend") or os.environ.get("CCF_TASK2_BACKEND", "offline"))
+        self.backend = normalize_backend(kwargs.get("backend") or os.environ.get("CCF_TASK2_BACKEND", "hybrid"))
         self.kg_db_path = str(
             kwargs.get("kgDbPath")
             or os.environ.get("CCF_KG_DB_PATH")

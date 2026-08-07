@@ -17,7 +17,7 @@ def run_task2_kg_pipeline(
     dry_run: bool = False,
     persist: bool = True,
     refresh_analytics: bool = True,
-    backend: str = "offline",
+    backend: str = "hybrid",
 ) -> dict:
     """基于 DataMate 数据集执行任务二知识图谱构建。"""
     return run_kg_pipeline_service(

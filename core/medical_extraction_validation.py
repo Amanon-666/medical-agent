@@ -139,6 +139,38 @@ def _all_occurrences(text: str, value: str) -> Iterable[tuple[int, int]]:
         start = text.find(value, start + 1)
 
 
+def _resolve_entity_overlaps(entities: list[Entity]) -> list[Entity]:
+    """Prefer the longest mention while retaining non-overlapping mentions."""
+
+    positioned = [item for item in entities if item.start_idx is not None]
+    unpositioned = [item for item in entities if item.start_idx is None]
+    selected: list[Entity] = []
+    for entity in sorted(
+        positioned,
+        key=lambda item: (
+            -(len(item.text)),
+            item.start_idx or 0,
+            -float(item.confidence),
+        ),
+    ):
+        entity_end = entity.end_idx if entity.end_idx is not None else entity.start_idx
+        if entity_end is None:
+            selected.append(entity)
+            continue
+        if any(
+            entity.start_idx <= (other.end_idx if other.end_idx is not None else other.start_idx)
+            and entity_end >= other.start_idx
+            for other in selected
+            if other.start_idx is not None
+        ):
+            continue
+        selected.append(entity)
+    return sorted(
+        selected + unpositioned,
+        key=lambda item: (item.start_idx is None, item.start_idx or 0, -len(item.text)),
+    )
+
+
 def validate_entities(text: str, raw_items: Any) -> list[Entity]:
     if not isinstance(raw_items, list):
         return []
@@ -186,10 +218,10 @@ def validate_entities(text: str, raw_items: Any) -> list[Entity]:
                     confidence=confidence,
                     evidence=text[left:right],
                     extraction_method="llm",
-                    reliability_level="",
+                    reliability_level=reliability.level,
                 )
             )
-    return sorted(entities, key=lambda entity: (entity.start_idx or 0, -(len(entity.text))))
+    return _resolve_entity_overlaps(entities)
 
 
 def validate_relations(
@@ -247,7 +279,7 @@ def validate_relations(
                 confidence=confidence,
                 evidence=text[:500],
                 extraction_method="llm",
-                reliability_level="",
+                reliability_level=reliability.level,
             )
         )
     return relations

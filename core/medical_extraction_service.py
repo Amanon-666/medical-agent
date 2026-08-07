@@ -21,6 +21,7 @@ from .medical_offline_extraction import (
     generate_triples_offline,
 )
 from .schemas import Entity, Relation, Triple
+from .task2_cascade import extract_medical_knowledge_cascade
 
 
 VALID_BACKENDS = {"offline", "llm", "hybrid"}
@@ -34,6 +35,12 @@ class ExtractionBundle:
     backend: str
     elapsed_seconds: float
     llm_error: str = ""
+    gap_segment_count: int = 0
+    gap_candidate_count: int = 0
+    reviewed_candidate_count: int = 0
+    review_skipped_candidate_count: int = 0
+    rejected_candidate_count: int = 0
+    llm_added_count: int = 0
 
 
 def normalize_backend(value: str | None) -> str:
@@ -74,9 +81,10 @@ def extract_medical_knowledge(
 ) -> ExtractionBundle:
     """从医学文本中抽取实体、关系和三元组。
 
-    ``offline`` never calls an LLM. ``llm`` uses the existing LLM-driven
-    extractors. ``hybrid`` runs offline first and uses LLM as an enhancer when
-    a client is provided; LLM failures are reported without discarding offline
+    ``offline`` never calls an LLM. ``llm`` uses the existing full-text LLM
+    extractors. ``hybrid`` is the production cascade: offline scans the full
+    text first, then LLM reviews uncertain offline relations and fills selected
+    uncovered sentences. LLM failures are reported without discarding offline
     results.
     """
     selected = normalize_backend(backend)
@@ -96,22 +104,44 @@ def extract_medical_knowledge(
             elapsed_seconds=round(perf_counter() - started, 4),
         )
 
-    entities = extract_entities_offline(text, kg_db_path)
-    relations = extract_relations_offline(text, entities=entities, db_path=kg_db_path)
-    triples = generate_triples_offline(text, entities=entities, relations=relations, db_path=kg_db_path)
     llm_error = ""
-
     if selected == "hybrid" and llm is not None:
         try:
-            llm_entities = extract_entities_llm(text, llm)
-            merged_entities = _merge_entities(entities, llm_entities)
-            llm_relations = extract_relations_llm(text, llm, entities=merged_entities)
-            merged_relations = _merge_relations(relations, llm_relations)
-            entities = merged_entities
-            relations = merged_relations
-            triples = relations_to_triples(relations, min_confidence=0.0)
+            cascade = extract_medical_knowledge_cascade(
+                text,
+                kg_db_path=kg_db_path,
+                llm=llm,
+            )
+            return ExtractionBundle(
+                entities=cascade.entities,
+                relations=cascade.relations,
+                triples=cascade.triples,
+                backend="hybrid",
+                elapsed_seconds=round(perf_counter() - started, 4),
+                gap_segment_count=cascade.gap_segment_count,
+                gap_candidate_count=cascade.gap_candidate_count,
+                reviewed_candidate_count=cascade.reviewed_candidate_count,
+                review_skipped_candidate_count=cascade.review_skipped_candidate_count,
+                rejected_candidate_count=cascade.rejected_candidate_count,
+                llm_added_count=cascade.llm_added_count,
+            )
         except Exception as exc:
             llm_error = f"{type(exc).__name__}: {str(exc)[:240]}"
+
+    entities = extract_entities_offline(text, kg_db_path)
+    relations = extract_relations_offline(
+        text,
+        entities=entities,
+        db_path=kg_db_path,
+    )
+    triples = generate_triples_offline(
+        text,
+        entities=entities,
+        relations=relations,
+        db_path=kg_db_path,
+    )
+    if selected == "hybrid" and llm is None:
+        llm_error = "LLM client is not configured; returned offline results only"
 
     return ExtractionBundle(
         entities=entities,
