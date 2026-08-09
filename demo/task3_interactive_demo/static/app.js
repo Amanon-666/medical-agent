@@ -294,7 +294,8 @@ function reportFilename(response) {
 async function exportLastReport() {
   const result = state.lastQuery;
   if (!result?.analysis_id && !result?.question) return;
-  const button = $("#exportReport");
+    const button = $("#exportReport");
+    if (!result?.analysis_id) return;
   const originalText = button.textContent;
   button.disabled = true;
   button.textContent = "生成中...";
@@ -302,10 +303,9 @@ async function exportLastReport() {
     const response = await fetch("/api/export_report", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        analysis_id: result.analysis_id || "",
-        question: result.question || "",
-      }),
+        body: JSON.stringify({
+          analysis_id: result.analysis_id,
+        }),
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));

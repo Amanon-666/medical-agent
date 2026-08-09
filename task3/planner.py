@@ -7,6 +7,7 @@ import sqlite3
 from typing import Any
 
 from core.llm_client import LLMClient
+from core.nl2sql import deterministic_sql
 
 from .contracts import AnalysisPlan, AnalysisQuery
 from .semantic_layer import (
@@ -62,6 +63,8 @@ def _parse_llm_plan(question: str, payload: Any) -> AnalysisPlan | None:
             if str(item).strip()
         ],
         planner="llm_nl2sql",
+        planner_status="ready",
+        planner_note="复杂问题已由模型生成受限查询计划。",
     )
     for item in payload.get("queries", [])[:4]:
         if not isinstance(item, dict):
@@ -111,6 +114,8 @@ def _merge_plans(
         question=question,
         subject=semantic.subject or generated.subject,
         planner="hybrid_semantic_nl2sql",
+        planner_status=generated.planner_status,
+        planner_note=generated.planner_note,
     )
     merged.unsupported.extend(semantic.unsupported)
     for item in generated.unsupported:
@@ -154,8 +159,33 @@ def build_plan(
 ) -> AnalysisPlan:
     """生成兼顾稳定性与开放式 NL2SQL 的混合分析计划。"""
 
+    compiled_sql = deterministic_sql(question)
+    if compiled_sql:
+        return AnalysisPlan(
+            question=question,
+            planner="deterministic_nl2sql",
+            planner_status="ready",
+            planner_note="当前问题已由稳定业务语义模板生成只读查询。",
+            queries=[
+                AnalysisQuery(
+                    title="医学数据查询",
+                    purpose="回答用户提出的结构化医学数据问题",
+                    sql=validate_readonly_sql(compiled_sql),
+                    chart_type="auto",
+                    source="deterministic_nl2sql",
+                )
+            ],
+        )
+
     semantic = semantic_plan(conn, question)
-    if llm is None or not needs_llm_planner(question, semantic):
+    requires_llm = needs_llm_planner(question, semantic)
+    if not requires_llm:
+        semantic.planner_status = "ready"
+        semantic.planner_note = "当前问题已由确定性语义规则生成查询计划。"
+        return semantic
+    if llm is None:
+        semantic.planner_status = "degraded"
+        semantic.planner_note = "复杂规划服务当前未配置，已保留可验证的语义层结果。"
         return semantic
     try:
         payload = llm.chat_json(
@@ -163,6 +193,15 @@ def build_plan(
             system=PLANNER_SYSTEM_PROMPT,
         )
         generated = _parse_llm_plan(question, payload)
-    except Exception:
-        generated = None
+    except Exception as exc:
+        semantic.planner_status = "degraded"
+        semantic.planner_note = (
+            "复杂规划服务调用失败，已保留可验证的语义层结果；"
+            f"故障类型：{type(exc).__name__}。"
+        )
+        return semantic
+    if generated is None:
+        semantic.planner_status = "degraded"
+        semantic.planner_note = "复杂规划服务未返回有效计划，已保留可验证的语义层结果。"
+        return semantic
     return _merge_plans(question, semantic, generated)

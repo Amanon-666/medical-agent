@@ -9,7 +9,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
-from analysis_runtime import analyze_question, get_cached_analysis
+from analysis_runtime import get_cached_analysis
 from agent_gateway import query_nexent_agent
 from dashboard_payloads import (
     disease_graph_payload,
@@ -96,12 +96,17 @@ class DemoHandler(BaseHTTPRequestHandler):
             elif parsed.path == "/api/export_report":
                 payload = read_json(self)
                 analysis_id = str(payload.get("analysis_id") or "")
-                question = str(payload.get("question") or "").strip()
+                if not analysis_id:
+                    json_response(self, {"error": "analysis_id is required"}, status=400)
+                    return
                 result = get_cached_analysis(analysis_id)
-                if result is None and question:
-                    result = analyze_question(question)
                 if result is None:
-                    raise ValueError("分析记录已失效，请重新提交问题后导出")
+                    json_response(
+                        self,
+                        {"error": "分析记录不存在，请重新提交问题后导出"},
+                        status=404,
+                    )
+                    return
                 filename, content = build_report_archive(result)
                 self.send_response(200)
                 self.send_header("Content-Type", "application/zip")

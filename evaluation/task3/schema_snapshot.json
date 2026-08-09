@@ -1,0 +1,155 @@
+{
+  "db_path": "D:\\MediFlow-pdf-experiment\\data\\task3_analytics.db",
+  "tables": {},
+  "views": {
+    "v_entity_type_counts": {
+      "row_count": 12
+    },
+    "v_relation_counts": {
+      "row_count": 16
+    },
+    "v_top_symptoms": {
+      "row_count": 100
+    },
+    "v_department_disease_counts": {
+      "row_count": 54
+    },
+    "v_drug_disease_counts": {
+      "row_count": 100
+    }
+  },
+  "stats": {
+    "entity_stats": [
+      {
+        "entity_type": "body_part",
+        "entity_count": 688
+      },
+      {
+        "entity_type": "category",
+        "entity_count": 55
+      },
+      {
+        "entity_type": "cause",
+        "entity_count": 8687
+      },
+      {
+        "entity_type": "department",
+        "entity_count": 54
+      },
+      {
+        "entity_type": "disease",
+        "entity_count": 14408
+      },
+      {
+        "entity_type": "drug",
+        "entity_count": 23164
+      },
+      {
+        "entity_type": "other",
+        "entity_count": 1879
+      },
+      {
+        "entity_type": "population",
+        "entity_count": 4232
+      },
+      {
+        "entity_type": "prevention",
+        "entity_count": 8041
+      },
+      {
+        "entity_type": "procedure",
+        "entity_count": 2169
+      },
+      {
+        "entity_type": "symptom",
+        "entity_count": 10844
+      },
+      {
+        "entity_type": "test",
+        "entity_count": 5384
+      }
+    ],
+    "relation_stats": [
+      {
+        "relation_code": "affects_body_part",
+        "display_name": "发病部位",
+        "triple_count": 869
+      },
+      {
+        "relation_code": "alias_of",
+        "display_name": "别名",
+        "triple_count": 1657
+      },
+      {
+        "relation_code": "belongs_to_category",
+        "display_name": "疾病分类",
+        "triple_count": 25587
+      },
+      {
+        "relation_code": "differential_diagnosis",
+        "display_name": "鉴别诊断",
+        "triple_count": 999
+      },
+      {
+        "relation_code": "has_cause",
+        "display_name": "病因",
+        "triple_count": 10864
+      },
+      {
+        "relation_code": "has_complication",
+        "display_name": "并发症",
+        "triple_count": 13662
+      },
+      {
+        "relation_code": "has_prevention",
+        "display_name": "预防",
+        "triple_count": 9129
+      },
+      {
+        "relation_code": "has_symptom",
+        "display_name": "临床表现",
+        "triple_count": 63003
+      },
+      {
+        "relation_code": "related_to",
+        "display_name": "相关",
+        "triple_count": 0
+      },
+      {
+        "relation_code": "requires_test",
+        "display_name": "检查",
+        "triple_count": 42644
+      },
+      {
+        "relation_code": "susceptible_population",
+        "display_name": "易感人群",
+        "triple_count": 9158
+      },
+      {
+        "relation_code": "transmission_way",
+        "display_name": "传播途径",
+        "triple_count": 8838
+      },
+      {
+        "relation_code": "treated_by_drug",
+        "display_name": "药物治疗",
+        "triple_count": 220076
+      },
+      {
+        "relation_code": "treated_by_procedure",
+        "display_name": "治疗方式",
+        "triple_count": 22001
+      },
+      {
+        "relation_code": "visit_department",
+        "display_name": "就诊科室",
+        "triple_count": 16781
+      },
+      {
+        "relation_code": "病史",
+        "display_name": "病史",
+        "triple_count": 0
+      }
+    ]
+  }
+}

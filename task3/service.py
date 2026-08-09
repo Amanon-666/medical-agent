@@ -7,6 +7,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 from core.llm_client import LLMClient
@@ -36,7 +37,11 @@ def _result_sentence(title: str, rows: list[dict[str, Any]]) -> str:
     return f"**{title}**：" + "、".join(items) + ("。" if items else "")
 
 
-def _build_answer(plan: AnalysisPlan, analyses: list[dict[str, Any]]) -> str:
+def _build_answer(
+    plan: AnalysisPlan,
+    analyses: list[dict[str, Any]],
+    analysis_scope: dict[str, Any],
+) -> str:
     parts: list[str] = []
     if plan.unsupported:
         parts.append(
@@ -58,6 +63,9 @@ def _build_answer(plan: AnalysisPlan, analyses: list[dict[str, Any]]) -> str:
             "当前问题无法映射到分析库中的可用指标。"
             "请明确疾病、症状、药物、检查、科室、并发症或统计维度。"
         )
+    scope_statement = str(analysis_scope.get("statement") or "").strip()
+    if scope_statement:
+        parts.append(f"### 数据来源范围\n{scope_statement}")
     parts.append(
         "### 证据说明\n"
         "以上内容仅来自本轮只读 SQL 的实际返回结果；"
@@ -69,9 +77,15 @@ def _build_answer(plan: AnalysisPlan, analyses: list[dict[str, Any]]) -> str:
 class MedicalAnalysisService:
     """把自然语言问题转换为计划、SQL、证据、图表和可导出结果。"""
 
-    def __init__(self, db_path: str | Path, llm: LLMClient | None = None):
+    def __init__(
+        self,
+        db_path: str | Path,
+        llm: LLMClient | None = None,
+        scope_provider: Callable[[], dict[str, Any]] | None = None,
+    ):
         self.db_path = Path(db_path)
         self.llm = llm
+        self.scope_provider = scope_provider
 
     def analyze(self, question: str) -> dict[str, Any]:
         question = str(question or "").strip()
@@ -109,7 +123,8 @@ class MedicalAnalysisService:
                 item.update(
                     {
                         "status": "error",
-                        "error": str(exc),
+                        "error": "查询执行失败，请检查分析口径或数据结构。",
+                        "error_type": type(exc).__name__,
                         "columns": [],
                         "rows": [],
                         "row_count": 0,
@@ -118,20 +133,43 @@ class MedicalAnalysisService:
                 )
             analyses.append(item)
 
-        successful = [item for item in analyses if item["status"] == "ok"]
-        first = successful[0] if successful else {}
-        charts = [item["chart"] for item in successful if item.get("chart")]
-        total_rows = sum(int(item.get("row_count") or 0) for item in successful)
+        executed = [item for item in analyses if item["status"] == "ok"]
+        evidence = [item for item in executed if int(item.get("row_count") or 0) > 0]
+        errors = [item for item in analyses if item["status"] == "error"]
+        first = evidence[0] if evidence else (executed[0] if executed else {})
+        charts = [item["chart"] for item in evidence if item.get("chart")]
+        total_rows = sum(int(item.get("row_count") or 0) for item in evidence)
+        if evidence and (errors or len(evidence) < len(analyses)):
+            result_status = "partial"
+        elif evidence:
+            result_status = "success"
+        elif errors and len(errors) == len(analyses):
+            result_status = "error"
+        else:
+            result_status = "no_evidence"
+        analysis_scope = (
+            self.scope_provider()
+            if self.scope_provider is not None
+            else {
+                "mode": "analysis_snapshot",
+                "status": "unavailable",
+                "statement": "本轮查询基于当前分析库快照，未提供来源清单。",
+            }
+        )
         analysis_id = str(uuid.uuid4())
         return {
             "analysis_id": analysis_id,
+            "status": result_status,
             "question": question,
             "subject": plan.subject,
-            "answer": _build_answer(plan, analyses),
+            "answer": _build_answer(plan, analyses, analysis_scope),
             "plan": plan.to_dict(),
             "analyses": analyses,
             "unsupported": plan.unsupported,
             "planner": plan.planner,
+            "planner_status": plan.planner_status,
+            "planner_note": plan.planner_note,
+            "analysis_scope": analysis_scope,
             "columns": first.get("columns", []),
             "rows": first.get("rows", []),
             "row_count": total_rows,
@@ -142,8 +180,11 @@ class MedicalAnalysisService:
             "steps": [
                 {
                     "name": "理解问题并生成计划",
-                    "status": "done",
-                    "detail": f"{plan.planner}；{len(plan.queries)} 项只读分析",
+                    "status": "done" if plan.planner_status == "ready" else "warn",
+                    "detail": (
+                        f"{plan.planner}；{len(plan.queries)} 项只读分析；"
+                        f"{plan.planner_note}"
+                    ),
                 },
                 {
                     "name": "生成并校验 NL2SQL",
@@ -152,8 +193,8 @@ class MedicalAnalysisService:
                 },
                 {
                     "name": "执行查询并绑定证据",
-                    "status": "done" if successful else "warn",
-                    "detail": f"{len(successful)}/{len(analyses)} 项成功，返回 {total_rows} 行",
+                    "status": "done" if evidence else "warn",
+                    "detail": f"{len(executed)}/{len(analyses)} 项执行完成，返回 {total_rows} 行证据",
                 },
                 {
                     "name": "生成图表与报告数据",
@@ -167,7 +208,10 @@ class MedicalAnalysisService:
                 "generated_at": datetime.now(timezone.utc).isoformat(),
                 "elapsed_ms": round((time.perf_counter() - started) * 1000, 2),
                 "query_count": len(plan.queries),
-                "successful_query_count": len(successful),
+                "successful_query_count": len(executed),
+                "executed_query_count": len(executed),
+                "evidence_query_count": len(evidence),
+                "failed_query_count": len(errors),
                 "row_count": total_rows,
             },
         }

@@ -150,6 +150,20 @@ def _answer_html(markdown_text: str) -> str:
     return "".join(lines)
 
 
+def _scope_html(scope: dict[str, Any]) -> str:
+    statement = html.escape(str(scope.get("statement") or "暂无数据范围说明"))
+    sources = scope.get("sources") or []
+    source_items = "".join(
+        "<li>"
+        f"{html.escape(str(item.get('source_name') or '未命名来源'))}"
+        f"（{int(item.get('record_count') or 0):,} 条）"
+        "</li>"
+        for item in sources
+    )
+    source_list = f"<ul>{source_items}</ul>" if source_items else ""
+    return f"<p>{statement}</p>{source_list}"
+
+
 def build_report_archive(result: dict[str, Any]) -> tuple[str, bytes]:
     """生成包含 HTML、CSV 与审计 JSON 的可移植报告压缩包。"""
 
@@ -157,6 +171,7 @@ def build_report_archive(result: dict[str, Any]) -> tuple[str, bytes]:
     filename = f"医学数据分析报告_{generated}.zip"
     analyses = result.get("analyses", [])
     provenance = result.get("provenance") or {}
+    analysis_scope = result.get("analysis_scope") or {}
     sections = []
     for item in analyses:
         sections.append(
@@ -204,6 +219,7 @@ th{{background:#f5f7fb}} .bar-row{{display:grid;grid-template-columns:180px 1fr 
 {''.join(sections)}
 <section><h2>数据口径与追溯</h2>
 <p>本报告由只读 SQL 的实际返回结果生成。分析回答、证据表和图表共享同一分析编号。</p>
+{_scope_html(analysis_scope)}
 <pre>{html.escape(json.dumps(provenance, ensure_ascii=False, indent=2))}</pre>
 </section>
 </main></body></html>"""

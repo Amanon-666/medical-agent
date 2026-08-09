@@ -30,6 +30,8 @@ class AnalysisPlan:
     queries: list[AnalysisQuery] = field(default_factory=list)
     unsupported: list[str] = field(default_factory=list)
     planner: str = "semantic_layer"
+    planner_status: str = "ready"
+    planner_note: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -38,4 +40,6 @@ class AnalysisPlan:
             "queries": [query.to_dict() for query in self.queries],
             "unsupported": list(self.unsupported),
             "planner": self.planner,
+            "planner_status": self.planner_status,
+            "planner_note": self.planner_note,
         }
