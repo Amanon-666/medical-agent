@@ -21,6 +21,22 @@ from core.nl2sql import execute_sql, generate_sql
 from task3.sql_safety import execute_readonly
 
 
+def validate_database(db_path: Path) -> None:
+    manifest_path = ROOT / "evaluation" / "task3" / "benchmark_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+    expected = manifest["database"]
+    if not db_path.exists():
+        raise RuntimeError(f"评测数据库不存在：{db_path}")
+    actual_size = db_path.stat().st_size
+    digest = hashlib.sha256(db_path.read_bytes()).hexdigest()
+    if actual_size != expected["size_bytes"] or digest != expected["sha256"]:
+        raise RuntimeError(
+            "评测数据库版本不匹配。"
+            f"期望 SHA-256={expected['sha256']}、大小={expected['size_bytes']}；"
+            f"实际 SHA-256={digest}、大小={actual_size}。"
+            "请使用 benchmark_manifest.json 指定的数据库版本。"
+        )
+
 def load_runtime_env() -> None:
     path = ROOT / ".env.runtime"
     if not path.exists():

@@ -1,11 +1,11 @@
-﻿# 任务三 NL2SQL 评测与复现
+# 任务三 NL2SQL 评测与复现
 
 本目录使用真实 `task3_analytics.db` 评测自然语言转 SQL。评测比较 SQL 执行结果，不比较 SQL 字符串。
 
 ## 数据与指标
 
 - `nl2sql_dev.jsonl`：40 道开发题。
-- `nl2sql_test.jsonl`：93 道测试题。
+- `nl2sql_test.jsonl`：93 道测试题。`r`n- `benchmark_manifest.json`：固定数据库大小、SHA-256、表和视图数量。
 - 主指标：保留重复次数的执行结果一致率。
 - 同时报告有序完全一致率和去重集合一致率。
 
@@ -18,7 +18,7 @@ python evaluation/task3/run_benchmark.py --split dev --engine nl2sql
 python evaluation/task3/run_benchmark.py --split test --engine nl2sql
 ```
 
-评测需要分析数据库和 `.env.runtime` 中的模型配置。自洽性检查可使用 `--engine gold`。
+评测需要分析数据库和 `.env.runtime` 中的模型配置。脚本会先核对数据库 SHA-256；当前要求为 `157277244085a64cf5d953d89e2416eef969d5858435ff351682631fc591a757`。版本不匹配时评测会停止。自洽性检查可使用 `--engine gold`。
 
 ## 生成中文表格和图表
 

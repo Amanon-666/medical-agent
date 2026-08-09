@@ -1,0 +1,12 @@
+﻿{
+  "benchmark_version": "2026-08-09-v1",
+  "database": {
+    "relative_path": "data/task3_analytics.db",
+    "size_bytes": 221937664,
+    "sha256": "157277244085a64cf5d953d89e2416eef969d5858435ff351682631fc591a757",
+    "tables": 15,
+    "views": 5
+  },
+  "splits": {"dev": 40, "test": 93},
+  "primary_metric": "multiset_execution_accuracy"
+}
