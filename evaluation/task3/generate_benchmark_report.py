@@ -1,4 +1,4 @@
-﻿"""生成任务三 NL2SQL 中文表格与图表。"""
+"""生成任务三 NL2SQL 中文表格与图表。"""
 from __future__ import annotations
 import csv, json
 from pathlib import Path
@@ -15,12 +15,12 @@ def font():
     for name in ("Microsoft YaHei","SimHei","Noto Sans CJK SC","Source Han Sans SC"):
         if name in names:
             plt.rcParams["font.sans-serif"]=[name]; break
-    plt.rcParams["axes.unicode_minus"]=False
+    plt.rcParams["axes.unicode_minus"]=False`r`n    plt.rcParams["svg.hashsalt"]="mediflow-task3"
 def pct(v): return f"{v*100:.1f}%"
 def save(fig,name):
     FIG.mkdir(parents=True,exist_ok=True)
     fig.savefig(FIG/f"{name}.png",dpi=220,bbox_inches="tight",facecolor="white")
-    fig.savefig(FIG/f"{name}.svg",bbox_inches="tight",facecolor="white")
+    fig.savefig(FIG/f"{name}.svg",bbox_inches="tight",facecolor="white",metadata={"Date": None})
     plt.close(fig)
 def main():
     m=json.loads(DATA.read_text(encoding="utf-8-sig")); out=BASE/"results"; font()
