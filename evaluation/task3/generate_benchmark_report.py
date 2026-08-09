@@ -15,7 +15,8 @@ def font():
     for name in ("Microsoft YaHei","SimHei","Noto Sans CJK SC","Source Han Sans SC"):
         if name in names:
             plt.rcParams["font.sans-serif"]=[name]; break
-    plt.rcParams["axes.unicode_minus"]=False`r`n    plt.rcParams["svg.hashsalt"]="mediflow-task3"
+    plt.rcParams["axes.unicode_minus"]=False
+    plt.rcParams["svg.hashsalt"]="mediflow-task3"
 def pct(v): return f"{v*100:.1f}%"
 def save(fig,name):
     FIG.mkdir(parents=True,exist_ok=True)
