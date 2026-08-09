@@ -139,7 +139,7 @@
 | 文件 | 用途 | 使用方 |
 | --- | --- | --- |
 | `data/task2_medical_kg.db` | 知识图谱库：实体（79,600）、三元组（467,400）、关系、别名、来源、质量审计 | 任务二 MCP 工具、任务三查询、可视化平台 |
-| `data/task3_analytics.db` | 分析库：疾病（14,408）、症状、药物、检查、科室、并发症等 16 张表 | 任务三 NL2SQL、统计图表、疾病问答 |
+| `data/task3_analytics.db` | 分析库：疾病（14,408）、症状、药物、检查、科室、并发症等 15 张表、5 个视图 | 任务三 NL2SQL、统计图表、疾病问答 |
 | `operators/llm_noise_filter/noise_kb.db` | 噪声规则库：431 条语义噪声检测规则 | 任务一 LLMNoiseFilter 算子、可视化平台噪声拦截面板 |
 | `operators/medical_term_normalizer/term_kb.db` | 术语标准化库：114 条医学缩写/别名映射 | 任务一 MedicalTermNormalizer 算子、字段清洗算子 |
 | `data/standard_diabetes_demo/datamate_upload/` | 糖尿病混合格式演示数据（`txt/csv/json/jsonl`，4 文件） | 任务一 DataMate 清洗演示 |

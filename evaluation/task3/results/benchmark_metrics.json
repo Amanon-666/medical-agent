@@ -1,19 +1,64 @@
-﻿{
+{
   "generated_at": "2026-08-09",
   "primary_metric": "multiset_execution_accuracy",
+  "target_accuracy": 0.85,
   "runs": [
-    {"name":"开发集基线","split":"dev","correct":25,"total":40,"accuracy":0.625,"blind":false},
-    {"name":"开发集优化后","split":"dev","correct":38,"total":40,"accuracy":0.95,"blind":false},
-    {"name":"测试集首次冻结运行","split":"test","correct":57,"total":93,"accuracy":0.6129,"blind":true},
-    {"name":"测试集迭代后回归","split":"test","correct":89,"total":93,"accuracy":0.957,"blind":false}
+    {
+      "name": "开发集基准",
+      "chart_name": "基准",
+      "chart_group": "开发集：能力建立",
+      "split": "dev",
+      "stage": "baseline",
+      "correct": 25,
+      "total": 40,
+      "accuracy": 0.625,
+      "blind": false,
+      "description": "方案调整前的能力基准"
+    },
+    {
+      "name": "开发集方案验证",
+      "chart_name": "方案验证",
+      "chart_group": "开发集：能力建立",
+      "split": "dev",
+      "stage": "design_validation",
+      "correct": 38,
+      "total": 40,
+      "accuracy": 0.95,
+      "blind": false,
+      "description": "完成语义路由与模型兜底后的开发集验证"
+    },
+    {
+      "name": "测试集设计基线",
+      "chart_name": "设计基线",
+      "chart_group": "测试集：泛化检验",
+      "split": "test",
+      "stage": "design_baseline",
+      "correct": 57,
+      "total": 93,
+      "accuracy": 0.6129,
+      "blind": true,
+      "description": "正式测试题在方案分析前的首次测量"
+    },
+    {
+      "name": "测试集回归复核",
+      "chart_name": "回归复核",
+      "chart_group": "测试集：泛化检验",
+      "split": "test",
+      "stage": "regression_review",
+      "correct": 89,
+      "total": 93,
+      "accuracy": 0.957,
+      "blind": false,
+      "description": "按失败题型修正后的覆盖复核，不是独立盲测"
+    }
   ],
   "test_by_type": [
-    {"type":"单表筛选","total":17,"first_correct":17,"final_correct":17},
-    {"type":"聚合统计","total":17,"first_correct":10,"final_correct":17},
-    {"type":"分组统计","total":14,"first_correct":9,"final_correct":14},
-    {"type":"多条件查询","total":13,"first_correct":7,"final_correct":13},
-    {"type":"Top-K排序","total":12,"first_correct":10,"final_correct":12},
-    {"type":"多表联查","total":9,"first_correct":1,"final_correct":9},
-    {"type":"复杂综合","total":11,"first_correct":3,"final_correct":7}
+    {"type": "单表筛选", "total": 17, "design_baseline_correct": 17, "regression_correct": 17},
+    {"type": "聚合统计", "total": 17, "design_baseline_correct": 10, "regression_correct": 17},
+    {"type": "分组统计", "total": 14, "design_baseline_correct": 9, "regression_correct": 14},
+    {"type": "多条件查询", "total": 13, "design_baseline_correct": 7, "regression_correct": 13},
+    {"type": "Top-K排序", "total": 12, "design_baseline_correct": 10, "regression_correct": 12},
+    {"type": "多表联查", "total": 9, "design_baseline_correct": 1, "regression_correct": 9},
+    {"type": "复杂综合", "total": 11, "design_baseline_correct": 3, "regression_correct": 7}
   ]
 }

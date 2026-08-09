@@ -120,6 +120,7 @@
 | --- | --- | --- |
 | 疾病详情问答 | `task3_analytics.db` | `query_disease_analytics` |
 | 关系子图 | `task2_medical_kg.db` | `query_knowledge_graph` |
+| 疾病背景与来源解释 | Nexent 绑定的 `ccf_medical_kb` | `knowledge_base_search` |
 | NL2SQL | `task3_analytics.db` | `execute_nl2sql` |
 | 数据来源列表 | `kg_sources` | `get_medical_data_sources` |
 | 可视化入口状态 | 服务健康检查 | `get_validation_frontend_status` |
@@ -145,7 +146,8 @@ flowchart LR
     D --> E["task2_medical_kg.db"]
     E --> F["task3_analytics.db"]
     E --> G["可视化平台关系子图"]
-    F --> H["NL2SQL / 统计图表 / 疾病问答"]
+    E --> H["Nexent ccf_medical_kb：背景与来源"]
+    F --> I["NL2SQL / 统计图表 / 疾病问答"]
 ```
 
 ## 7. 部署关系
@@ -176,7 +178,9 @@ flowchart LR
 | 任务三 | 分析库规模 | 约 14,408 个疾病条目 | 刷新到 `data/task3_analytics.db`，供统计图表、证据表和 NL2SQL 使用。 |
 | 任务二 | 实体识别基线 | CMeEE 样本 F1 16.5% | 本地词典与规则链的可复现基线，不作为医学权威模型分数。 |
 | 任务二 | 关系抽取自检 | 100 条诊断样本通过 | 用于确认演示疾病域内的关系抽取稳定性。 |
-| 任务三 | NL2SQL 指标 | 42 / 42，通过率 100.0% | 固定问题集规则化评测，展示阈值为 85%。 |
+| 任务三 | 开发集方案验证 | 38 / 40，通过率 95.0% | 133 题基准中的开发集结果，展示阈值为 85%。 |
+| 任务三 | 测试集设计基线 | 57 / 93，通过率 61.3% | 方案分析前的首次测量，用来记录能力起点。 |
+| 任务三 | 测试集回归复核 | 89 / 93，通过率 95.7% | 已使用设计基线暴露的失败题型，非独立泛化成绩。 |
 | 硬件 | NPU 状态 | 未启用 | 当前环境只展示 CPU 基线，不声明 NPU 优化效果。 |
 
 ---
