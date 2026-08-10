@@ -1,0 +1,30 @@
+\begin{tikzpicture}[node distance=5mm and 5mm]
+  \node[reportbox,minimum width=2.5cm] (source) {DataMate\\源数据集};
+  \node[reportbox,right=of source,minimum width=2.7cm] (inspect) {文件探查\\格式分组};
+
+  \node[reportbox,right=8mm of inspect,yshift=11mm,minimum width=4.1cm] (text)
+    {TXT 与 PDF 文本\\清洗算子链};
+  \node[reportbox,right=8mm of inspect,minimum width=4.1cm] (table)
+    {CSV 表格\\保结构算子链};
+  \node[reportbox,right=8mm of inspect,yshift=-11mm,minimum width=4.1cm] (object)
+    {JSON 与 JSONL\\保结构算子链};
+
+  \node[reportbox,right=8mm of table,minimum width=2.9cm] (collect) {质量检查\\结果汇聚};
+  \node[reportdata,right=of collect] (result) {交付数据集};
+  \node[reportbox,below=9mm of collect,minimum width=4.1cm] (status)
+    {执行记录：文件状态、产物标识、质量摘要};
+
+  \draw[reportarrow] (source.east) -- (inspect.west);
+  \draw[reportarrow] (inspect.east) -- ++(4mm,0) |- (text.west);
+  \draw[reportarrow] (inspect.east) -- (table.west);
+  \draw[reportarrow] (inspect.east) -- ++(4mm,0) |- (object.west);
+
+  % 三条格式分支先汇入质量检查左侧的合流点，避免与执行记录箭头重叠。
+  \coordinate (qualitymerge) at ($(collect.west)+(-5mm,0)$);
+  \draw[reportline] (text.east) -| (qualitymerge);
+  \draw[reportline] (table.east) -- (qualitymerge);
+  \draw[reportline] (object.east) -| (qualitymerge);
+  \draw[reportarrow] (qualitymerge) -- (collect.west);
+  \draw[reportarrow] (collect.east) -- (result.west);
+  \draw[reportarrow] (collect.south) -- (status.north);
+\end{tikzpicture}

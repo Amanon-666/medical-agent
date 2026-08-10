@@ -1,0 +1,44 @@
+\begin{tikzpicture}[
+  node distance=6mm and 7mm,
+  main/.style={rectangle,draw=black!75,rounded corners=2pt,minimum width=3.0cm,
+    minimum height=11mm,inner sep=3pt,align=center,font=\small,fill=blue!8},
+  service/.style={rectangle,draw=black!75,rounded corners=2pt,minimum width=3.2cm,
+    minimum height=11mm,inner sep=3pt,align=center,font=\small,fill=cyan!12},
+  branch/.style={rectangle,draw=black!75,rounded corners=2pt,minimum width=3.2cm,
+    minimum height=13mm,inner sep=3pt,align=center,font=\scriptsize},
+  output/.style={rectangle,draw=black!75,rounded corners=2pt,minimum width=5.0cm,
+    minimum height=10mm,inner sep=3pt,align=center,font=\small,fill=green!10},
+  arrow/.style={-{Latex[length=1.8mm,width=1.1mm]},line width=0.65pt,
+    draw=black!80,shorten <=2pt,shorten >=2pt},
+  line/.style={line width=0.65pt,draw=black!80,shorten <=2pt,shorten >=2pt}
+]
+  \node[main] (agent) {Nexent 智能体\\任务理解与工具选择};
+  \node[main,right=of agent] (mcp) {任务级 MCP 工具\\参数与状态边界};
+  \node[service,right=of mcp] (service) {MediFlow 服务\\格式与后端映射};
+
+  \node[service,below=9mm of service] (plan) {处理计划\\选择算子链或领域服务};
+  \node[branch,fill=blue!8,below left=8mm and 6mm of plan] (task1)
+    {任务一\\DataMate 清洗算子链};
+  \node[branch,fill=blue!8,below=8mm of plan] (task2)
+    {任务二\\抽取算子或共享服务};
+  \node[branch,fill=gray!12,below right=8mm and 6mm of plan] (task3)
+    {任务三\\只读分析查询服务};
+
+  \node[output,below=8mm of task2] (output)
+    {阶段产物与证据\\数据集、图谱事实、分析结果对象};
+
+  \draw[arrow] (agent) -- (mcp);
+  \draw[arrow] (mcp) -- (service);
+  \draw[arrow] (service) -- (plan);
+
+  \coordinate (branchpoint) at ($(plan.south)+(0,-3mm)$);
+  \draw[line] (plan.south) -- (branchpoint);
+  \draw[arrow] (branchpoint) -| (task1.north);
+  \draw[arrow] (branchpoint) -- (task2.north);
+  \draw[arrow] (branchpoint) -| (task3.north);
+
+  \coordinate (outputpoint) at ($(output.north)+(0,3mm)$);
+  \draw[line] (task1.south) |- (outputpoint);
+  \draw[arrow] (task2.south) -- (output.north);
+  \draw[line] (task3.south) |- (outputpoint);
+\end{tikzpicture}

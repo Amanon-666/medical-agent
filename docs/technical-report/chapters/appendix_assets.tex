@@ -1,0 +1,162 @@
+\chapter{系统资产清单}
+
+本附录列出报告正文涉及的主要 DataMate 算子、MCP 工具和数据库文件。
+平台自带的通用文件读写组件不单独展开；同名工具在不同智能体中的重复绑定只列一次。
+
+\section{任务一：数据处理资产}
+
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.08}
+\setlength{\tabcolsep}{4pt}
+\caption{任务一 DataMate 算子}
+\label{tab:assets-task1-operators}
+\begin{tabularx}{\textwidth}{L{3.0cm}L{5.8cm}Y}
+\toprule
+\textbf{类别} & \textbf{代表算子} & \textbf{主要处理内容} \\
+\midrule
+基础字符处理 &
+\makecell[l]{EmojiCleaner、UrlRemover、\\GrableCharactersCleaner、\\InvisibleCharactersCleaner、\\FullWidthCharacterCleaner、\\TraditionalChineseCleaner、\\HtmlTagCleaner、\\WhitespaceNormalizer} &
+字符、链接、乱码、不可见字符、全半角、繁简体、HTML 标签和空白处理，组成各类文本输入的基础处理链 \\
+\addlinespace
+医疗术语处理 & MedicalTermNormalizer &
+依据医学缩写与别名词典进行术语规范化；未覆盖的项保留原文并记录替换信息 \\
+\addlinespace
+语义噪声处理 & LLMNoiseFilter &
+按独立 SQLite 规则库识别广告、联系方式、导出标记和网页尾部等文本噪声；注册名称沿用历史算子名，当前实现为规则处理 \\
+\addlinespace
+表格字段处理 & TableColumnCleaner &
+清理 CSV 字段值并保留表头、列顺序和行列关系 \\
+\addlinespace
+结构化字段处理 & JsonFieldCleaner &
+递归清理 JSON/JSONL 文本字段并保留键名与嵌套层次 \\
+\addlinespace
+记录组织 & MedicalRecordSplitter &
+按段落和句子边界拆分医疗记录，保留源文件与分段序号 \\
+\addlinespace
+统一输出 & UnifiedJsonlExporter &
+将多格式处理结果整理为统一 JSONL 记录，供后续知识构建读取 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{任务一 MCP 工具}
+\label{tab:assets-task1-tools}
+\begin{tabularx}{\textwidth}{L{4.5cm}Y}
+\toprule
+\textbf{工具} & \textbf{主要用途} \\
+\midrule
+\path{upload_text_to_datamate} & 将用户提供的文本注册为 DataMate 数据集 \\
+\path{inspect_dataset} & 读取数据集文件清单、格式分布和数据状态 \\
+\path{list_datamate_operators} & 返回当前可用的 DataMate 算子及功能描述 \\
+\path{run_task1_mixed_cleaning} & 按文件格式创建混合数据处理任务并汇聚交付结果 \\
+\path{get_task1_mixed_cleaning_status} & 查询异步处理任务的状态、分组进度和结果标识 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{任务二：知识构建资产}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{任务二 DataMate 算子}
+\label{tab:assets-task2-operators}
+\begin{tabularx}{\textwidth}{L{4.5cm}Y}
+\toprule
+\textbf{算子} & \textbf{主要处理内容} \\
+\midrule
+MedicalEntityExtractor & 医疗实体识别，支持离线词典、模型和混合方式 \\
+MedicalRelationExtractor & 医疗关系抽取，包含规则扫描、否定词检查和模型复核 \\
+MedicalTripleGenerator & 将实体与关系转换为主语、关系、宾语三元组，并按可靠性等级分流 \\
+MedicalTextQualityFilter & 检查文本长度、特殊字符比例和重复内容，输出质量状态 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{任务二 MCP 工具}
+\label{tab:assets-task2-tools}
+\begin{tabularx}{\textwidth}{L{4.5cm}Y}
+\toprule
+\textbf{工具} & \textbf{主要用途} \\
+\midrule
+\path{extract_medical_entities} & 对单条文本执行实体抽取并返回类型、位置和原文片段 \\
+\path{extract_medical_relations} & 对单条文本执行关系抽取并返回端点、关系类型和来源信息 \\
+\path{generate_medical_triples} & 将单条文本的抽取结果转换为三元组并执行结构校验 \\
+\path{run_task2_kg_pipeline} & 读取 DataMate 数据集，完成解析、抽取、入库和分析表刷新 \\
+\path{inspect_dataset}、\path{get_medical_data_sources} & 查看输入数据集和已登记来源 \\
+\path{get_validation_frontend_status} & 返回知识图谱验证工作台的入口和服务状态 \\
+\path{query_knowledge_graph} & 按实体名称查询图谱中的关系事实 \\
+\path{query_disease_analytics} & 按疾病读取症状、药物、检查、科室等结构化事实 \\
+\path{ask_medical_analytics}、\path{execute_nl2sql} & 生成分析查询计划并在只读分析库中执行 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{任务三：分析工具}
+
+任务三复用任务二的图谱和数据来源工具，并增加查询规划、分析执行与工作台状态工具。
+三类智能体的具体绑定关系见表~\ref{tab:agent-product-design}；以下列出任务三可用的完整工具集合。
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{任务三 MCP 工具}
+\label{tab:assets-task3-tools}
+\begin{tabularx}{\textwidth}{L{4.5cm}Y}
+\toprule
+\textbf{工具} & \textbf{主要用途} \\
+\midrule
+\path{run_task2_kg_pipeline} & 接收新数据集并执行知识构建与分析表刷新 \\
+\path{inspect_dataset} & 检查数据集状态和可处理文件 \\
+\path{get_medical_data_sources} & 查询图谱来源及其记录规模 \\
+\path{get_validation_frontend_status} & 返回可视化平台入口和服务状态 \\
+\path{query_disease_analytics} & 查询疾病属性和分析表记录 \\
+\path{ask_medical_analytics} & 将自然语言问题转换为分析计划并返回结果 \\
+\path{execute_nl2sql} & 在只读连接中执行经过校验的查询计划 \\
+\path{query_knowledge_graph} & 浏览实体关系及其来源信息 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{数据库与结果文件}
+
+\begin{table}[H]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{项目数据库与用途}
+\label{tab:assets-databases}
+\begin{tabularx}{\textwidth}{L{3.8cm}Y L{3.3cm}}
+\toprule
+\textbf{文件} & \textbf{内容} & \textbf{主要使用方} \\
+\midrule
+\path{task2_medical_kg.db} &
+实体、三元组、关系、别名、来源和质量记录 &
+任务二工具、任务三查询、可视化平台 \\
+\addlinespace
+\path{task3_analytics.db} &
+疾病事实、9 张关系表、统计表与视图 &
+任务三查询、统计图表、疾病问答 \\
+\addlinespace
+\path{noise_kb.db} &
+431 条文本噪声检测规则 &
+LLMNoiseFilter 与质量记录 \\
+\addlinespace
+\path{term_kb.db} &
+114 条医学缩写与别名到规范名称的映射 &
+\makecell[l]{MedicalTerm\\Normalizer} \\
+\bottomrule
+\end{tabularx}
+\end{table}

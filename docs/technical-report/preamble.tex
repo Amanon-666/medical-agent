@@ -1,0 +1,117 @@
+\usepackage[a4paper,top=2.6cm,bottom=2.5cm,left=2.6cm,right=2.4cm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage[backend=biber,style=gb7714-2015,sorting=none,gbnamefmt=lowercase,maxbibnames=8]{biblatex}
+
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\addbibresource{references.bib}
+
+\hypersetup{
+  hidelinks,
+  pdfauthor={MediFlow},
+  pdftitle={MediFlow 技术报告},
+  pdfsubject={基于 MCP 的医疗数据处理与知识分析系统}
+}
+\urlstyle{same}
+
+\setlength{\parindent}{2em}
+\setlength{\parskip}{0pt}
+\linespread{1.35}
+\setlist[itemize]{leftmargin=2.2em,itemsep=0.18em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=2.4em,itemsep=0.18em,topsep=0.35em}
+\renewcommand{\arraystretch}{1.22}
+
+\ctexset{
+  chapter={
+    format=\raggedright\zihao{2}\bfseries,
+    beforeskip=12pt,
+    afterskip=18pt,
+    fixskip=true
+  },
+  section={
+    format=\raggedright\zihao{3}\bfseries,
+    beforeskip=1.1\baselineskip,
+    afterskip=0.55\baselineskip,
+    fixskip=true
+  },
+  subsection={
+    format=\raggedright\zihao{4}\bfseries,
+    beforeskip=0.8\baselineskip,
+    afterskip=0.35\baselineskip,
+    fixskip=true
+  }
+}
+
+\captionsetup{
+  font=small,
+  labelfont=bf,
+  labelsep=quad,
+  skip=6pt
+}
+
+\pagestyle{plain}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\newcommand{\repoPath}[1]{{\small\path{#1}}}
+
+\tikzset{
+  reportbox/.style={
+    rectangle,
+    draw=black,
+    fill=white,
+    line width=0.65pt,
+    rounded corners=1.2pt,
+    align=center,
+    minimum height=10mm,
+    inner sep=4pt,
+    font=\small
+  },
+  reportdata/.style={
+    cylinder,
+    shape border rotate=90,
+    aspect=0.23,
+    draw=black,
+    fill=white,
+    line width=0.65pt,
+    align=center,
+    minimum height=12mm,
+    minimum width=28mm,
+    font=\small
+  },
+  reportarrow/.style={
+    -{Latex[length=1.9mm,width=1.2mm]},
+    line width=0.65pt,
+    draw=black,
+    shorten <=2pt,
+    shorten >=2pt
+  },
+  reportline/.style={
+    line width=0.65pt,
+    draw=black,
+    shorten <=2pt,
+    shorten >=2pt
+  }
+}
+
+\AtBeginBibliography{%
+  \footnotesize
+  \setlength{\bibitemsep}{0.10\baselineskip}
+}
+
+\AtEveryBibitem{%
+  \ifentrytype{online}{}{\clearfield{url}}%
+}

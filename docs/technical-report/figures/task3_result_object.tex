@@ -1,0 +1,41 @@
+\begin{tikzpicture}[x=1cm,y=1cm,
+  flow/.style={-{Latex[length=1.5mm,width=1mm]},draw=black!65,
+    line width=0.45pt,shorten <=2pt,shorten >=2pt},
+  box/.style={rectangle,draw=black!30,fill=white,rounded corners=1.5pt,
+    minimum height=9mm,inner sep=2.5pt,align=center,font=\scriptsize},
+  input/.style={box,minimum width=2.20cm,text width=1.95cm},
+  semantic/.style={box,minimum width=2.15cm,text width=1.90cm},
+  plan/.style={box,minimum width=2.25cm,text width=2.00cm},
+  safe/.style={box,minimum width=2.40cm,text width=2.15cm},
+  result/.style={box,minimum width=2.65cm,text width=2.40cm},
+  output/.style={box,minimum width=1.90cm,text width=1.65cm}
+]
+  \path[rounded corners=8pt,draw=black!18,fill=black!3,line width=0.55pt]
+    (-0.65,-1.75) rectangle (14.85,1.65);
+
+  \node[input] (question) at (0.55,0.35)
+    {自然语言问题\\肺炎症状查询};
+  \node[semantic] (semantic) at (2.95,0.35)
+    {语义映射\\疾病属性、实体关系、统计分析};
+  \node[plan] (query) at (5.55,0.35)
+    {查询计划\\查询标题、SQL、参数、数据源};
+  \node[safe] (execution) at (8.35,0.35)
+    {只读执行\\SELECT/WITH、17 张表、5 秒、200 行};
+  \node[result] (analysis) at (11.40,0.35)
+    {分析结果记录\\分析标识、SQL、数据行、图表、来源};
+
+  \node[output] (answer) at (9.25,-1.05) {文字回答\\与结果表};
+  \node[output] (chart) at (11.60,-1.05) {关系图\\与统计图};
+  \node[output] (export) at (13.95,-1.05) {HTML、CSV\\追溯 JSON};
+
+  \draw[flow] (question) -- (semantic);
+  \draw[flow] (semantic) -- (query);
+  \draw[flow] (query) -- (execution);
+  \draw[flow] (execution) -- (analysis);
+
+  \coordinate (outputsplit) at (11.40,-0.35);
+  \draw[flow] (analysis.south) -- (outputsplit);
+  \draw[flow] (outputsplit) -| (answer.north);
+  \draw[flow] (outputsplit) -- (chart.north);
+  \draw[flow] (outputsplit) -| (export.north);
+\end{tikzpicture}

@@ -1,0 +1,60 @@
+\begin{tikzpicture}[
+  detail/.style={rectangle,draw=black,rounded corners=1.2pt,minimum width=3.65cm,
+    minimum height=9mm,inner sep=3pt,align=center,font=\scriptsize},
+  wide/.style={rectangle,draw=black,rounded corners=1.2pt,minimum width=12.6cm,
+    minimum height=9mm,inner sep=4pt,align=center,font=\small},
+  store/.style={cylinder,shape border rotate=90,aspect=0.24,draw=black,
+    minimum width=4.4cm,minimum height=14mm,inner sep=3pt,align=center,font=\scriptsize},
+  arrow/.style={-{Latex[length=1.8mm,width=1.1mm]},line width=0.6pt,
+    draw=black,shorten <=2pt,shorten >=2pt}
+]
+  \node[wide] (record) at (0,3.35)
+    {统一医疗记录：\texttt{record\_id}、\texttt{source\_file}、\texttt{source\_format}、原始字段与记录文本};
+
+  \node[detail] (local) at (-4.35,2.05) {本地词典与规则\\名称归一化、规则抽取};
+  \node[detail] (model) at (0,2.05) {模型接口\\实体、关系、三元组候选};
+  \node[detail] (hybrid) at (4.35,2.05) {混合合并\\名称、类型、位置与关系键去重};
+
+  \node[wide] (candidate) at (0,0.75)
+    {候选结果：实体类型、标准名称、字符位置；关系方向、关系代码、置信度；执行方式与耗时};
+
+  \node[detail] (locate) at (-4.35,-0.55) {原文定位\\实体必须出现在记录文本\\保存约 20 字符证据片段};
+  \node[detail] (mapping) at (0,-0.55) {结构校验\\九类实体类型\\关系别名映射与方向检查};
+  \node[detail] (dedup) at (4.35,-0.55) {质量筛选\\置信度达到 0.7\\事务内按事实键去重};
+
+  \node[store] (kg) at (-2.75,-2.55) {图谱库\\来源、实体、关系、三元组};
+  \node[store] (analysis) at (2.75,-2.55) {分析库\\疾病事实、关系表、统计视图};
+  \node[wide] (lineage) at (0,-4.05)
+    {写入结果携带来源、记录标识、抽取方式和证据；图谱事务提交后刷新分析投影};
+
+  % 统一记录向三种抽取方式分流。先建立分流线，再将箭头落到各节点上边界。
+  \coordinate (recordsplit) at (0,2.55);
+  \draw[reportline] (record.south) -- (recordsplit);
+  \draw[arrow] (recordsplit) -| (local.north);
+  \draw[arrow] (recordsplit) -| (model.north);
+  \draw[arrow] (recordsplit) -| (hybrid.north);
+  \draw[arrow] (local.south) -- (candidate.north -| local.south);
+  \draw[arrow] (model.south) -- (candidate.north -| model.south);
+  \draw[arrow] (hybrid.south) -- (candidate.north -| hybrid.south);
+
+  % 候选结果向校验步骤分流，箭头终点均落在节点边界外侧。
+  \coordinate (candidatesplit) at (0,0.15);
+  \draw[reportline] (candidate.south) -- (candidatesplit);
+  \draw[arrow] (candidatesplit) -| (locate.north);
+  \draw[arrow] (candidatesplit) -| (mapping.north);
+  \draw[arrow] (candidatesplit) -| (dedup.north);
+  \draw[arrow] (locate.east) -- (mapping.west);
+  \draw[arrow] (mapping.east) -- (dedup.west);
+
+  % 质量筛选结果写入两个数据库，使用共享分流线避免箭头相互覆盖。
+  \coordinate (storesplit) at (4.35,-1.25);
+  \coordinate (kgbranch) at (-2.75,-1.25);
+  \coordinate (analysisbranch) at (2.75,-1.25);
+  \draw[arrow] (dedup.south) -- (storesplit);
+  \draw[reportline] (storesplit) -- (kgbranch);
+  \draw[reportline] (storesplit) -- (analysisbranch);
+  \draw[reportline] (kgbranch) -- (kg.north);
+  \draw[reportline] (analysisbranch) -- (analysis.north);
+  \draw[arrow] (kg.south) -- (lineage.north -| kg.south);
+  \draw[arrow] (analysis.south) -- (lineage.north -| analysis.south);
+\end{tikzpicture}

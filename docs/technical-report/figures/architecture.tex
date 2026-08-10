@@ -1,0 +1,40 @@
+\begin{tikzpicture}[node distance=5mm and 5mm]
+  \node[reportbox,minimum width=14.3cm,minimum height=9mm] (entry)
+    {Nexent 对话入口与可视化工作台};
+
+  \node[reportbox,below=of entry,minimum width=4.35cm] (agent2)
+    {知识图谱生成与问答智能体\\建图、查询、来源核对};
+  \node[reportbox,left=of agent2,minimum width=4.35cm] (agent1)
+    {医疗数据处理智能体\\探查、执行、状态查询};
+  \node[reportbox,right=of agent2,minimum width=4.35cm] (agent3)
+    {任务三数据分析入口\\Nexent 智能体与工作台};
+
+  \node[reportbox,below=of agent2,minimum width=14.3cm,minimum height=9mm] (mcp)
+    {项目接口层：Nexent MCP 工具与工作台业务接口};
+
+  \node[reportbox,below=of mcp,xshift=-4.75cm,minimum width=4.35cm,minimum height=16mm] (data)
+    {DataMate 数据工程平台\\数据集、算子\\清洗任务};
+  \node[reportbox,below=of mcp,minimum width=4.35cm,minimum height=16mm] (kgsvc)
+    {医疗知识服务\\解析、抽取与校验\\图谱入库};
+  \node[reportbox,below=of mcp,xshift=4.75cm,minimum width=4.35cm,minimum height=16mm] (anasvc)
+    {任务三分析能力\\Nexent 查询工具\\工作台分析服务};
+
+  \node[reportdata,below=10mm of data] (dataset) {结果数据集};
+  \node[reportdata,below=10mm of kgsvc] (kg) {知识图谱\\与分析表};
+  \node[reportdata,below=10mm of anasvc] (record) {查询结果\\分析对象与成果文件};
+
+  \draw[reportarrow] (entry.south -| agent1.north) -- (agent1.north);
+  \draw[reportarrow] (entry.south -| agent2.north) -- (agent2.north);
+  \draw[reportarrow] (entry.south -| agent3.north) -- (agent3.north);
+  \draw[reportarrow] (agent1.south) -- (mcp.north -| agent1.south);
+  \draw[reportarrow] (agent2.south) -- (mcp.north -| agent2.south);
+  \draw[reportarrow] (agent3.south) -- (mcp.north -| agent3.south);
+  \draw[reportarrow] (mcp.south -| data.north) -- (data.north);
+  \draw[reportarrow] (mcp.south -| kgsvc.north) -- (kgsvc.north);
+  \draw[reportarrow] (mcp.south -| anasvc.north) -- (anasvc.north);
+  \draw[reportarrow] (data.south) -- (dataset.north);
+  \draw[reportarrow] (kgsvc.south) -- (kg.north);
+  \draw[reportarrow] (anasvc.south) -- (record.north);
+  \draw[reportarrow] (dataset.east) -- (kg.west);
+  \draw[reportarrow] (kg.east) -- (record.west);
+\end{tikzpicture}

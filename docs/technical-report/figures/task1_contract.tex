@@ -1,0 +1,58 @@
+\begin{tikzpicture}[
+  node distance=4.5mm and 6mm,
+  maphead/.style={font=\small\bfseries,align=center},
+  mapcell/.style={rectangle,draw=black,rounded corners=1.2pt,minimum width=3.65cm,
+    minimum height=10mm,inner sep=3pt,align=center,font=\footnotesize},
+  maparrow/.style={-{Latex[length=1.8mm,width=1.1mm]},line width=0.6pt,
+    draw=black,shorten <=2pt,shorten >=2pt},
+  line/.style={line width=0.6pt,draw=black,shorten <=2pt,shorten >=2pt},
+  common/.style={rectangle,draw=black,rounded corners=1.2pt,minimum width=12.0cm,
+    text width=12.0cm,minimum height=10mm,inner sep=4pt,align=center,font=\footnotesize}
+]
+  % 列标题
+  \node[maphead] (head1) {输入格式与记录单元};
+  \node[maphead,right=of head1,xshift=2.0cm] (head2) {格式专用处理};
+  \node[maphead,right=of head2,xshift=2.0cm] (head3) {结构保持的交付};
+
+  % 第一行：TXT
+  \node[mapcell,below=of head1] (i1) {TXT / Markdown\\段落或文本};
+  \node[mapcell,below=of head2] (p1) {基础清理、长度检查\\句段切分与文本处理};
+  \node[mapcell,below=of head3] (o1) {TXT\\分段合并后交付};
+
+  % 第二行：CSV
+  \node[mapcell,below=of i1] (i2) {CSV / TSV\\表头与行记录};
+  \node[mapcell,below=of p1] (p2) {基础清理、列字段清理\\保留行列位置};
+  \node[mapcell,below=of o1] (o2) {CSV\\列名、顺序与行关系};
+
+  % 第三行：JSON
+  \node[mapcell,below=of i2] (i3) {JSON\\对象或数组项};
+  \node[mapcell,below=of p2] (p3) {递归访问文本值\\保留键名与嵌套层次};
+  \node[mapcell,below=of o2] (o3) {JSON\\键名与对象层次};
+
+  % 第四行：JSONL
+  \node[mapcell,below=of i3] (i4) {JSONL\\非空行对象};
+  \node[mapcell,below=of p3] (p4) {逐行解析与字段清理\\保持记录边界};
+  \node[mapcell,below=of o3] (o4) {JSONL\\一行一条记录};
+
+  % 第五行：PDF
+  \node[mapcell,below=of i4] (i5) {PDF\\MinerU 正文};
+  \node[mapcell,below=of p4] (p5) {正文 Markdown 转文本\\移除版式标记};
+  \node[mapcell,below=of o4] (o5) {同名 TXT\\进入文本交付链};
+
+  % 行内箭头
+  \foreach \a/\b/\c in {i1/p1/o1,i2/p2/o2,i3/p3/o3,i4/p4/o4,i5/p5/o5} {
+    \draw[maparrow] (\a.east) -- (\b.west);
+    \draw[maparrow] (\b.east) -- (\c.west);
+  }
+
+  % 公共交付步骤。各格式产物先在右侧汇聚，再进入公共步骤，
+  % 避免竖直连线穿过后续行的输出框。
+  \node[common,below=8mm of p5] (common)
+    {公共交付步骤：结构复原与重新解析检查 \;$\rightarrow$\; 文件状态登记 \;$\rightarrow$\; DataMate 结果数据集};
+  \coordinate (mergebus) at ($(o5.east)+(0.6cm,0)$);
+  \foreach \o in {o1,o2,o3,o4,o5} {
+    \draw[maparrow] (\o.east) -- (mergebus |- \o.east);
+  }
+  \draw[line] (mergebus |- o1.east) -- (mergebus |- o5.east);
+  \draw[maparrow] (mergebus |- o5.east) |- (common.north east);
+\end{tikzpicture}

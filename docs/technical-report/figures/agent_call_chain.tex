@@ -1,0 +1,20 @@
+\begin{tikzpicture}[
+  node distance=5mm and 4mm,
+  every node/.style={font=\small},
+  call/.style={reportbox, text width=23mm, minimum height=13mm},
+  result/.style={reportdata, text width=30mm, minimum height=13mm}
+]
+  \node[call] (user) {用户任务\\自然语言输入};
+  \node[call, right=of user] (agent) {Nexent 智能体\\理解意图与选择工具};
+  \node[call, right=of agent] (mcp) {FastMCP 服务\\校验参数与转发};
+  \node[call, right=of mcp] (service) {MediFlow 服务\\编排任务与领域规则};
+  \node[call, right=of service] (exec) {DataMate 算子\\或查询服务执行};
+  \node[result, below=12mm of service] (artifact) {结构化结果\\状态、证据与标识};
+
+  \draw[reportarrow] (user.east) -- (agent.west);
+  \draw[reportarrow] (agent.east) -- (mcp.west);
+  \draw[reportarrow] (mcp.east) -- (service.west);
+  \draw[reportarrow] (service.east) -- (exec.west);
+  \draw[reportarrow] (exec.south) |- (artifact.east);
+  \draw[reportarrow] (artifact.west) -| (agent.south);
+\end{tikzpicture}

@@ -1,0 +1,18 @@
+\begin{tikzpicture}[node distance=5mm]
+  \node[reportdata] (dataset) {任务一\\结果数据集};
+  \node[reportbox,right=of dataset,minimum width=2.6cm] (parse) {混合格式解析\\统一记录流};
+  \node[reportbox,right=of parse,minimum width=2.7cm] (extract) {实体与关系抽取\\本地、模型或混合};
+  \node[reportbox,right=of extract,minimum width=2.6cm] (validate) {结构校验\\类型映射与去重};
+  \node[reportdata,right=of validate] (kg) {医疗知识图谱};
+
+  \node[reportbox,below=8mm of extract,minimum width=3.0cm] (quality)
+    {来源与证据\\抽取状态随结果返回};
+  \node[reportdata,below=8mm of kg] (analytics) {任务三分析表};
+
+  \draw[reportarrow] (dataset.east) -- (parse.west);
+  \draw[reportarrow] (parse.east) -- (extract.west);
+  \draw[reportarrow] (extract.east) -- (validate.west);
+  \draw[reportarrow] (validate.east) -- (kg.west);
+  \draw[reportarrow] (validate.south) |- (quality.east);
+  \draw[reportarrow] (kg.south) -- (analytics.north);
+\end{tikzpicture}

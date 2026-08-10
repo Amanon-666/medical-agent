@@ -1,0 +1,60 @@
+% 版式参考公开中文技术报告单栏模板：
+% https://www.overleaf.com/latex/templates/zhong-wen-ji-zhu-bao-gao-latexmo-ban-dan-lan-cjc-xelatex/tcnttxfsqykx
+% 中文章节、目录和字体由 CTeX 的 ctexrep 文档类提供。
+\documentclass[UTF8,oneside,openany,zihao=-4,scheme=chinese,fontset=windows]{ctexrep}
+\input{preamble}
+
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  \vspace*{3.4cm}
+
+  {\zihao{-0}\bfseries MediFlow\par}
+  \vspace{0.9cm}
+  {\zihao{2}\bfseries 基于 MCP 的医疗数据处理与知识分析系统\par}
+  \vspace{0.25cm}
+  {\zihao{2}\bfseries MediFlow 工程实现报告\par}
+
+  \vspace{2.4cm}
+  \rule{0.58\textwidth}{0.8pt}\par
+  \vspace{0.75cm}
+  {\zihao{1}\bfseries 技术报告\par}
+  \vspace{0.75cm}
+  \rule{0.58\textwidth}{0.8pt}\par
+
+  \vfill
+  {\zihao{4}ModelEngine 开源项目贡献赛作品\par}
+  \vspace{2.2cm}
+\end{titlepage}
+
+\pagenumbering{Roman}
+\begingroup
+\linespread{1.0}\selectfont
+\tableofcontents
+\endgroup
+\clearpage
+
+\input{chapters/00_abstract}
+
+\pagenumbering{arabic}
+\input{chapters/01_positioning}
+\input{chapters/02_design}
+\input{chapters/03_task1}
+\input{chapters/04_task2}
+\input{chapters/05_task3}
+\input{chapters/06_engineering}
+\input{chapters/07_testing}
+\input{chapters/08_innovation}
+\input{chapters/09_open_source}
+\input{chapters/10_conclusion}
+
+\appendix
+\input{chapters/appendix_assets}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{参考文献}
+\printbibliography[title={参考文献}]
+
+\end{document}

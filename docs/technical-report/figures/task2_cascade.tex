@@ -1,0 +1,49 @@
+\begin{tikzpicture}[x=1cm,y=1cm,
+  flow/.style={-{Latex[length=1.5mm,width=1mm]},draw=black!65,
+    line width=0.45pt,shorten <=2pt,shorten >=2pt},
+  box/.style={rectangle,draw=black!30,fill=white,rounded corners=1.5pt,
+    minimum width=1.75cm,text width=1.60cm,minimum height=8mm,
+    inner sep=2.2pt,align=center,font=\scriptsize},
+  branch/.style={rectangle,draw=black!30,fill=white,rounded corners=1.5pt,
+    minimum width=2.35cm,text width=2.15cm,minimum height=9mm,
+    inner sep=2.2pt,align=center,font=\scriptsize},
+  result/.style={rectangle,draw=black!30,fill=white,rounded corners=1.5pt,
+    minimum width=1.75cm,text width=1.55cm,minimum height=9mm,
+    inner sep=2.2pt,align=center,font=\scriptsize}
+]
+  \path[rounded corners=8pt,draw=black!18,fill=black!3,line width=0.55pt]
+    (-0.65,-2.15) rectangle (13.70,2.15);
+
+  \node[box] (raw) at (0.45,0) {原始文本};
+  \node[box] (offline) at (2.35,0) {离线实体/关系候选};
+  \node[box] (split) at (4.25,0) {句子覆盖度与候选分层};
+  \node[branch] (medium) at (6.45,0)
+    {中等可信、边界冲突或否定风险};
+  \node[branch] (high) at (8.65,1.45)
+    {高可信且证据充分};
+  \node[branch] (low) at (6.65,-1.45)
+    {低覆盖的高价值句子};
+  \node[box] (review) at (8.60,0) {LLM 候选复核};
+  \node[box] (fill) at (8.85,-1.45) {LLM 受控补漏};
+  \node[box] (validate) at (10.80,0) {统一校验与去重};
+  \node[result] (graph) at (12.75,0) {主图谱};
+  \node[result] (pending) at (12.75,-1.45) {待复核/拒绝记录};
+
+  \draw[flow] (raw) -- (offline);
+  \draw[flow] (offline) -- (split);
+  \draw[flow] (split) -- (medium);
+  \draw[flow] (medium) -- (review);
+  \draw[flow] (review) -- (validate);
+  \draw[flow] (validate) -- (graph);
+  \draw[flow] (split.north east)
+    .. controls +(1.0,0.7) and +(-1.0,0) .. (high.west);
+  \draw[flow] (high.east)
+    .. controls +(0.8,0) and +(-0.8,0.8) .. (validate.north west);
+  \draw[flow] (split.south east)
+    .. controls +(1.1,-0.7) and +(-1.0,0) .. (low.west);
+  \draw[flow] (low) -- (fill);
+  \draw[flow] (fill.east)
+    .. controls +(0.8,0) and +(-0.7,-0.8) .. (validate.south west);
+  \draw[flow] (validate.south east)
+    .. controls +(0.6,-0.6) and +(-0.8,0) .. (pending.west);
+\end{tikzpicture}

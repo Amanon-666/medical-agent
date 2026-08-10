@@ -1,0 +1,131 @@
+\chapter{开源协作与工程交付}
+
+\section{团队协作分工}
+
+项目采用核心开发者主导、团队成员按专题协作的方式。
+核心开发者承担总体架构、主要功能实现、DataMate 与 Nexent 接入、
+数据库构建、工作台和部署；
+团队成员参与赛题需求整理、上游项目阅读、数据来源整理、
+测试问题设计、页面体验和提交材料编写。
+功能范围由团队共同讨论，
+代码实现由核心开发者集中维护，
+使三项任务在数据结构和接口风格上保持一致。
+
+代码仓按功能分支组织改动，
+每项功能同步整理源码、配置示例、测试、部署脚本和说明文档。
+平台接口与真实业务场景先在运行环境完成验证，
+再形成可重复部署的项目资产。
+
+\section{上游调研与方案形成}
+
+团队先按赛题三项任务阅读 Nexent 与 DataMate 的官方文档和源代码。
+对 Nexent 的调研集中在智能体版本、工具扫描、MCP 绑定和对话执行；
+对 DataMate 的调研集中在数据集、文件记录、算子实例、清洗任务和目标数据集。
+结合平台接口后确定：
+DataMate 承载文件与算子处理，
+Nexent 承载三个专业智能体，
+项目 MCP 服务提供医疗领域功能。
+
+随后围绕医疗数据的实际结构确定数据方案。
+公开疾病知识与 CMeIE 关系用于构建基础图谱，
+DataMate 结果作为独立来源增量写入；
+图谱库保存规范化事实，
+分析库保存面向疾病查询的派生表；
+Python 与 FastMCP 实现服务，
+SQLite 满足当前知识规模下的部署和只读分析，
+独立工作台集中展示图谱、统计结果与成果下载。
+这些选择在主体开发阶段即形成，
+PDF 接入、在线展示和部署脚本是在既有架构上的功能扩展。
+
+\section{开发验证流程}
+
+\begin{table}[H]
+\centering
+\caption{项目开发过程与主要产物}
+\label{tab:development-process}
+\begin{tabularx}{\textwidth}{L{3.0cm}L{4.8cm}Y}
+\toprule
+\textbf{阶段} & \textbf{主要工作} & \textbf{形成的工程产物} \\
+\midrule
+需求与上游调研 &
+拆解三项赛题任务，阅读 Nexent、DataMate 的目录、接口和发布机制 &
+三智能体职责、平台边界与 MCP 工具划分 \\
+\addlinespace
+数据与知识底座 &
+整理疾病知识和 CMeIE 关系，设计实体类型、关系编码、图谱表与分析表 &
+基础知识图谱、双库结构和数据构建脚本 \\
+\addlinespace
+三项核心功能 &
+实现五类文件处理、统一记录、抽取校验、增量入库、语义查询和成果导出 &
+任务一至任务三领域服务与 DataMate 算子 \\
+\addlinespace
+平台集成 &
+注册 MCP 工具，配置三智能体工具集合，连接 DataMate 数据集与任务接口 &
+Nexent 对话入口、DataMate 处理链和发布脚本 \\
+\addlinespace
+展示与交付 &
+建设图谱和分析工作台，补充 PDF 接入、自动化测试、部署与报告 &
+在线系统、成果下载、测试与技术文档 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{上游平台接入与项目新增功能}
+
+Nexent 和 DataMate 均采用 MIT 许可证~\cite{nexent,datamate}。
+MediFlow 通过公开接口和部署适配使用两套平台，
+项目重点实现医疗场景的新增功能：
+医疗数据处理算子、混合格式编排、知识抽取与校验、
+图谱和分析库构建、MCP 工具、可视化工作台及部署脚本。
+外部来源按上游平台、API 接入、数据来源、协议规范和方法参考分类记录，
+并说明对应模块与使用方式。
+
+\begin{table}[H]
+\centering
+\small
+\caption{主要开源与研究来源}
+\label{tab:open-source-sources}
+\begin{tabularx}{\textwidth}{L{2.8cm}L{2.7cm}Y}
+\toprule
+\textbf{来源} & \textbf{类别} & \textbf{项目中的使用方式} \\
+\midrule
+Nexent~\cite{nexent,nexentdocs} &
+上游平台 &
+智能体配置、工具绑定、对话执行和版本发布 \\
+\addlinespace
+DataMate~\cite{datamate} &
+上游平台 &
+数据集、文件、算子和清洗任务管理 \\
+\addlinespace
+MinerU~\cite{mineru2024,minerurepo} &
+API 接入 &
+远程解析 PDF；项目实现接口适配和任务一衔接 \\
+\addlinespace
+CBLUE~\cite{cblue2022} &
+数据与任务定义 &
+使用 CMeIE 标注关系构成图谱数据来源之一 \\
+\addlinespace
+\makecell[l]{QASystemOn\\MedicalKG~\cite{qasystemkg}} &
+公开医学知识 &
+整理疾病知识数据，问答与分析功能由项目实现 \\
+\addlinespace
+MCP~\cite{mcpspec} &
+协议规范 &
+定义 Nexent 与 MediFlow 工具服务的调用边界 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{代码仓交付结构}
+
+项目代码仓同时保存源码、测试、配置示例、数据库构建脚本、
+部署脚本、工作流文档和技术报告。
+目录按客户端、MCP 入口、任务服务、领域模块、数据构建、
+工作台和部署资产划分。
+上游平台地址、模型配置和数据库位置通过环境配置注入。
+
+三个任务的返回结构也作为交付资产维护：
+任务一返回数据集与文件处理信息，
+任务二返回记录、抽取、入库和分析刷新信息，
+任务三返回计划、SQL、数据行和成果文件信息。
+同一套结构同时服务 Nexent 对话、工作台页面和部署后的接口调用。

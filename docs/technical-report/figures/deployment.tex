@@ -1,0 +1,24 @@
+\begin{tikzpicture}[node distance=7mm and 6mm]
+  \node[reportbox,minimum width=12.0cm,minimum height=9mm] (browser)
+    {浏览器与外部调用方};
+
+  \node[reportbox,below=of browser,xshift=-4.2cm,minimum width=3.4cm] (nexent)
+    {Nexent 服务组};
+  \node[reportbox,below=of browser,minimum width=3.4cm] (datamate)
+    {DataMate 服务组};
+  \node[reportbox,below=of browser,xshift=4.2cm,minimum width=3.4cm] (demo)
+    {MediFlow 工作台};
+
+  \node[reportbox,below=of datamate,minimum width=12.0cm,minimum height=10mm] (services)
+    {MediFlow MCP 与领域服务：数据处理、知识构建、查询分析和成果导出};
+  \node[reportdata,below=8mm of services,minimum width=5.8cm] (storage)
+    {数据集、知识图谱库与分析库};
+
+  \draw[reportarrow] (browser.south -| nexent.north) -- (nexent.north);
+  \draw[reportarrow] (browser.south -| datamate.north) -- (datamate.north);
+  \draw[reportarrow] (browser.south -| demo.north) -- (demo.north);
+  \draw[reportarrow] (nexent.south) -- (services.north -| nexent.south);
+  \draw[reportarrow] (datamate.south) -- (services.north -| datamate.south);
+  \draw[reportarrow] (demo.south) -- (services.north -| demo.south);
+  \draw[reportarrow] (services.south) -- (storage.north);
+\end{tikzpicture}
