@@ -1,7 +1,7 @@
 """
 MediFlow 任务三 NL2SQL Benchmark 构建脚本
 ==========================================
-基于 task3_analytics.db 真实 schema 和数据，构建 160 道 NL2SQL 测试题。
+基于 task3_analytics.db 真实 schema 和数据，构建 133 道 NL2SQL 测试题。
 
 构建原则：
 1. 先写 Gold SQL → 在数据库上真实执行 → 再写自然语言问题
@@ -12,7 +12,6 @@ MediFlow 任务三 NL2SQL Benchmark 构建脚本
 import sqlite3
 import json
 import random
-import os
 from pathlib import Path
 
 # 固定随机种子，保证可复现
@@ -20,6 +19,7 @@ random.seed(20260809)
 
 ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = ROOT / "data" / "task3_analytics.db"
+DB_RELATIVE_PATH = Path("data") / "task3_analytics.db"
 OUT_DIR = ROOT / "evaluation" / "task3"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1131,7 +1131,7 @@ if __name__ == "__main__":
     schema_path = OUT_DIR / "schema_snapshot.json"
     with open(schema_path, "w", encoding="utf-8") as f:
         json.dump({
-            "db_path": str(DB_PATH),
+            "db_path": DB_RELATIVE_PATH.as_posix(),
             "tables": {k: {"columns": v["columns"], "row_count": v["row_count"]}
                        for k, v in info.items() if not v.get("is_view")},
             "views": {k: {"row_count": v["row_count"]}
@@ -1141,26 +1141,5 @@ if __name__ == "__main__":
                                    "departments", "top_tests", "fact_types"]}
         }, f, ensure_ascii=False, indent=2)
     print(f"  schema: {schema_path}")
-
-    # 写入 summary
-    summary_path = OUT_DIR / "benchmark_summary.md"
-    with open(summary_path, "w", encoding="utf-8") as f:
-        f.write("# MediFlow Task 3 NL2SQL Benchmark 概要\n\n")
-        f.write(f"- 总题数: {len(dev) + len(test)}\n")
-        f.write(f"- dev: {len(dev)} 题\n")
-        f.write(f"- test: {len(test)} 题\n")
-        f.write(f"- 数据库: task3_analytics.db\n")
-        f.write(f"- 构建时间: 2026-08-09\n\n")
-        f.write("## 题型分布\n\n")
-        by_type = {}
-        for c in dev + test:
-            t = c["query_type"]
-            by_type[t] = by_type.get(t, 0) + 1
-        for t, cnt in sorted(by_type.items()):
-            f.write(f"- {t}: {cnt} 题\n")
-        f.write(f"\n## 评测指标\n\n")
-        f.write(f"- 主指标: Execution Accuracy (执行结果完全匹配 Gold Result 的题目比例)\n")
-        f.write(f"- 目标: ≥ 85%\n")
-    print(f"  summary: {summary_path}")
 
     print("\n=== 完成 ===")

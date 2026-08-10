@@ -1,4 +1,4 @@
-"""生成任务三 NL2SQL 的中文结果表和可复现图表。"""
+"""生成任务三 NL2SQL 的 CSV 结果和可复现图表。"""
 
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def style_axes(ax: plt.Axes) -> None:
     ax.spines["right"].set_visible(False)
 
 
-def write_result_tables(metrics: dict) -> None:
+def write_result_csv(metrics: dict) -> None:
     out = BASE / "results"
     out.mkdir(parents=True, exist_ok=True)
 
@@ -116,45 +116,6 @@ def write_result_tables(metrics: dict) -> None:
                     format_percent(row["regression_correct"] / row["total"]),
                 ]
             )
-
-    lines = [
-        "# 任务三 NL2SQL 评测结果表",
-        "",
-        "## 总体结果",
-        "",
-        "| 评测阶段 | 数据集 | 答对/总数 | 执行准确率 | 结果说明 |",
-        "|---|---:|---:|---:|---|",
-    ]
-    for run in metrics["runs"]:
-        lines.append(
-            f"| {run['name']} | {run['split']} | {run['correct']}/{run['total']} | "
-            f"{format_percent(run['accuracy'])} | {run['description']} |"
-        )
-
-    lines += [
-        "",
-        "## 测试集分题型结果",
-        "",
-        "| 题型 | 题数 | 设计基线准确率 | 回归复核准确率 |",
-        "|---|---:|---:|---:|",
-    ]
-    for row in metrics["test_by_type"]:
-        lines.append(
-            f"| {row['type']} | {row['total']} | "
-            f"{format_percent(row['design_baseline_correct'] / row['total'])} | "
-            f"{format_percent(row['regression_correct'] / row['total'])} |"
-        )
-
-    lines += [
-        "",
-        "## 口径说明",
-        "",
-        "- 设计基线记录的是正式测试题在方案分析前的首次测量，用来回答“系统原始能力从哪里起步”。",
-        "- 回归复核使用了设计基线暴露的失败题型，因此用于验证修正覆盖，不等同于独立泛化成绩。",
-        "- 主指标是保留重复行的执行结果一致率；评测不比较 SQL 字符串是否相同。",
-    ]
-    (out / "benchmark_results_zh.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-
 
 def make_overall_chart(metrics: dict) -> None:
     runs = metrics["runs"]
@@ -269,7 +230,7 @@ def make_type_chart(metrics: dict) -> None:
 def main() -> None:
     metrics = json.loads(DATA.read_text(encoding="utf-8-sig"))
     configure_font()
-    write_result_tables(metrics)
+    write_result_csv(metrics)
     make_overall_chart(metrics)
     make_type_chart(metrics)
     print(BASE / "results")

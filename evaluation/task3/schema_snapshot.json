@@ -1,5 +1,5 @@
 {
-  "db_path": "D:\\MediFlow-pdf-experiment\\data\\task3_analytics.db",
+  "db_path": "data/task3_analytics.db",
   "tables": {},
   "views": {
     "v_entity_type_counts": {

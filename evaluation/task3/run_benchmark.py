@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import sqlite3
@@ -37,17 +38,6 @@ def validate_database(db_path: Path) -> None:
             "请使用 benchmark_manifest.json 指定的数据库版本。"
         )
 
-def load_runtime_env() -> None:
-    path = ROOT / ".env.runtime"
-    if not path.exists():
-        return
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if line and not line.startswith("#") and "=" in line:
-            key, value = line.split("=", 1)
-            os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
-
-
 def normalize_scalar(value: Any) -> Any:
     if isinstance(value, float):
         return round(value, 8)
@@ -69,7 +59,6 @@ def compare(predicted: list[list[Any]], gold: list[list[Any]]) -> dict[str, bool
 
 
 def make_llm() -> LLMClient | None:
-    load_runtime_env()
     api_key = os.environ.get("CCF_LLM_API_KEY")
     key_file = os.environ.get("CCF_LLM_API_KEY_FILE")
     if not api_key and key_file and Path(key_file).exists():
@@ -138,13 +127,15 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", choices=("dev", "test"), default="dev")
     parser.add_argument("--engine", choices=("nl2sql", "semantic", "gold"), default="nl2sql")
+    parser.add_argument("--database", type=Path, default=Path("data/task3_analytics.db"))
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
     benchmark = ROOT / "evaluation" / "task3" / f"nl2sql_{args.split}.jsonl"
     cases = [json.loads(line) for line in benchmark.read_text(encoding="utf-8").splitlines() if line]
     llm = make_llm() if args.engine == "nl2sql" else None
-    db_path = ROOT / "data" / "task3_analytics.db"
+    db_path = args.database if args.database.is_absolute() else ROOT / args.database
+    validate_database(db_path)
     results = [evaluate_case(case, db_path, args.engine, llm) for case in cases]
 
     by_type: dict[str, list[dict[str, Any]]] = defaultdict(list)
