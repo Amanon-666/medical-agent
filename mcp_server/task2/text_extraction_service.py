@@ -91,6 +91,8 @@ def extract_text_knowledge(
             "llm_added_count": result.llm_added_count,
             "llm_added_entity_count": result.llm_added_entity_count,
             "llm_added_relation_count": result.llm_added_relation_count,
+            "gap_budget_skipped_count": result.gap_budget_skipped_count,
+            "review_budget_skipped_count": result.review_budget_skipped_count,
         },
         "performance": {
             "elapsed_seconds": result.elapsed_seconds,

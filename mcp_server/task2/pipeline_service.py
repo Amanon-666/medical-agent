@@ -233,6 +233,8 @@ def _batch_cascade_precompute(
                 "reviewable_gap_candidates": [],
                 "auto_accepted_candidate_ids": set(),
                 "gap_error": "",
+                "gap_budget_skipped_count": 0,
+                "review_budget_skipped_count": 0,
             }
         )
 
@@ -247,10 +249,7 @@ def _batch_cascade_precompute(
     for item in per_record:
         skipped = len(item["gap_segments"]) - len(gap_segments_for_llm[item["index"]])
         if skipped > 0:
-            item["gap_error"] = (
-                f"hybrid gap review budget skipped {skipped} segment(s); "
-                "offline results preserved"
-            )
+            item["gap_budget_skipped_count"] = skipped
     gap_records = [
         (
             item["index"],
@@ -326,14 +325,21 @@ def _batch_cascade_precompute(
     )
     review_queue = all_review_candidates[:_cascade_max_review_candidates()]
     reviewed_candidate_ids = {candidate.candidate_id for candidate in review_queue}
+    all_review_candidate_ids = {candidate.candidate_id for candidate in all_review_candidates}
+    for item in per_record:
+        record_candidate_ids = {
+            candidate.candidate_id
+            for candidate in [
+                *item["reviewable_gap_candidates"],
+                *item["offline_candidates"],
+            ]
+        }
+        item["review_budget_skipped_count"] = len(
+            (record_candidate_ids & all_review_candidate_ids) - reviewed_candidate_ids
+        )
     decisions: dict = {}
     review_error = ""
     review_skipped = len(all_review_candidates) - len(review_queue)
-    if review_skipped > 0:
-        review_error = (
-            f"hybrid candidate review budget skipped {review_skipped} candidate(s); "
-            "offline results preserved"
-        )
     if review_queue and llm is not None:
         try:
             decisions = review_candidates_parallel(
@@ -388,6 +394,8 @@ def _batch_cascade_precompute(
                 llm_added_count=cascade.llm_added_count,
                 llm_added_entity_count=cascade.llm_added_entity_count,
                 llm_added_relation_count=cascade.llm_added_relation_count,
+                gap_budget_skipped_count=item["gap_budget_skipped_count"],
+                review_budget_skipped_count=item["review_budget_skipped_count"],
             )
         except Exception as exc:
             fallback = extract_medical_knowledge(
@@ -506,6 +514,8 @@ def run_kg_pipeline_service(
     cascade_llm_added_count = 0
     cascade_llm_added_entity_count = 0
     cascade_llm_added_relation_count = 0
+    cascade_gap_budget_skipped_count = 0
+    cascade_review_budget_skipped_count = 0
     llm = _llm_for_backend(selected_backend)
 
     precomputed_bundles: dict[int, ExtractionBundle] = {}
@@ -536,6 +546,8 @@ def run_kg_pipeline_service(
             cascade_llm_added_count += bundle.llm_added_count
             cascade_llm_added_entity_count += bundle.llm_added_entity_count
             cascade_llm_added_relation_count += bundle.llm_added_relation_count
+            cascade_gap_budget_skipped_count += bundle.gap_budget_skipped_count
+            cascade_review_budget_skipped_count += bundle.review_budget_skipped_count
 
             triples = bundle.triples
             generated_triple_count += len(triples)
@@ -721,6 +733,8 @@ def run_kg_pipeline_service(
             "llm_added_count": cascade_llm_added_count,
             "llm_added_entity_count": cascade_llm_added_entity_count,
             "llm_added_relation_count": cascade_llm_added_relation_count,
+            "gap_budget_skipped_count": cascade_gap_budget_skipped_count,
+            "review_budget_skipped_count": cascade_review_budget_skipped_count,
         },
         "performance": {
             "extractor_backend": selected_backend,

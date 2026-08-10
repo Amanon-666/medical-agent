@@ -46,6 +46,8 @@ class ExtractionBundle:
     llm_added_count: int = 0
     llm_added_entity_count: int = 0
     llm_added_relation_count: int = 0
+    gap_budget_skipped_count: int = 0
+    review_budget_skipped_count: int = 0
 
 
 def normalize_backend(value: str | None) -> str:
