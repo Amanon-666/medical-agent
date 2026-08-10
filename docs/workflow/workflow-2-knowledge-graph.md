@@ -105,7 +105,7 @@
  • kg_quality_issues (质量审计) 
  6d. 分析库刷新 
  mcp_server/kg/analytics_refresh.py
- 从 KG 库刷新 task3_analytics.db (16 表) 
+从 KG 库刷新 task3_analytics.db (16 表)
  6e. 报告生成 
  mcp_server/task2/reporting.py 
  统计: 实体数、关系数、三元组数、耗时、吞吐量 
