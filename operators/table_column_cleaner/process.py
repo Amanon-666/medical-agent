@@ -122,7 +122,7 @@ class TableColumnCleaner(Mapper):
         logger.info(f"TableColumnCleaner: {len(self.term_dict)} terms, "
                     f"{self._noise_count} noise rules")
 
-    _DEDUP_RE = re.compile(r'(.{2,10})（\1）')
+    _DEDUP_RE = re.compile(r'([\u4e00-\u9fffA-Za-z0-9·\-]{2,20})[（(]\1[）)]')
 
     def _classify_column(self, col_name: str) -> str:
         name = str(col_name).lower()

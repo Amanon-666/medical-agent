@@ -92,7 +92,7 @@ class MedicalTermNormalizer(Mapper):
         self.abbr_sorted = sorted(self.abbr_dict.keys(), key=len, reverse=True)
 
     # 匹配"中文术语（缩写）"模式，替换后用于去重清理
-    _DEDUP_RE = re.compile(r'(.{2,10})（\1）')
+    _DEDUP_RE = re.compile(r'([\u4e00-\u9fffA-Za-z0-9·\-]{2,20})[（(]\1[）)]')
 
     def _dict_normalize(self, text: str) -> str:
         """规则快速路径：按字典从长到短替换，避免 LDL-C 被拆分。

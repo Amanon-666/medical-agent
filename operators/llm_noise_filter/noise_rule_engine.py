@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
-"""
-确定性噪声规则引擎。
+"""Deterministic SQLite-backed noise rule engine.
 
-该模块基于 SQLite 规则库识别广告、测试标记、字段污染和疑似敏感内容。
+Rules are evidence-backed rows in ``noise_rules``. The engine deliberately keeps
+matching deterministic and conservative:
+- normalize only for detection, not for output text
+- apply negative patterns before deletion
+- delete by configured scope: match, line, sentence, or block
 """
 
 from __future__ import annotations
@@ -142,7 +145,11 @@ class NoiseRuleEngine:
         for rule in self.rules:
             if rule.match_type == "semantic_hint" and not include_hints:
                 continue
-            pattern = re.escape(rule.pattern) if rule.match_type == "exact" else rule.pattern
+            pattern = (
+                re.escape(normalize_for_match(rule.pattern))
+                if rule.match_type == "exact"
+                else rule.pattern
+            )
             try:
                 regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE | re.UNICODE)
             except re.error:
