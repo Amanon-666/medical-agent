@@ -11,6 +11,7 @@ from paths import (
     ANALYTICS_DB,
     KG_DB,
     TASK2_CMEEE_EVAL_REPORT,
+    TASK3_NL2SQL_BENCHMARK,
     TASK3_NL2SQL_EVAL_REPORT,
 )
 from quality import (
@@ -49,14 +50,14 @@ RELATION_LABELS = {
 
 
 SAMPLE_QUESTIONS = [
-    "肺泡蛋白质沉积症有哪些症状？",
-    "肺泡蛋白质沉积症需要做哪些检查？",
-    "肺泡蛋白质沉积症怎么治疗？",
-    "百日咳应该挂什么科？",
-    "糖尿病可以用哪些药物？",
-    "统计每个科室关联的疾病数量",
-    "统计实体类型分布",
-    "统计关系类型分布",
+    "肺不张有哪些常见症状？",
+    "治疗成人呼吸窘迫综合征的药物共有多少种？",
+    "每个科室分别关联了多少种疾病？",
+    "关联疾病数量最多的前10种症状是什么？",
+    "同时包含症状'咳嗽'和检查'X线'的疾病有哪些？",
+    "按置信度区间统计疾病-药物关联的数量分布（高≥0.8, 中0.5-0.8, 低<0.5）？",
+    "使用 WITH 查询症状数量最多的前三个疾病及其药物数量。",
+    "症状-疾病关联的平均置信度是多少？",
 ]
 
 
@@ -172,6 +173,7 @@ def evaluation_payload() -> dict[str, Any]:
     overview = overview_payload()
     cmeee_report = read_json_file(TASK2_CMEEE_EVAL_REPORT)
     nl2sql_report = read_json_file(TASK3_NL2SQL_EVAL_REPORT)
+    nl2sql_benchmark = read_json_file(TASK3_NL2SQL_BENCHMARK)
     cmeee_metrics = cmeee_report.get("metrics") if isinstance(cmeee_report.get("metrics"), dict) else {}
     nl2sql_summary = nl2sql_report.get("summary") if isinstance(nl2sql_report.get("summary"), dict) else {}
     analytics_counts = overview.get("analytics_counts") or {}
@@ -187,6 +189,48 @@ def evaluation_payload() -> dict[str, Any]:
         if timestamps
         else None
     )
+
+    benchmark_runs = {
+        str(run.get("stage")): run
+        for run in nl2sql_benchmark.get("runs", [])
+        if isinstance(run, dict) and run.get("stage")
+    }
+    design_validation = benchmark_runs.get("design_validation")
+    design_baseline = benchmark_runs.get("design_baseline")
+    regression_review = benchmark_runs.get("regression_review")
+    if design_validation:
+        nl2sql_metrics = {
+            "exists": True,
+            "total": design_validation.get("total"),
+            "passed": design_validation.get("correct"),
+            "failed": (design_validation.get("total") or 0) - (design_validation.get("correct") or 0),
+            "accuracy": design_validation.get("accuracy"),
+            "target_accuracy": nl2sql_benchmark.get("target_accuracy", 0.85),
+            "design_baseline": {
+                "total": design_baseline.get("total") if design_baseline else None,
+                "passed": design_baseline.get("correct") if design_baseline else None,
+                "accuracy": design_baseline.get("accuracy") if design_baseline else None,
+            },
+            "regression_review": {
+                "total": regression_review.get("total") if regression_review else None,
+                "passed": regression_review.get("correct") if regression_review else None,
+                "accuracy": regression_review.get("accuracy") if regression_review else None,
+                "independent": False,
+            },
+            "source": "evaluation/task3/results/benchmark_metrics.json",
+        }
+    else:
+        nl2sql_metrics = {
+            "exists": bool(nl2sql_report),
+            "total": nl2sql_summary.get("total"),
+            "passed": nl2sql_summary.get("passed"),
+            "failed": nl2sql_summary.get("failed"),
+            "accuracy": nl2sql_summary.get("accuracy"),
+            "template_match_rate": nl2sql_summary.get("template_match_rate"),
+            "execution_success_rate": nl2sql_summary.get("execution_success_rate"),
+            "meets_85_percent": nl2sql_summary.get("meets_85_percent"),
+            "source": "data/task3_nl2sql_eval_report.json",
+        }
 
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
@@ -210,16 +254,7 @@ def evaluation_payload() -> dict[str, Any]:
             },
         },
         "task3": {
-            "nl2sql": {
-                "exists": bool(nl2sql_report),
-                "total": nl2sql_summary.get("total"),
-                "passed": nl2sql_summary.get("passed"),
-                "failed": nl2sql_summary.get("failed"),
-                "accuracy": nl2sql_summary.get("accuracy"),
-                "template_match_rate": nl2sql_summary.get("template_match_rate"),
-                "execution_success_rate": nl2sql_summary.get("execution_success_rate"),
-                "meets_85_percent": nl2sql_summary.get("meets_85_percent"),
-            }
+            "nl2sql": nl2sql_metrics
         },
         "reports": [
             {"name": "task2_cmeee_baseline", "path": str(TASK2_CMEEE_EVAL_REPORT), "exists": TASK2_CMEEE_EVAL_REPORT.exists()},

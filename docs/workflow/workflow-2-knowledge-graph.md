@@ -102,7 +102,7 @@
  • kg_quality_issues (质量审计) 
  6d. 分析库刷新 
  mcp_server/kg/analytics_refresh.py 
- 从 KG 库刷新 task3_analytics.db (16 表) 
+ 从 KG 库刷新 task3_analytics.db (15 表 + 5 视图)
  6e. 报告生成 
  mcp_server/task2/reporting.py 
  统计: 实体数、关系数、三元组数、耗时、吞吐量 
@@ -115,7 +115,7 @@
  --medical-json /path/to/medical.json 
  kg/build_analytics_v2.py 
  从 KG 库构建分析库 
- 生成 task3_analytics.db (211MB, 16 表) 
+ 生成 task3_analytics.db (固定版本，15 表 + 5 视图)
  命令行: python kg/build_analytics_v2.py \ 
  --kg-db data/task2_medical_kg.db \ 
  --analytics-db data/task3_analytics.db 

@@ -430,10 +430,17 @@ body.resizing-layout .chart-canvas svg {
   background: linear-gradient(#fff, #fff) padding-box;
 }
 
+.sample-hint {
+  padding: 10px 14px 0;
+  color: #536b89;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .sample-row {
   display: flex;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 8px 14px 12px;
   overflow-x: auto;
   border-bottom: 1px solid var(--line);
 }

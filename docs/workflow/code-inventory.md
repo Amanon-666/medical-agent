@@ -261,7 +261,7 @@
 |------|------|------|
 | `__init__.py` | T2 | 包初始化 |
 | `build_kg_v2.py` | T2 | 知识图谱库构建 |
-| `build_analytics_v2.py` | T3 | 分析库构建：KG → 16 表 ETL |
+| `build_analytics_v2.py` | T3 | 分析库构建：KG → 15 表 + 5 视图 ETL |
 | `README.md` | T2+T3 | kg/ 文档 |
 
 ---
@@ -284,7 +284,7 @@
 |------|------|-----|
 | `README.md` | 数据资产文档 | ✓ |
 | `task2_medical_kg.db` | 知识图谱 (213MB, 8 表) | ✗ (gitignore) |
-| `task3_analytics.db` | 分析库 (211MB, 16 表) | ✗ (gitignore) |
+| `task3_analytics.db` | 分析库 (固定版本，15 表 + 5 视图) | ✗ (gitignore) |
 | `standard_diabetes_demo/datamate_upload/` | Demo 数据集 (4 文件) | ✓ |
 | `demo_medical_texts/` | 演示用医疗文本 | ✓ |
 

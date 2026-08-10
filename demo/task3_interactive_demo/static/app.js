@@ -157,6 +157,11 @@ function renderEvaluation(evaluation) {
   const task2 = evaluation.task2 || {};
   const cmeee = task2.cmeee_baseline || {};
   const nl2sql = (evaluation.task3 || {}).nl2sql || {};
+  const nl2sqlBaseline = nl2sql.design_baseline || {};
+  const nl2sqlRegression = nl2sql.regression_review || {};
+  const nl2sqlDetail = nl2sql.exists
+    ? `${formatNumber(nl2sql.passed || 0)}/${formatNumber(nl2sql.total || 0)} 道开发题通过；测试集设计基线 ${formatPercent(nl2sqlBaseline.accuracy)}；回归复核 ${formatPercent(nl2sqlRegression.accuracy)}（非独立）`
+    : "未找到当前 133 题基准报告";
   const updatedAt = live.database_updated_at
     ? new Date(live.database_updated_at).toLocaleString("zh-CN", { hour12: false })
     : "暂无时间";
@@ -189,11 +194,9 @@ function renderEvaluation(evaluation) {
         : "未找到基线报告",
     },
     {
-      label: "NL2SQL 固定回归",
+      label: "NL2SQL 开发集验证",
       value: formatPercent(nl2sql.accuracy),
-      detail: nl2sql.exists
-        ? `${formatNumber(nl2sql.passed || 0)}/${formatNumber(nl2sql.total || 0)} 条固定问题通过；不代表开放问答准确率`
-        : "未找到回归报告",
+      detail: nl2sqlDetail,
     },
   ];
   container.innerHTML = `
