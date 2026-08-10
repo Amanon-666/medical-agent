@@ -118,12 +118,17 @@
 
 | 能力 | 数据来源 | 工具或模块 |
 | --- | --- | --- |
-| 疾病详情问答 | `task3_analytics.db` | `query_disease_analytics` |
+| 疾病详情、统计与解释 | `task3_analytics.db` | `ask_medical_analytics` → `task3.runtime` |
 | 关系子图 | `task2_medical_kg.db` | `query_knowledge_graph` |
-| 疾病背景与来源解释 | Nexent 绑定的 `ccf_medical_kb` | `knowledge_base_search` |
-| NL2SQL | `task3_analytics.db` | `execute_nl2sql` |
+| 疾病背景与来源解释 | Nexent 绑定的 `ccf_medical_kb` | 知识库检索与来源工具 |
+| 兼容 NL2SQL 工具名 | `task3_analytics.db` | `execute_nl2sql` → 同一 `task3.runtime` |
 | 数据来源列表 | `kg_sources` | `get_medical_data_sources` |
 | 可视化入口状态 | 服务健康检查 | `get_validation_frontend_status` |
+
+疾病直查工具 `query_disease_analytics` 仍保留给旧调用方使用，
+但任务三智能体的自然语言问题统一由 `ask_medical_analytics` 进入同一分析服务。
+该服务只读取 `task3_analytics.db`，来源范围由知识图谱库的登记表补充说明，
+不会把知识库检索结果当作统计结果。
 
 ### 可视化平台
 
@@ -146,8 +151,7 @@ flowchart LR
     D --> E["task2_medical_kg.db"]
     E --> F["task3_analytics.db"]
     E --> G["可视化平台关系子图"]
-    E --> H["Nexent ccf_medical_kb：背景与来源"]
-    F --> I["NL2SQL / 统计图表 / 疾病问答"]
+    F --> H["NL2SQL / 统计图表 / 疾病问答"]
 ```
 
 ## 7. 部署关系
@@ -178,9 +182,7 @@ flowchart LR
 | 任务三 | 分析库规模 | 约 14,408 个疾病条目 | 刷新到 `data/task3_analytics.db`，供统计图表、证据表和 NL2SQL 使用。 |
 | 任务二 | 实体识别基线 | CMeEE 样本 F1 16.5% | 本地词典与规则链的可复现基线，不作为医学权威模型分数。 |
 | 任务二 | 关系抽取自检 | 100 条诊断样本通过 | 用于确认演示疾病域内的关系抽取稳定性。 |
-| 任务三 | 开发集方案验证 | 38 / 40，通过率 95.0% | 133 题基准中的开发集结果，展示阈值为 85%。 |
-| 任务三 | 测试集设计基线 | 57 / 93，通过率 61.3% | 方案分析前的首次测量，用来记录能力起点。 |
-| 任务三 | 测试集回归复核 | 89 / 93，通过率 95.7% | 已使用设计基线暴露的失败题型，非独立泛化成绩。 |
+| 任务三 | NL2SQL 执行评测 | 开发集 95.0%；测试设计基线 61.3%；回归复核 95.7% | 133 道题；回归复核使用测试失败题型信息，不是独立盲测。 |
 | 硬件 | NPU 状态 | 未启用 | 当前环境只展示 CPU 基线，不声明 NPU 优化效果。 |
 
 ---

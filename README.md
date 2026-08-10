@@ -123,7 +123,8 @@
 主要实现：
 
 - `mcp_server/tools/task3_query.py`：疾病详情、知识图谱、数据来源、前端状态等工具。
-- `mcp_server/tools/task3_nl2sql.py`：自然语言统计查询和只读 SQL 执行。
+- `mcp_server/tools/task3_nl2sql.py`：兼容旧工具名，转入统一任务三分析服务。
+- `task3/runtime.py`：网页与 Nexent MCP 共用的任务三服务装配入口。
 - `demo/task3_interactive_demo/`：医学数据智能体可视化平台。
 - `data/task3_analytics.db`：任务三分析库。
 

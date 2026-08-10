@@ -88,8 +88,8 @@
 | `CCF_TASK2_LLM_GAP_AUTO_ACCEPT_CONFIDENCE` | LLM 缺口候选通过确定性原文证据门禁后进入快速通道的最低置信度；不满足时仍进入复核，不直接入选 | `0.90` | `core/task2_cascade.py` |
 | `CCF_TASK3_AGENT_ID` | 任务三 Agent ID | `5` | 同上 |
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |
-| `CCF_MEDICAL_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |
-| `CCF_ANALYTICS_DB` | 分析库路径 | `data/task3_analytics.db` | 同上 |
+| `CCF_TASK2_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |
+| `CCF_TASK3_ANALYTICS_DB` | 任务三唯一权威分析库路径 | `data/task3_analytics.db` | 同上；旧名 `CCF_ANALYTICS_DB` 仍兼容 |
 | `CCF_DEMO_DELETE_TOKEN` | 可视化平台来源删除口令（填入任意值即启用删除功能，删除时需输入该值验证） | 空 | [`demo/task3_interactive_demo/source_management.py`](../demo/task3_interactive_demo/source_management.py) |
 | `MCP_HOST` / `MCP_PORT` | MCP 服务监听地址和端口 | `0.0.0.0:8900` | [`mcp_server/server.py`](../mcp_server/server.py) |
 

@@ -1,8 +1,15 @@
 # 任务三智能分析模块
 
 `task3/` 实现自然语言分析计划、只读 SQL 校验、证据绑定、图表生成和
-报告导出。该模块不负责页面布局，也不直接调用 Nexent；网页和 MCP 可以
-复用同一分析服务。
+报告导出。该模块不负责页面布局，也不直接调用 Nexent；网页和 MCP 通过
+`runtime.py` 装配同一个分析服务。
+
+任务三的自然语言主链只有一条：问题先进入
+`MedicalAnalysisService.analyze()`，再依次经过语义规划、只读执行、证据绑定、
+图表策略和结果导出。`ask_medical_analytics` 是 Nexent 的正式入口，
+`execute_nl2sql` 保留为同一服务的兼容工具名，不再连接另一份 NL2SQL 数据库。
+`query_disease_analytics` 仅保留旧调用方需要的结构化字段投影，不作为任务三智能体
+的自然语言主路由。
 
 ## 处理流程
 
@@ -26,6 +33,7 @@
 | `sql_safety.py` | 只读 SQL 校验、执行限制和结果序列化 |
 | `chart_policy.py` | 分析意图、字段类型与图表形式的匹配策略 |
 | `service.py` | 端到端分析编排、证据绑定和运行指标 |
+| `runtime.py` | 网页与 MCP 共用的服务装配和来源范围配置 |
 | `report.py` | HTML、CSV、审计 JSON 报告导出 |
 
 ## 图表选择规则

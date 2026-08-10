@@ -5,6 +5,7 @@
 from mcp_server.tools import mcp
 from mcp_server.shared.frontend_status import get_validation_frontend_status_payload
 from mcp_server.shared.sqlite_utils import connect_analytics, connect_kg, row_dicts
+from mcp_server.tools.task3_runtime import get_task3_analysis_service
 
 
 @mcp.tool
@@ -133,9 +134,5 @@ def query_disease_analytics(disease: str, aspect: str = "all") -> dict:
 
 @mcp.tool
 def ask_medical_analytics(question: str) -> dict:
-    """为医学分析问题提供轻量级路由提示。"""
-    return {
-        "question": question,
-        "status": "ok",
-        "hint": "Use query_disease_analytics for structured disease facts, execute_nl2sql for read-only SELECT/WITH analytics.",
-    }
+    """执行统一任务三分析链并返回同源证据、图表和追溯信息。"""
+    return get_task3_analysis_service().analyze(question)

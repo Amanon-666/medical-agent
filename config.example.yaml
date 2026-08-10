@@ -52,8 +52,8 @@ public_urls:
 kg:
   # 任务二知识图谱数据库。
   sqlite_path: "data/task2_medical_kg.db"
-  # 任务三分析数据库。
-  analytics_sqlite_path: "data/task3_analytics.db"
+  # 任务三唯一权威分析数据库，网页和 Nexent MCP 共用。
+  analytics_db_path: "data/task3_analytics.db"
 
 deploy:
   # 服务器上的项目部署目录。

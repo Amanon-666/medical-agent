@@ -17,8 +17,8 @@ if str(ROOT) not in sys.path:
 
 from core.llm_client import LLMClient  # noqa: E402
 from task3.result_repository import AnalysisResultRepository  # noqa: E402
+from task3.runtime import build_analysis_service  # noqa: E402
 from task3.service import MedicalAnalysisService  # noqa: E402
-from task3.source_scope import build_analysis_scope  # noqa: E402
 
 
 _CACHE_LIMIT = 32
@@ -63,10 +63,10 @@ def get_analysis_service() -> MedicalAnalysisService:
             api_key=api_key,
             timeout=int(os.environ.get("CCF_TASK3_LLM_TIMEOUT", "90")),
         )
-    return MedicalAnalysisService(
+    return build_analysis_service(
         ANALYTICS_DB,
+        kg_db_path=KG_DB,
         llm=llm,
-        scope_provider=lambda: build_analysis_scope(KG_DB),
     )
 
 

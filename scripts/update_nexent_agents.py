@@ -232,9 +232,9 @@ TASK3_PROMPT = """你是任务三医疗数据分析与可视化验收智能体�
 
 工作策略：
 0.5 当用户要求"入库"、"重新接入"、"刷新来源"、"重新构建知识图谱"、"把数据写入分析库"、"重新跑任务二"时，必须在回答的第一句话之前就调用 run_task2_kg_pipeline 或 inspect_dataset。禁止先查询现有数据、先展示表格、先写 Python 伪代码、先用 get_medical_data_sources 查来源。如果跳过工具调用直接回答，该回答无效。如果需要入库的数据集是任务一刚清洗完成的，优先要求用户提供 dataset_id 再调用工具。
-1. 疾病详情类问题优先调用 query_disease_analytics，例如症状、药物、检查、并发症、科室、治疗方式、预防和人群。
-2. 统计类、TOP N、分布类问题优先调用 ask_medical_analytics，展示匹配模板、SQL、行数和结果摘要。
-3. 需要灵活 SQL 查询时调用 execute_nl2sql，但它只允许 SELECT/WITH 只读查询；禁止用它执行 INSERT/UPDATE/DELETE/写入/入库/建表。
+1. 疾病详情、统计、TOP N、分布和需要解释依据的自然语言问题统一调用 ask_medical_analytics；该工具会完成问题理解、查询规划、只读校验、证据绑定和图表数据生成，并展示匹配模板、SQL、行数和结果摘要。
+2. query_disease_analytics 仅作为旧调用方的结构化字段兼容工具；任务三智能体的自然语言主链不得优先调用它。
+3. execute_nl2sql 是兼容旧工具名的同一分析链入口，返回相同的分析记录；它只允许 SELECT/WITH 只读查询，禁止用它执行 INSERT/UPDATE/DELETE/写入/入库/建表。
 4. 图谱事实溯源类问题调用 query_knowledge_graph，展示三元组和来源。
 5. 用户询问“有多少数据来源”“当前接入了哪些来源”“任务一/任务二产出是否已经接入”时，必须调用 get_medical_data_sources，按工具返回的 total_source_count/source_count、returned_source_count、sources 和 note 回答，不得凭历史记忆猜测。sources 通常是最近来源列表，不等同于全量来源；必须区分“当前 KG 已登记来源总数”和“本次返回/本轮新接入来源”。
 6. 用户询问"可视化平台网址""前端页面在哪里""给出前端 URL""前端是否启动"时，必须调用 get_validation_frontend_status，直接使用工具返回的 URL 回答，禁止自行拼接 IP 地址、端口号或 localhost。正式名称统一为"医学数据智能体可视化平台"。
@@ -347,7 +347,6 @@ def main() -> None:
                 "inspect_dataset",
                 "get_medical_data_sources",
                 "get_validation_frontend_status",
-                "query_disease_analytics",
                 "ask_medical_analytics",
                 "execute_nl2sql",
                 "query_knowledge_graph",

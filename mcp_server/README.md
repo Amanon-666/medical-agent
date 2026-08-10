@@ -12,8 +12,9 @@
 | · [`task1_data.py`](tools/task1_data.py) | 任务一 7 个 MCP 工具：上传、探查、清洗、状态查询。 | T1 |
 | · [`task2_extract.py`](tools/task2_extract.py) | 任务二 3 个 MCP 工具：实体/关系/三元组抽取。 | T2 |
 | · [`task2_pipeline.py`](tools/task2_pipeline.py) | 任务二 KG 流水线编排工具。 | T2 |
-| · [`task3_query.py`](tools/task3_query.py) | 任务三 5 个查询工具：图谱、疾病、数据来源、前端状态。 | T3 |
-| · [`task3_nl2sql.py`](tools/task3_nl2sql.py) | 任务三 NL2SQL 工具。 | T3 |
+| · [`task3_query.py`](tools/task3_query.py) | 任务三图谱、来源、前端状态和统一医学分析入口。 | T3 |
+| · [`task3_nl2sql.py`](tools/task3_nl2sql.py) | 任务三兼容工具名，转入统一分析服务。 | T3 |
+| · [`task3_runtime.py`](tools/task3_runtime.py) | MCP 侧装配统一分析服务和共享数据库路径。 | T3 |
 | [`task1/`](task1/) | 任务一混合数据集探查、清洗编排、状态查询和证据整理。 | → [task1/__init__.py](task1/__init__.py) |
 | · [`mixed_cleaning_service.py`](task1/mixed_cleaning_service.py) | 混合格式清洗主编排器。 | T1 |
 | · [`pipeline_service.py`](task1/pipeline_service.py) | DataMate 清洗任务创建与轮询。 | T1 |
@@ -36,6 +37,8 @@
 - 业务编排放在 `task1/`、`task2/` 和 `kg/`。
 - DataMate、数据库和文件系统访问通过适配模块完成。
 - 工具返回必须基于真实 API、数据库或文件结果，不能在失败时补写成功结论。
+- 任务三自然语言问题统一进入 `task3.runtime.build_analysis_service`；
+  `ANALYTICS_DB` 是唯一权威分析库，旧的 `SQL_DB` 仅作为同路径兼容别名。
 
 ---
 
