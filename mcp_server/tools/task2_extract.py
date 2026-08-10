@@ -35,7 +35,7 @@ def _extract(text: str, backend: str) -> dict:
 @mcp.tool
 def extract_medical_knowledge_from_text(
     text: str,
-    backend: str = "hybrid",
+    backend: str = "offline",
 ) -> dict:
     """一次抽取单段医疗文本的实体、关系、三元组、级联统计和性能指标。"""
 
@@ -43,7 +43,7 @@ def extract_medical_knowledge_from_text(
 
 
 @mcp.tool
-def extract_medical_entities(text: str, backend: str = "hybrid") -> dict:
+def extract_medical_entities(text: str, backend: str = "offline") -> dict:
     """抽取医学实体；空结果也返回结构化成功对象。"""
 
     result = _extract(text, backend)
@@ -57,7 +57,7 @@ def extract_medical_entities(text: str, backend: str = "hybrid") -> dict:
     }
 
 @mcp.tool
-def extract_medical_relations(text: str, backend: str = "hybrid") -> dict:
+def extract_medical_relations(text: str, backend: str = "offline") -> dict:
     """抽取医学关系；空结果也返回结构化成功对象。"""
 
     result = _extract(text, backend)
@@ -71,7 +71,7 @@ def extract_medical_relations(text: str, backend: str = "hybrid") -> dict:
     }
 
 @mcp.tool
-def generate_medical_triples(text: str, backend: str = "hybrid") -> dict:
+def generate_medical_triples(text: str, backend: str = "offline") -> dict:
     """生成医学 SPO 三元组；空结果也返回结构化成功对象。"""
 
     result = _extract(text, backend)

@@ -99,6 +99,7 @@ def _classify_generated_triples(triples: list) -> dict[str, int]:
 
 
 _MAX_BATCH_REVIEW_CANDIDATES = 256
+_MAX_BATCH_GAP_SEGMENTS = 96
 
 
 def _round_robin_candidates(per_record: list[dict], source_key: str, kind: str) -> list:
@@ -116,6 +117,56 @@ def _round_robin_candidates(per_record: list[dict], source_key: str, kind: str) 
                 result.append(group[offset])
         offset += 1
     return result
+
+
+def _cascade_max_gap_segments_total() -> int:
+    """Bound the total number of gap segments sent to the external model.
+
+    The per-record cascade already has a gap limit.  A second, run-level limit
+    is needed for a dataset pipeline: otherwise a large dataset can create an
+    unbounded number of model requests even though every individual record is
+    small.  Records are interleaved so the budget does not starve later files.
+    """
+
+    raw = os.getenv(
+        "CCF_TASK2_CASCADE_MAX_GAP_SEGMENTS_TOTAL",
+        str(_MAX_BATCH_GAP_SEGMENTS),
+    )
+    try:
+        return max(1, min(512, int(raw)))
+    except ValueError:
+        return _MAX_BATCH_GAP_SEGMENTS
+
+
+def _cascade_max_review_candidates() -> int:
+    """Bound the candidate review queue for one dataset pipeline run."""
+
+    raw = os.getenv(
+        "CCF_TASK2_CASCADE_MAX_REVIEW_CANDIDATES",
+        str(_MAX_BATCH_REVIEW_CANDIDATES),
+    )
+    try:
+        return max(1, min(512, int(raw)))
+    except ValueError:
+        return _MAX_BATCH_REVIEW_CANDIDATES
+
+
+def _round_robin_gap_segments(per_record: list[dict], limit: int) -> dict[int, list]:
+    """Select a bounded, record-balanced subset of gap segments."""
+
+    selected: dict[int, list] = {item["index"]: [] for item in per_record}
+    groups = [(item["index"], item["gap_segments"]) for item in per_record]
+    chosen = 0
+    offset = 0
+    while chosen < limit and any(offset < len(segments) for _, segments in groups):
+        for record_index, segments in groups:
+            if chosen >= limit:
+                break
+            if offset < len(segments):
+                selected[record_index].append(segments[offset])
+                chosen += 1
+        offset += 1
+    return selected
 
 
 def _cascade_gap_workers(record_count: int) -> int:
@@ -189,15 +240,26 @@ def _batch_cascade_precompute(
         return {}
 
     gap_results: dict[int, tuple[list, list]] = {}
+    gap_segments_for_llm = _round_robin_gap_segments(
+        per_record,
+        _cascade_max_gap_segments_total(),
+    )
+    for item in per_record:
+        skipped = len(item["gap_segments"]) - len(gap_segments_for_llm[item["index"]])
+        if skipped > 0:
+            item["gap_error"] = (
+                f"hybrid gap review budget skipped {skipped} segment(s); "
+                "offline results preserved"
+            )
     gap_records = [
         (
             item["index"],
             item["text"],
-            item["gap_segments"],
+            gap_segments_for_llm[item["index"]],
             item["offline_bundle"].entities,
         )
         for item in per_record
-        if item["gap_segments"]
+        if gap_segments_for_llm[item["index"]]
     ]
     if llm is not None and gap_records:
         batch_size = _cascade_gap_batch_size()
@@ -222,7 +284,11 @@ def _batch_cascade_precompute(
                     for record_index, _, _, _ in batch:
                         for item in per_record:
                             if item["index"] == record_index:
-                                item["gap_error"] = error
+                                item["gap_error"] = (
+                                    f"{item['gap_error']}; {error}"
+                                    if item["gap_error"]
+                                    else error
+                                )
                                 break
     else:
         for item in per_record:
@@ -252,15 +318,22 @@ def _batch_cascade_precompute(
     # every tier so early records cannot consume the whole batch safety cap.
     # Medium/high offline facts never enter this queue because the merge policy
     # preserves them regardless of a review decision.
-    review_queue = dedupe_review_candidates(
+    all_review_candidates = dedupe_review_candidates(
         _round_robin_candidates(per_record, "reviewable_gap_candidates", "relation")
         + _round_robin_candidates(per_record, "offline_candidates", "relation")
         + _round_robin_candidates(per_record, "reviewable_gap_candidates", "entity")
         + _round_robin_candidates(per_record, "offline_candidates", "entity")
-    )[:_MAX_BATCH_REVIEW_CANDIDATES]
+    )
+    review_queue = all_review_candidates[:_cascade_max_review_candidates()]
     reviewed_candidate_ids = {candidate.candidate_id for candidate in review_queue}
     decisions: dict = {}
     review_error = ""
+    review_skipped = len(all_review_candidates) - len(review_queue)
+    if review_skipped > 0:
+        review_error = (
+            f"hybrid candidate review budget skipped {review_skipped} candidate(s); "
+            "offline results preserved"
+        )
     if review_queue and llm is not None:
         try:
             decisions = review_candidates_parallel(
@@ -270,12 +343,12 @@ def _batch_cascade_precompute(
                 max_workers=min(4, _cascade_gap_workers(len(per_record))),
             )
         except Exception as exc:
-            review_error = (
-                f"candidate review failed: {type(exc).__name__}: {str(exc)[:200]}"
-            )
+            error = f"candidate review failed: {type(exc).__name__}: {str(exc)[:200]}"
+            review_error = f"{review_error}; {error}" if review_error else error
             reviewed_candidate_ids = set()
     elif review_queue:
-        review_error = "LLM client is not configured"
+        error = "LLM client is not configured"
+        review_error = f"{review_error}; {error}" if review_error else error
         reviewed_candidate_ids = set()
 
     elapsed_per_record = (time.perf_counter() - phase_start) / max(1, len(per_record))
@@ -343,8 +416,8 @@ def run_kg_pipeline_service(
     max_records: int = 0,
     dry_run: bool = False,
     persist: bool = True,
-    refresh_analytics: bool = True,
-    backend: str = "hybrid",
+    refresh_analytics: bool = False,
+    backend: str = "offline",
 ) -> dict:
     """执行任务二知识图谱流水线并返回结构化 MCP 结果。"""
     t0 = time.time()

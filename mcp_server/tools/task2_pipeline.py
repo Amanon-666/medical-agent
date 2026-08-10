@@ -16,10 +16,15 @@ def run_task2_kg_pipeline(
     max_records: int = 0,
     dry_run: bool = False,
     persist: bool = True,
-    refresh_analytics: bool = True,
-    backend: str = "hybrid",
+    refresh_analytics: bool = False,
+    backend: str = "offline",
 ) -> dict:
-    """基于 DataMate 数据集执行任务二知识图谱构建。"""
+    """基于 DataMate 数据集执行任务二知识图谱构建。
+
+    默认使用离线抽取并写入知识图谱；仅在用户明确要求时启用混合增强或
+    刷新任务三分析库，避免交互请求被外部模型和全库重建长期阻塞。混合增强本身也有
+    缺口句段和候选复核上限，超限时保留离线结果并在指标中报告降级。
+    """
     return run_kg_pipeline_service(
         dataset_id=dataset_id,
         task_name=task_name,

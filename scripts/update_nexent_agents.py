@@ -200,9 +200,9 @@ TASK2_PROMPT = """你是任务二医疗知识图谱与问答智能体，职责�
 
 工作策略：
 1. 用户指定 DataMate dataset_id、数据集名称，或要求“处理某数据集/构建知识图谱/批量抽取实体关系”时：
-   - 先向用户说明将执行：数据集探查 -> 混合格式解析 -> 实体识别 -> 关系抽取 -> 三元组校验 -> 写入 KG -> 刷新分析库；
-   - 优先调用 run_task2_kg_pipeline(dataset_id=..., max_records=0)；dataset_id 参数可以是 UUID，也可以是用户给出的 DataMate 数据集名称原文，工具会自动解析名称、时间戳后缀和轻微同义措辞；
-   - 默认使用级联抽取链：先由本地知识抽取链扫描全文，再由 LLM 复核低可靠关系并补漏离线未覆盖的医学句子。只有用户明确要求纯离线复现时才显式切换为离线后端；最终回答不要出现接口参数名、模型供应商名或内部配置细节。
+   - 先向用户说明将执行：数据集探查 -> 混合格式解析 -> 本地实体关系抽取 -> 三元组校验 -> 写入 KG；只有用户明确要求同步任务三时才刷新分析库；
+   - 优先调用 run_task2_kg_pipeline(dataset_id=..., max_records=0, backend="offline", refresh_analytics=False)；dataset_id 参数可以是 UUID，也可以是用户给出的 DataMate 数据集名称原文，工具会自动解析名称、时间戳后缀和轻微同义措辞；
+   - 默认使用本地知识抽取链。只有用户明确要求“混合增强、模型复核或 LLM 查缺补漏”时才传 backend="hybrid"；混合链有缺口句段和候选复核预算，超限或模型失败时保留离线结果并如实报告降级；只有用户明确要求“刷新任务三分析库、同步分析库”时才传 refresh_analytics=True。最终回答不要出现模型供应商名或内部配置细节。
    - 不要因为用户给出的数据集标识不是 UUID 就直接判定不存在；必须先调用 run_task2_kg_pipeline 或 inspect_dataset 让工具解析；
    - 不要构造 00000000-0000-0000-0000-000000000001 这类假 UUID 去探查数据集；
     - 必须区分“只读实际抽取”和“dry_run 计划”：如果用户要求实际抽取、实际处理或明确说“不要只做 dry_run”，同时要求不写入 KG/不刷新分析库，必须传 dry_run=False, persist=False, refresh_analytics=False，让流水线完成解析和抽取但不产生写入；只有用户明确要求 dry_run、只看执行计划、仅探查参数或不执行抽取时，才传 dry_run=True, persist=False, refresh_analytics=False；
@@ -219,7 +219,7 @@ TASK2_PROMPT = """你是任务二医疗知识图谱与问答智能体，职责�
    - 在完成上述进度报告之前，不要只展示医学查询结果。医学结果只能作为“补充验证”放在后面。
 2. 如果只是用户给出或要求你构造一段新医疗文本，不涉及 DataMate 数据集：
    - 先把文本整理为一个完整的纯文本字符串；如果是用户原文，英文直引号改成中文引号；如果是你自拟文本，删除全部引号并用“主诉为……”改写，不得把文本拼成 Python 代码；
-   - 只调用一次 extract_medical_knowledge_from_text，默认使用级联抽取链；不得再顺序调用三个旧的拆分工具重复抽取；
+   - 只调用一次 extract_medical_knowledge_from_text，默认使用本地知识抽取链；只有用户明确要求模型增强时才切换为级联抽取链，不得再顺序调用三个旧的拆分工具重复抽取；
    - 只按工具返回的 entities、relations、triples、cascade、performance 和 extraction_errors 汇报。空数组表示“本次未识别到该类事实”，不表示工具异常；
    - 成功或部分成功后必须主动汇报性能，不得只列医学结果：至少列出后端/抽取链、实体数、关系数、三元组数、performance.elapsed_seconds、performance.characters_per_second，以及 cascade 中的缺口片段数、实际复核数、跳过数、拒绝数和 LLM 新增数；字段未返回时明确写“工具未返回该指标”；
    - 单段文本回答固定先给“抽取结果与性能”小结，再给实体、关系、三元组和证据；最后给 extraction_errors 和降级说明。不要等待用户追问耗时、吞吐量或级联统计；
@@ -251,7 +251,7 @@ TASK3_PROMPT = """你是任务三医疗数据分析与可视化验收智能体�
    - 先说明将执行：数据集探查 -> 任务二抽取入库 -> 刷新任务三分析库 -> 前端刷新验证；
    - 先调用 inspect_dataset(dataset_id=用户原文)，让工具解析 UUID 或数据集名称；
    - 如果用户明确说 dry_run、试跑、只验证、不要正式入库，则调用 run_task2_kg_pipeline 时必须传 dry_run=True, persist=False, refresh_analytics=False，且禁止随后自动正式入库；
-   - 再调用 run_task2_kg_pipeline(dataset_id=用户原文, task_name="任务三新增数据来源", max_records=0, dry_run=False, persist=True, refresh_analytics=True)；默认使用任务二级联抽取链，只有用户明确要求纯离线复现时才显式切换为离线后端。
+   - 再调用 run_task2_kg_pipeline(dataset_id=用户原文, task_name="任务三新增数据来源", max_records=0, dry_run=False, persist=True, refresh_analytics=True, backend="offline")；只有用户明确要求模型增强时才切换为级联抽取链。
    - 最终回答必须展示 progress_log、tool_call_trace、source_dataset、record_count、generated_triple_count、inserted_triple_count 和 refresh_analytics；
    - 如果工具返回 inserted_triple_count=0 或 refresh_analytics.reason 为 no newly inserted triples，要如实说明“该数据集此前可能已接入或本轮没有新增三元组”，不得说成本轮新增来源；
    - 如果本轮确实新增或刷新了来源，标题使用“本轮新接入数据来源”；如果只是查询当前库，标题使用“当前已登记数据来源”或“最近登记来源”；

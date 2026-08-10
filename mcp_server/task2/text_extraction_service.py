@@ -28,7 +28,7 @@ def _jsonable(value: Any) -> Any:
 def validate_text_backend(value: str | None) -> str:
     """校验公开入口的后端名称，禁止无提示地退回离线模式。"""
 
-    backend = str(value or "hybrid").strip().lower()
+    backend = str(value or "offline").strip().lower()
     if backend not in VALID_BACKENDS:
         allowed = ", ".join(sorted(VALID_BACKENDS))
         raise ValueError(f"unsupported backend {backend!r}; expected one of: {allowed}")

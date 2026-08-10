@@ -253,6 +253,16 @@ def _max_gap_segments() -> int:
         return 12
 
 
+def _max_review_candidates() -> int:
+    """Keep one-record hybrid requests bounded when the model is slow."""
+
+    raw = os.getenv("CCF_TASK2_CASCADE_MAX_REVIEW_CANDIDATES", "256")
+    try:
+        return max(1, min(512, int(raw)))
+    except ValueError:
+        return 256
+
+
 def _find_gap_segments(
     text: str,
     entities: list[Entity],
@@ -957,7 +967,7 @@ def extract_medical_knowledge_cascade(
             for candidate in gap_candidates + offline_review_candidates
             if candidate.candidate_id not in auto_accepted_ids
         ]
-    )
+    )[: _max_review_candidates()]
     decisions = review_candidates_parallel(llm, review_queue)
     return apply_cascade_merge(
         text=text,

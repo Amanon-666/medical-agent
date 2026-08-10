@@ -1,4 +1,5 @@
 import sqlite3
+from inspect import signature
 
 from core.medical_extraction_service import extract_medical_knowledge
 from core.medical_extraction_validation import (
@@ -13,6 +14,12 @@ from mcp_server.shared.parsing import parse_csv, parse_jsonl
 from mcp_server.task2.text_extraction_service import (
     extract_text_knowledge,
     validate_text_backend,
+)
+from mcp_server.task2.pipeline_service import (
+    _cascade_max_gap_segments_total,
+    _cascade_max_review_candidates,
+    _round_robin_gap_segments,
+    run_kg_pipeline_service,
 )
 
 
@@ -157,6 +164,34 @@ def test_hybrid_without_client_reports_degraded_fallback() -> None:
 
     assert result.backend == "hybrid"
     assert "LLM client is not configured" in result.llm_error
+
+
+def test_task2_interactive_defaults_avoid_external_model_and_full_analytics_rebuild() -> None:
+    parameters = signature(run_kg_pipeline_service).parameters
+
+    assert parameters["backend"].default == "offline"
+    assert parameters["refresh_analytics"].default is False
+    assert validate_text_backend(None) == "offline"
+
+
+def test_hybrid_dataset_budget_is_bounded_and_keeps_later_records(monkeypatch) -> None:
+    monkeypatch.setenv("CCF_TASK2_CASCADE_MAX_GAP_SEGMENTS_TOTAL", "3")
+    monkeypatch.setenv("CCF_TASK2_CASCADE_MAX_REVIEW_CANDIDATES", "7")
+    per_record = [
+        {"index": 0, "gap_segments": ["r0-s0", "r0-s1"]},
+        {"index": 1, "gap_segments": ["r1-s0", "r1-s1"]},
+        {"index": 2, "gap_segments": ["r2-s0"]},
+    ]
+
+    selected = _round_robin_gap_segments(
+        per_record,
+        _cascade_max_gap_segments_total(),
+    )
+
+    assert _cascade_max_gap_segments_total() == 3
+    assert _cascade_max_review_candidates() == 7
+    assert sum(len(items) for items in selected.values()) == 3
+    assert all(selected[index] for index in (0, 1, 2))
 
 
 def test_inline_text_service_returns_a_success_object_for_empty_fact_lists() -> None:
