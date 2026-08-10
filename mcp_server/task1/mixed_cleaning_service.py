@@ -22,6 +22,7 @@ from mcp_server.task1.datasets import (
     datamate_dataset_host_path,
 )
 from mcp_server.task1.evidence import summarize_cleaning_evidence
+from mcp_server.task1.execution import run_parallel_group_jobs, should_start_background_job
 from mcp_server.task1.pdf_support import (
     PARSER_ID,
     inspect_pdf_capability,
@@ -30,6 +31,7 @@ from mcp_server.task1.pdf_support import (
 )
 from mcp_server.task1.status import (
     task1_async_status_path as _task1_async_status_path,
+    update_task1_async_status as _update_task1_async_status,
     write_task1_async_status as _write_task1_async_status,
 )
 
@@ -43,6 +45,7 @@ def run_task1_mixed_cleaning_service(
     task_name: str = "",
     wait: bool = False,
     async_file_threshold: int = 50,
+    _status_run_id: str = "",
 ) -> dict:
     """执行任务一混合格式数据集清洗编排。
 
@@ -65,11 +68,11 @@ def run_task1_mixed_cleaning_service(
     5. register one final Task 1 delivery dataset
     6. register DataMate quality tags, lineage, and statistics
 
-    For large datasets this tool starts an async background job by default and
+    In normal agent conversations this tool starts an async background job by default and
     returns immediately with run_id, source grouping and operators_plan. Call
     get_task1_mixed_cleaning_status(run_id) later to fetch progress/result.
 
-    Set wait=True only for small datasets or explicit blocking tests.
+    Set wait=True only for explicit blocking tests or the background worker.
     Synchronous return includes the source grouping, per-type task IDs, final
     delivery dataset ID/name, and quality totals. This is the recommended path
     for mixed-format Task 1 datasets. Unified JSONL conversion is intentionally
@@ -134,6 +137,15 @@ def run_task1_mixed_cleaning_service(
 
     try:
         started_at = _time.time()
+
+        def _report_progress(stage: str, **details) -> None:
+            if not _status_run_id:
+                return
+            _update_task1_async_status(
+                _status_run_id,
+                {"status": "running", "stage": stage, **details},
+            )
+
         did_sql = did.replace("'", "''")
         rows = _psql(
             "select file_name, coalesce(file_path, ''), coalesce(file_type, '') from t_dm_dataset_files "
@@ -157,13 +169,16 @@ def run_task1_mixed_cleaning_service(
                     "next_action": pdf_capability["deployment_hint"],
                 }
 
-        effective_threshold = max(1, int(async_file_threshold or 50))
-        if not wait and len(rows) > effective_threshold:
+        # 保留参数以兼容旧客户端，但不再用文件数猜测耗时。一个 PDF 或一条
+        # 语义清洗链也可能运行数分钟，非阻塞请求必须统一交给后台任务。
+        _ = async_file_threshold
+        if should_start_background_job(wait):
             run_id = f"{int(_time.time())}_{_uuid.uuid4().hex[:8]}"
             status_payload = {
                 "status": "queued",
+                "run_id": run_id,
                 "message": (
-                    "大数据集清洗已切换为后台异步执行，避免 Nexent 对话界面长时间阻塞。"
+                    "清洗任务已提交后台执行，避免 Nexent 对话界面长时间阻塞。"
                     "请稍后调用 get_task1_mixed_cleaning_status(run_id) 查看进度和最终结果。"
                 ),
                 "source_dataset": {
@@ -239,12 +254,6 @@ def run_task1_mixed_cleaning_service(
 
         source_group_names = {group: [path.name for path, _ in files] for group, files in grouped.items()}
         pdf_source_paths = [path for path, _ in grouped.get("pdf", [])]
-        pdf_parse_reports: list[dict] = []
-        if pdf_source_paths:
-            grouped["pdf"], pdf_parse_reports = parse_pdf_files(
-                pdf_source_paths,
-                raw_dir / "pdf_text",
-            )
 
         if not any(grouped.values()):
             return {"status": "error", "error": "no supported txt/csv/json/jsonl/pdf files found", "unsupported": unsupported}
@@ -280,32 +289,35 @@ def run_task1_mixed_cleaning_service(
             else f"任务一_最终清洗结果_保持源格式_{int(_time.time())}"
         )
 
-        subset_datasets = {}
-        for group, files in grouped.items():
-            if files:
-                group_name = {"text": "文本", "csv": "表格", "json": "JSON", "jsonl": "JSONL", "pdf": "PDF"}[group]
-                subset_name = _dm_name(
-                    f"{short_prefix}_{group_name}子集_{stamp[-8:]}",
-                    f"任务一_{group_name}子集_{stamp[-8:]}",
-                    60,
-                )
-                subset_datasets[group] = register_dataset(
-                    subset_name,
-                    files,
-                    "txt" if group in {"text", "pdf"} else group,
-                    description=f"任务一混合清洗临时子数据集，来源：{source_name}",
-                )
-
         outputs_dir.mkdir(parents=True, exist_ok=True)
 
-        task_results = {}
-        reports = {}
-        evidence_by_group = {}
-        total_records = 0
-        for group in TASK1_FILE_GROUPS:
-            dataset = subset_datasets.get(group)
-            if not dataset:
-                continue
+        active_groups = [group for group in TASK1_FILE_GROUPS if grouped.get(group)]
+        _report_progress(
+            "groups_prepared",
+            progress={"completed_groups": 0, "total_groups": len(active_groups)},
+            source_groups=source_group_names,
+        )
+
+        def _run_group(group: str) -> dict:
+            files = grouped[group]
+            pdf_parse_reports: list[dict] = []
+            if group == "pdf":
+                files, pdf_parse_reports = parse_pdf_files(
+                    [path for path, _ in files],
+                    raw_dir / "pdf_text",
+                )
+            group_name = {"text": "文本", "csv": "表格", "json": "JSON", "jsonl": "JSONL", "pdf": "PDF"}[group]
+            subset_name = _dm_name(
+                f"{short_prefix}_{group_name}子集_{stamp[-8:]}",
+                f"任务一_{group_name}子集_{stamp[-8:]}",
+                60,
+            )
+            dataset = register_dataset(
+                subset_name,
+                files,
+                "txt" if group in {"text", "pdf"} else group,
+                description=f"任务一混合清洗临时子数据集，来源：{source_name}",
+            )
             result = run_pipeline(dataset, chain_map[group], group)
             paths = collect_outputs(result["dest_dataset_id"], outputs_dir, group, set())
             if group in {"text", "pdf"}:
@@ -323,24 +335,46 @@ def run_task1_mixed_cleaning_service(
                     f"{group} output quality failed: "
                     f"{_json.dumps(report.get('totals', {}), ensure_ascii=False)}"
                 )
-            reports[group] = report["totals"]
             source_paths = pdf_source_paths if group == "pdf" else [path for path, _out_type in grouped[group]]
-            evidence_by_group[group] = (
+            evidence = (
                 summarize_pdf_evidence(source_paths, paths, pdf_parse_reports)
                 if group == "pdf"
                 else summarize_cleaning_evidence(source_paths, paths)
             )
-            total_records += int(report["totals"].get("records", 0) or 0)
-            task_results[group] = {
-                "task_id": result["task_id"],
-                "dest_dataset_id": result["dest_dataset_id"],
-                "operators": chain_map[group],
-                "preprocessor": PARSER_ID if group == "pdf" else None,
-                "outputs": [str(path) for path in paths],
-                "artifact_cleanup": artifact_cleanup_report,
-                "postprocess": postprocess_report,
-                "cleaning_evidence": evidence_by_group[group],
+            return {
+                "subset_dataset": dataset,
+                "report": report["totals"],
+                "evidence": evidence,
+                "task_result": {
+                    "task_id": result["task_id"],
+                    "dest_dataset_id": result["dest_dataset_id"],
+                    "operators": chain_map[group],
+                    "preprocessor": PARSER_ID if group == "pdf" else None,
+                    "outputs": [str(path) for path in paths],
+                    "artifact_cleanup": artifact_cleanup_report,
+                    "postprocess": postprocess_report,
+                    "cleaning_evidence": evidence,
+                },
             }
+
+        def _group_completed(group: str, _result: dict, completed: int, total: int) -> None:
+            _report_progress(
+                "cleaning_groups",
+                progress={"completed_groups": completed, "total_groups": total},
+                latest_completed_group=group,
+            )
+
+        group_results = run_parallel_group_jobs(active_groups, _run_group, _group_completed)
+        subset_datasets = {group: item["subset_dataset"] for group, item in group_results.items()}
+        reports = {group: item["report"] for group, item in group_results.items()}
+        evidence_by_group = {group: item["evidence"] for group, item in group_results.items()}
+        task_results = {group: item["task_result"] for group, item in group_results.items()}
+        total_records = sum(int(report.get("records", 0) or 0) for report in reports.values())
+
+        _report_progress(
+            "registering_delivery",
+            progress={"completed_groups": len(active_groups), "total_groups": len(active_groups)},
+        )
 
         delivery_dataset = register_final_delivery(
             outputs_dir,
