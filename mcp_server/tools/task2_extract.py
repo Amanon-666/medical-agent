@@ -1,12 +1,12 @@
 """
 任务二实体、关系和三元组抽取 MCP 工具。
 """
-from dataclasses import asdict, is_dataclass
-from typing import Any
-
 from mcp_server.tools import mcp
 from core.llm_client import LLMClient
-from core.medical_extraction_service import extract_medical_knowledge, normalize_backend
+from mcp_server.task2.text_extraction_service import (
+    extract_text_knowledge,
+    validate_text_backend,
+)
 from mcp_server.config import KG_DB, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 
 _llm = None
@@ -17,52 +17,69 @@ def _get_llm():
     return _llm
 
 
-def _jsonable(value: Any) -> Any:
-    if hasattr(value, "to_dict"):
-        return value.to_dict()
-    if is_dataclass(value):
-        return asdict(value)
-    if isinstance(value, list):
-        return [_jsonable(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _jsonable(item) for key, item in value.items()}
-    return value
-
-
 def _llm_for_backend(backend: str) -> LLMClient | None:
-    selected = normalize_backend(backend)
+    selected = validate_text_backend(backend)
     return _get_llm() if selected in {"llm", "hybrid"} else None
 
 
-@mcp.tool
-def extract_medical_entities(text: str, backend: str = "hybrid") -> list:
-    """抽取医学实体，支持本地规则、大模型或混合后端。"""
-    result = extract_medical_knowledge(
+def _extract(text: str, backend: str) -> dict:
+    selected = validate_text_backend(backend)
+    return extract_text_knowledge(
         text,
-        backend=backend,
+        backend=selected,
         kg_db_path=KG_DB,
-        llm=_llm_for_backend(backend),
+        llm=_llm_for_backend(selected),
     )
-    return _jsonable(result.entities)
+
 
 @mcp.tool
-def extract_medical_relations(text: str, backend: str = "hybrid") -> list:
-    """抽取医学关系，支持本地规则、大模型或混合后端。"""
-    result = extract_medical_knowledge(
-        text,
-        backend=backend,
-        kg_db_path=KG_DB,
-        llm=_llm_for_backend(backend),
-    )
-    return _jsonable(result.relations)
+def extract_medical_knowledge_from_text(
+    text: str,
+    backend: str = "hybrid",
+) -> dict:
+    """一次抽取单段医疗文本的实体、关系、三元组、级联统计和性能指标。"""
+
+    return _extract(text, backend)
+
 
 @mcp.tool
-def generate_medical_triples(text: str, backend: str = "hybrid") -> list:
-    """生成医学 SPO 三元组，支持本地规则、大模型或混合后端。"""
-    result = extract_medical_knowledge(
-        text,
-        backend=backend,
-        kg_db_path=KG_DB,
-        llm=_llm_for_backend(backend),
-    )
-    return _jsonable(result.triples)
+def extract_medical_entities(text: str, backend: str = "hybrid") -> dict:
+    """抽取医学实体；空结果也返回结构化成功对象。"""
+
+    result = _extract(text, backend)
+    return {
+        "status": result["status"],
+        "backend": result["backend"],
+        "item_count": result["counts"]["entity_count"],
+        "entities": result["entities"],
+        "performance": result["performance"],
+        "extraction_errors": result["extraction_errors"],
+    }
+
+@mcp.tool
+def extract_medical_relations(text: str, backend: str = "hybrid") -> dict:
+    """抽取医学关系；空结果也返回结构化成功对象。"""
+
+    result = _extract(text, backend)
+    return {
+        "status": result["status"],
+        "backend": result["backend"],
+        "item_count": result["counts"]["relation_count"],
+        "relations": result["relations"],
+        "performance": result["performance"],
+        "extraction_errors": result["extraction_errors"],
+    }
+
+@mcp.tool
+def generate_medical_triples(text: str, backend: str = "hybrid") -> dict:
+    """生成医学 SPO 三元组；空结果也返回结构化成功对象。"""
+
+    result = _extract(text, backend)
+    return {
+        "status": result["status"],
+        "backend": result["backend"],
+        "item_count": result["counts"]["triple_count"],
+        "triples": result["triples"],
+        "performance": result["performance"],
+        "extraction_errors": result["extraction_errors"],
+    }

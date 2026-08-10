@@ -81,6 +81,7 @@ def persist_triples(
     record_triples,
     source_file='',
     source_id=None,
+    source_record_id='',
     return_details=False,
     include_quality_metrics=False,
 ):
@@ -134,13 +135,16 @@ def persist_triples(
             continue
         c.execute(
             '''INSERT OR IGNORE INTO kg_triples(subject_id, relation_code, object_id, source_id,
-               evidence, confidence, extractor, reliability_level, created_at)
-               VALUES(?,?,?,?,?,?,?,?,?)''',
+               source_file, source_record_id, evidence, confidence, extractor,
+               reliability_level, created_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?)''',
             (
                 sid,
                 rel,
                 oid,
                 source_id,
+                source_file,
+                source_record_id,
                 evidence,
                 t.get('confidence', 0.7),
                 method,

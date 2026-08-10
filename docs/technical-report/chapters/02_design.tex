@@ -1,15 +1,15 @@
-\chapter{作品整体设计方案}
+\chapter{MCP 工具封装与阶段数据链路}
 
-\section{总体设计与平台边界}
+\section{平台职责边界与总体架构}
 
-MediFlow 把任务理解、领域编排和平台执行分成三个边界。Nexent 识别用户目标并选择任务级工具；MediFlow 校验参数、读取数据状态并选择处理流程；DataMate 执行数据集任务和单步算子，知识库与分析库负责持久化。当前三个智能体分别配置 5、11 和 8 项工具，去重后形成 17 个工具名称；工具在不同角色之间复用，但每个角色只暴露与其职责相关的入口。
+MediFlow 把任务理解、领域编排和平台执行分成三个边界。Nexent 识别用户目标并选择任务级工具；MediFlow 校验参数、读取数据状态并选择处理流程；DataMate 执行数据集任务和单步算子，知识库与分析库负责持久化。三个智能体各自只绑定职责相关的工具；工具可以跨角色复用，但任务一、任务二和任务三的写入边界彼此独立。
 
 三个阶段通过四类标识衔接：DataMate 数据集标识确定输入和交付数据集；任务一运行标识跟踪后台处理；任务二来源标识和记录标识定位文件与图谱记录；任务三分析标识关联问题、查询结果、图表和导出文件。
 用户既可分别使用三个智能体，
 也可将任务一产生的数据集直接交给任务二，
 再由任务三读取图谱及分析表完成查询。
 
-\section{系统分层与数据对象}
+\section{阶段数据对象分层}
 
 图~\ref{fig:architecture} 给出了访问入口、专业智能体、领域服务和阶段数据对象的对应关系。
 访问入口包括 Nexent 对话和 Web 工作台；三个智能体分别负责数据处理、知识图谱和数据分析；领域服务承担格式路由、抽取校验、语义规划与查询执行；数据对象层保存交付数据集、知识图谱库和分析结果。
@@ -62,7 +62,7 @@ Nexent 任务三智能体和 Web 工作台都把自然语言问题交给该服�
 \label{fig:task-interface-mapping}
 \end{figure}
 
-\subsection{DataMate 算子体系与执行边界}
+\subsection{DataMate 算子执行边界}
 
 DataMate 算子承担单步数据变换。项目算子采用 DataMate 的 Mapper 接口，由 \texttt{execute} 接收样本字典或文件记录，返回更新后的字段和处理记录；\texttt{metadata.yml} 保存注册信息。MediFlow 根据文件格式或抽取后端建立算子计划，DataMate 执行单步算子并返回结果；Nexent 只选择任务级 MCP 工具，不直接指定底层算子。
 
@@ -96,10 +96,6 @@ TableColumnCleaner、JsonFieldCleaner &
 记录组织 &
  MedicalRecordSplitter &
  按段落和句子边界拆分医疗记录，保留源文件与分段序号 \\
-\addlinespace
-统一输出 &
-UnifiedJsonlExporter &
-将多格式记录整理为任务二可读取的 JSONL \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -122,7 +118,7 @@ UnifiedJsonlExporter &
 \label{fig:agent-call-sequence}
 \end{figure}
 
-\section{智能体角色与工具配置}
+\section{任务角色与工具绑定}
 
 项目按数据、知识和分析划分三个专业角色，
 表~\ref{tab:agent-product-design} 从用户任务、执行逻辑和产物三个角度说明职责。Nexent 配置决定智能体可见的工具集合，MediFlow 服务负责参数校验和阶段内执行，DataMate 负责数据任务。
@@ -155,7 +151,7 @@ UnifiedJsonlExporter &
 \end{tabularx}
 \end{table}
 
-\section{阶段数据与存储设计}
+\section{阶段数据标识与存储}
 
 系统根据数据的使用方式设置三类存储。
 DataMate 保存待处理文件、算子任务和交付数据集；
@@ -192,6 +188,53 @@ DataMate 数据集 &
 \end{tabularx}
 \end{table}
 
+\subsection{三项任务之间实际传递什么}
+
+三项任务之间不传递一句笼统的“处理结果”，而是传递可检查的数据对象和标识。任务一仍以 DataMate 数据集交付文件；任务二读取文件后才在内存中转换为统一记录；任务三读取任务二已经提交的图谱库和分析库。表~\ref{tab:cross-task-dataflow} 给出实际格式和追溯字段。
+
+\begin{table}[H]
+\centering
+\small
+\caption{三项任务的数据格式、传递方式与追溯标识}
+\label{tab:cross-task-dataflow}
+\begin{tabularx}{\textwidth}{L{1.6cm}L{3.2cm}L{4.2cm}Y}
+\toprule
+\textbf{阶段} & \textbf{实际交付格式} & \textbf{下一阶段如何读取} & \textbf{追溯字段} \\
+\midrule
+任务一→任务二 &
+TXT、CSV、JSON、JSONL；PDF 解析后为 TXT &
+以最终 \texttt{dataset\_id} 读取文件；TXT 按段落、CSV 按行、JSON 按对象、JSONL 按行转换为记录 &
+源数据集、最终数据集、文件名、格式、任务运行标识 \\
+\addlinespace
+任务二内部 &
+\texttt{records[]}，每条含文本和来源字段 &
+同一抽取服务读取 \texttt{text}，并按源文件轮转抽样；不把原文件物理改写成 JSONL &
+\texttt{source\_file}、\texttt{source\_format}、\texttt{record\_id}、\texttt{source\_record\_id} \\
+\addlinespace
+任务二→任务三 &
+SQLite 图谱表及由图谱刷新得到的分析表 &
+实体关系查询读取图谱；统计、排名和分组读取分析表 &
+\texttt{source\_id}、源文件、源记录、原文证据、抽取方式、可靠等级 \\
+\addlinespace
+任务三→用户 &
+分析结果记录、HTML、CSV、JSON &
+同一分析标识驱动回答、表格、图表和导出 &
+\texttt{analysis\_id}、查询计划、SQL、结果行和来源字段 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+一条事实的追溯路径可以直接读成：
+\begin{center}
+\fbox{\parbox{0.94\textwidth}{\centering
+最终数据集 \texttt{dataset\_id}
+$\rightarrow$ 源文件 \texttt{source\_file}
+$\rightarrow$ 记录 \texttt{record\_id}
+$\rightarrow$ 三元组及 \texttt{evidence}
+$\rightarrow$ 任务三查询结果与 \texttt{analysis\_id}}}
+\end{center}
+结构化文件中如果原记录自带 \texttt{record\_id} 或 \texttt{id}，任务二将其保存在 \texttt{source\_record\_id}；否则使用“文件名:行号或分段号”生成稳定记录号。三元组入库时同时保存数据集来源、文件名、记录号和原文片段，所以任务三返回一条关系时可以定位到任务一交付数据集中的具体记录，而不只知道它来自“某个知识库”。
+
 图~\ref{fig:data-object-map} 展示了知识图谱库与分析数据库之间的数据对象关系。任务一交付数据集先登记来源，图谱库再维护实体、关系、三元组和质量记录；规范化三元组投影为疾病事实和关系表，任务三据此生成分析结果记录。
 
 \begin{figure}[H]
@@ -224,7 +267,7 @@ DataMate 数据集 &
 新接入资料则沿任务一、任务二进入同一图谱，
 任务三使用统一的数据口径展示已有知识与新增知识。
 
-\section{结果校验与安全边界}
+\section{结果校验与执行边界}
 
 任务一在结果汇聚前重新解析 JSON、JSONL 和 CSV 产物，
 PDF 分支分别保存上传、解析、下载和正文转换状态；

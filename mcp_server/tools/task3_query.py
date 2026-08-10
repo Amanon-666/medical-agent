@@ -3,6 +3,7 @@
 """
 
 from mcp_server.tools import mcp
+from mcp_server.kg.persistence import ensure_kg_schema
 from mcp_server.shared.frontend_status import get_validation_frontend_status_payload
 from mcp_server.shared.sqlite_utils import connect_analytics, connect_kg, row_dicts
 from mcp_server.tools.task3_runtime import get_task3_analysis_service
@@ -18,21 +19,35 @@ def get_validation_frontend_status() -> str:
 @mcp.tool
 def query_knowledge_graph(subject: str) -> list:
     """查询与指定疾病、症状、药物或医学实体相关的知识图谱三元组。"""
+    ensure_kg_schema()
     conn = connect_kg()
     c = conn.cursor()
     pattern = f"%{subject}%"
     c.execute(
-        """SELECT e1.canonical_name, r.display_name, e2.canonical_name, t.confidence
+        """SELECT e1.canonical_name, r.display_name, e2.canonical_name, t.confidence,
+                  src.source_name, t.source_file, t.source_record_id, t.evidence,
+                  t.reliability_level
            FROM kg_triples t
            JOIN kg_entities e1 ON t.subject_id = e1.entity_id
            JOIN kg_entities e2 ON t.object_id = e2.entity_id
            JOIN kg_relations r ON t.relation_code = r.relation_code
+           LEFT JOIN kg_sources src ON t.source_id = src.source_id
            WHERE e1.canonical_name LIKE ? OR e2.canonical_name LIKE ?
            LIMIT 60""",
         (pattern, pattern),
     )
     results = [
-        {"subject": r[0], "predicate": r[1], "object": r[2], "confidence": r[3]}
+        {
+            "subject": r[0],
+            "predicate": r[1],
+            "object": r[2],
+            "confidence": r[3],
+            "source_dataset": r[4],
+            "source_file": r[5],
+            "source_record_id": r[6],
+            "evidence": r[7],
+            "reliability_level": r[8],
+        }
         for r in c.fetchall()
     ]
     conn.close()

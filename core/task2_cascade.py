@@ -324,6 +324,7 @@ def _offline_relation_candidates(
                 predicate=relation.predicate,
                 object=relation.object,
                 object_type=relation.object_type,
+                extraction_method=relation.extraction_method,
             )
         )
     return candidates
@@ -361,6 +362,19 @@ def _targeted_low_relation_candidate(candidate: ReviewCandidate) -> bool:
 
     if candidate.kind != "relation" or candidate.reliability_level != "low":
         return False
+    if candidate.extraction_method in {
+        "clinical_context_rule",
+        "explicit_medication_frame",
+    }:
+        return relation_evidence_supports_pair(
+            candidate.evidence,
+            candidate.predicate,
+            candidate.subject,
+            candidate.object,
+            subject_type=candidate.subject_type,
+            object_type=candidate.object_type,
+            require_disease_subject=True,
+        )
     if candidate.confidence < 0.55:
         return False
     cues = _TARGETED_LOW_REVIEW_CUES.get(candidate.predicate, ())
@@ -417,6 +431,7 @@ def _gap_candidates(
                 predicate=relation.predicate,
                 object=relation.object,
                 object_type=relation.object_type,
+                extraction_method=relation.extraction_method,
                 segment_id=segment_id,
             )
         )
@@ -790,6 +805,7 @@ def _retain_offline_candidate(
     """
 
     level = str(getattr(item, "reliability_level", "") or "").lower()
+    decision_record = decisions.get(candidate_id)
     decision = _decision_name(decisions, candidate_id)
     if level == "low":
         if candidate_id in reviewed_ids and decision == "accept":
@@ -802,11 +818,16 @@ def _retain_offline_candidate(
                 if normalized_entity is None:
                     return False, item
                 item = normalized_entity
-            return True, replace(
-                item,
-                extraction_method="llm_review_verified",
-                reliability_level="high",
+            review_confidence = float(
+                getattr(decision_record, "confidence", 0.0) or 0.0
             )
+            replacement = {
+                "extraction_method": "llm_review_verified",
+                "reliability_level": "high",
+            }
+            if review_confidence > 0:
+                replacement["confidence"] = min(1.0, max(0.0, review_confidence))
+            return True, replace(item, **replacement)
         return False, item
     if preserve_medium and level == "medium":
         return True, item

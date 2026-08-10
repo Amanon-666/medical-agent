@@ -989,6 +989,21 @@ def normalize_verified_entity(text: str, entity: Entity) -> Entity | None:
     normalized = _normalize_gap_entity(entity, segment)
     if normalized is None:
         return None
+    start = normalized.start_idx
+    end = normalized.end_idx
+    if start is None or end is None:
+        located = text.find(normalized.text)
+        if located < 0 or text.find(normalized.text, located + 1) >= 0:
+            return None
+        start, end = located, located + len(normalized.text) - 1
+        normalized = replace(normalized, start_idx=start, end_idx=end)
+    if not (
+        0 <= start <= end < len(text)
+        and text[start : end + 1] == normalized.text
+    ):
+        # LLM outputs such as “胸痛（术后）” must not pass when only “胸痛”
+        # occurs in the source.  A verified entity is always an exact span.
+        return None
     if not _gap_entity_context_is_supported(normalized, segment, None):
         return None
     return normalized

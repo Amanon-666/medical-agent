@@ -135,7 +135,7 @@ RELATION_EVIDENCE_CUES = {
     "实验室检查": ("实验室", "血液", "血清", "检测", "检查", "测定", "化验"),
     "并发症": ("并发", "合并", "可致", "有", "出现", "可见"),
     "影像学检查": ("影像", "CT", "MRI", "超声", "X线", "扫描", "检查"),
-    "手术治疗": ("手术", "切除", "移植", "引流", "吻合"),
+    "手术治疗": ("手术", "介入", "切除", "移植", "引流", "吻合", "实施"),
     "放射治疗": ("放疗", "放射", "照射"),
     "死亡率": ("死亡率", "病死率", "死亡"),
     "治疗后症状": ("治疗后", "术后", "治疗后出现"),
@@ -213,6 +213,9 @@ _STRICT_RELATION_CUES = {
     "\u5e76\u53d1\u75c7": ("\u5e76\u53d1", "\u5408\u5e76", "\u51fa\u73b0"),
     "\u836f\u7269\u6cbb\u7597": ("\u6cbb\u7597", "\u7528\u836f", "\u670d\u7528", "\u7ed9\u4e88", "\u4f7f\u7528", "\u5e94\u7528", "\u53e3\u670d", "\u6ce8\u5c04"),
     "\u8f85\u52a9\u6cbb\u7597": ("\u6cbb\u7597", "\u5904\u7406", "\u5e72\u9884", "\u624b\u672f"),
+    "\u624b\u672f\u6cbb\u7597": (
+        "\u624b\u672f", "\u4ecb\u5165", "\u5207\u9664", "\u79fb\u690d", "\u5f15\u6d41", "\u543b\u5408", "\u5b9e\u65bd", "\u884c"
+    ),
     "\u8f85\u52a9\u68c0\u67e5": ("\u68c0\u67e5", "\u68c0\u6d4b", "\u76d1\u6d4b", "\u590d\u67e5"),
     "\u5b9e\u9a8c\u5ba4\u68c0\u67e5": ("\u5b9e\u9a8c\u5ba4", "\u8840\u6db2", "\u68c0\u6d4b", "\u68c0\u67e5"),
     "\u5f71\u50cf\u5b66\u68c0\u67e5": ("\u5f71\u50cf", "CT", "MRI", "\u8d85\u58f0", "X\u7ebf", "\u626b\u63cf", "\u68c0\u67e5"),
@@ -223,6 +226,7 @@ _STRICT_RELATION_OBJECT_TYPES = {
     "\u5916\u4fb5\u90e8\u4f4d": {"bod"},
     "\u8f6c\u79fb\u90e8\u4f4d": {"bod"},
     "\u836f\u7269\u6cbb\u7597": {"dru"},
+    "\u624b\u672f\u6cbb\u7597": {"pro"},
     "\u8f85\u52a9\u68c0\u67e5": {"ite"},
     "\u5b9e\u9a8c\u5ba4\u68c0\u67e5": {"ite"},
     "\u5f71\u50cf\u5b66\u68c0\u67e5": {"ite"},
@@ -287,6 +291,12 @@ def relation_evidence_supports_pair(
             local_text = text[start : end + 1]
             if any(cue in local_text for cue in cues):
                 return True
+            if predicate == "并发症":
+                # A shared trailing label is common in clinical notes, for
+                # example “心力衰竭、心律失常等并发症”.
+                trailing = text[end + 1 : min(len(text), end + 25)]
+                if any(cue in trailing for cue in cues):
+                    return True
     return False
 
 

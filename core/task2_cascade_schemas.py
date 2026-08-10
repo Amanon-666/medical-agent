@@ -39,6 +39,7 @@ class ReviewCandidate:
     object: str = ""
     object_type: str = ""
     segment_id: str = ""
+    extraction_method: str = ""
 
     def to_prompt_dict(self) -> dict[str, object]:
         values = {
@@ -49,6 +50,7 @@ class ReviewCandidate:
             "reliability_level": self.reliability_level,
             "confidence": round(float(self.confidence), 4),
             "segment_id": self.segment_id,
+            "extraction_method": self.extraction_method,
         }
         if self.kind == "entity":
             values.update({"text": self.entity_text, "type": self.entity_type})

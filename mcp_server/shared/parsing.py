@@ -6,6 +6,17 @@
 
 import re, json, csv, io
 
+
+def _record_lineage(source_file: str, index: int, row: object = None) -> dict:
+    source_record_id = ""
+    if isinstance(row, dict):
+        source_record_id = str(row.get("record_id") or row.get("id") or "").strip()
+    stable_part = source_record_id or str(index)
+    return {
+        "record_id": f"{source_file}:{stable_part}",
+        "source_record_id": source_record_id,
+    }
+
 def infer_format(file_name: str, file_type: str = '') -> str:
     name = file_name.lower()
     if name.endswith('.csv'): return 'csv'
@@ -38,16 +49,19 @@ def split_text(text: str, source_file: str, source_format: str, max_chars: int =
 def parse_csv(text: str, source_file: str) -> list[dict]:
     rows = list(csv.DictReader(io.StringIO(text)))
     return [{'text': json.dumps(r, ensure_ascii=False), 'source_file': source_file,
-             'record_id': f'{source_file}:{i}', 'source_format': 'csv', 'row_data': r}
+             **_record_lineage(source_file, i, r), 'source_format': 'csv', 'row_data': r}
             for i, r in enumerate(rows) if any(str(v).strip() for v in r.values())]
 
 def parse_json(text: str, source_file: str, source_format: str) -> list[dict]:
     data = json.loads(text)
     if isinstance(data, list):
         return [{'text': json.dumps(item, ensure_ascii=False), 'source_file': source_file,
-                 'record_id': f'{source_file}:{i}', 'source_format': source_format}
+                 **_record_lineage(source_file, i, item), 'source_format': source_format,
+                 'row_data': item if isinstance(item, dict) else {}}
                 for i, item in enumerate(data)]
-    return [{'text': text, 'source_file': source_file, 'record_id': f'{source_file}:0', 'source_format': source_format}]
+    return [{'text': text, 'source_file': source_file,
+             **_record_lineage(source_file, 0, data), 'source_format': source_format,
+             'row_data': data if isinstance(data, dict) else {}}]
 
 def parse_jsonl(text: str, source_file: str) -> list[dict]:
     records = []
@@ -56,7 +70,8 @@ def parse_jsonl(text: str, source_file: str) -> list[dict]:
             continue
         data = json.loads(line)
         records.append({'text': json.dumps(data, ensure_ascii=False), 'source_file': source_file,
-                        'record_id': f'{source_file}:{i}', 'source_format': 'jsonl', 'row_data': data})
+                        **_record_lineage(source_file, i, data), 'source_format': 'jsonl',
+                        'row_data': data if isinstance(data, dict) else {}})
     return records
 
 def parse_files(files: list[dict]) -> tuple[list[dict], dict]:

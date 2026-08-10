@@ -136,8 +136,8 @@ def test_batch_merge_reviews_gap_facts_and_scopes_decisions() -> None:
     gap_entity = Entity(
         text="阿莫西林",
         type="dru",
-        start_idx=6,
-        end_idx=9,
+        start_idx=4,
+        end_idx=7,
         confidence=0.9,
         extraction_method="llm_gap",
         reliability_level="medium",
@@ -278,8 +278,8 @@ def test_high_confidence_supported_gap_relation_uses_fast_path() -> None:
         reasons=("entity_without_relation",),
     )
     gap_entities = [
-        Entity(text="骨性关节炎", type="dis", start_idx=0, end_idx=5, confidence=0.95),
-        Entity(text="踝关节", type="bod", start_idx=13, end_idx=15, confidence=0.95),
+        Entity(text="骨性关节炎", type="dis", start_idx=0, end_idx=4, confidence=0.95),
+        Entity(text="踝关节", type="bod", start_idx=12, end_idx=14, confidence=0.95),
     ]
     gap_relations = [
         Relation(
@@ -317,3 +317,66 @@ def test_high_confidence_supported_gap_relation_uses_fast_path() -> None:
         ("骨性关节炎", "发病部位", "踝关节")
     ]
 
+
+def test_reviewed_low_relation_uses_review_confidence() -> None:
+    text = "初步诊断：心肌梗死。给予阿司匹林治疗。"
+    disease = Entity(
+        text="心肌梗死",
+        type="dis",
+        start_idx=text.index("心肌梗死"),
+        end_idx=text.index("心肌梗死") + len("心肌梗死") - 1,
+        reliability_level="medium",
+    )
+    drug = Entity(
+        text="阿司匹林",
+        type="dru",
+        start_idx=text.index("阿司匹林"),
+        end_idx=text.index("阿司匹林") + len("阿司匹林") - 1,
+        reliability_level="medium",
+    )
+    relation = Relation(
+        subject="心肌梗死",
+        subject_type="dis",
+        predicate="药物治疗",
+        object="阿司匹林",
+        object_type="dru",
+        confidence=0.4,
+        evidence=text,
+        extraction_method="explicit_medication_frame",
+        reliability_level="low",
+    )
+    candidate = ReviewCandidate(
+        candidate_id="offline_relation:0",
+        kind="relation",
+        source="offline",
+        subject=relation.subject,
+        subject_type=relation.subject_type,
+        predicate=relation.predicate,
+        object=relation.object,
+        object_type=relation.object_type,
+        confidence=relation.confidence,
+        reliability_level="low",
+        extraction_method=relation.extraction_method,
+        evidence=text,
+    )
+    result = apply_cascade_merge(
+        text=text,
+        entities=[disease, drug],
+        relations=[relation],
+        gap_segments=[],
+        review_candidates=[candidate],
+        decisions={
+            "offline_relation:0": ReviewDecision(
+                candidate_id="offline_relation:0",
+                decision="accept",
+                confidence=0.93,
+            )
+        },
+        gap_entities=[],
+        gap_relations=[],
+        reviewed_candidate_ids={"offline_relation:0"},
+    )
+
+    assert result.relations[0].confidence == 0.93
+    assert result.relations[0].reliability_level == "high"
+    assert result.relations[0].extraction_method == "llm_review_verified"

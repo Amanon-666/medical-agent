@@ -10,7 +10,7 @@
 | [`config.py`](config.py) | 读取服务地址、数据库路径和运行参数。 | 配置加载 |
 | [`tools/`](tools/) | Nexent 直接调用的工具函数入口。 | → [tools/__init__.py](tools/__init__.py) |
 | · [`task1_data.py`](tools/task1_data.py) | 任务一 7 个 MCP 工具：上传、探查、清洗、状态查询。 | T1 |
-| · [`task2_extract.py`](tools/task2_extract.py) | 任务二 3 个 MCP 工具：实体/关系/三元组抽取。 | T2 |
+| · [`task2_extract.py`](tools/task2_extract.py) | 任务二单段文本统一抽取入口及三个兼容拆分入口。 | T2 |
 | · [`task2_pipeline.py`](tools/task2_pipeline.py) | 任务二 KG 流水线编排工具。 | T2 |
 | · [`task3_query.py`](tools/task3_query.py) | 任务三图谱、来源、前端状态和统一医学分析入口。 | T3 |
 | · [`task3_nl2sql.py`](tools/task3_nl2sql.py) | 任务三兼容工具名，转入统一分析服务。 | T3 |
@@ -21,6 +21,7 @@
 | · [`chains.py`](task1/chains.py) | 三条清洗链定义（text/csv/json/jsonl）。 | T1 |
 | · [`runtime_helpers/`](task1/runtime_helpers/) | 源格式保留清洗辅助模块。 | T1 |
 | [`task2/`](task2/) | 任务二文件解析、抽取流水线、记录选择和报告生成。 | → [task2/__init__.py](task2/__init__.py) |
+| · [`text_extraction_service.py`](task2/text_extraction_service.py) | 单次抽取并统一返回实体、关系、三元组和性能指标。 | T2 |
 | · [`pipeline_service.py`](task2/pipeline_service.py) | KG 批量构建 7 阶段编排。 | T2 |
 | · [`selection.py`](task2/selection.py) | 跨文件均衡抽样。 | T2 |
 | · [`reporting.py`](task2/reporting.py) | KG 构建统计报告。 | T2 |

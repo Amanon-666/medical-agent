@@ -10,6 +10,7 @@ from core.schemas import Entity, Relation
 from core.task2_cascade import (
     _find_gap_segments,
     apply_cascade_merge,
+    prepare_cascade_targets,
 )
 from core.task2_cascade_schemas import CascadeSegment, ReviewCandidate, ReviewDecision
 from core.task2_verifier import (
@@ -554,3 +555,96 @@ def test_bedside_span_extension_does_not_extend_end_offset() -> None:
     assert entity is not None
     assert entity.text == "床边动态心电监护"
     assert text[entity.start_idx : entity.end_idx + 1] == entity.text
+
+
+def test_verified_entity_rejects_text_not_present_at_claimed_span() -> None:
+    text = "术后患者胸痛缓解。"
+    assert normalize_verified_entity(
+        text,
+        Entity(
+            text="胸痛（术后）",
+            type="sym",
+            start_idx=text.index("胸痛"),
+            end_idx=text.index("胸痛") + len("胸痛（术后）") - 1,
+        ),
+    ) is None
+
+
+def test_clinical_diagnosis_context_links_following_treatment_and_complications() -> None:
+    text = (
+        "初步诊断：急性心肌梗死、高血压。"
+        "给予阿司匹林，并紧急行经皮冠状动脉介入治疗。"
+        "术后需监测心力衰竭、心律失常等并发症。"
+    )
+    specs = [
+        ("急性心肌梗死", "dis"),
+        ("高血压", "dis"),
+        ("阿司匹林", "dru"),
+        ("经皮冠状动脉介入治疗", "pro"),
+        ("心力衰竭", "dis"),
+        ("心律失常", "dis"),
+    ]
+    entities = []
+    for value, entity_type in specs:
+        start = text.index(value)
+        entities.append(
+            Entity(
+                text=value,
+                type=entity_type,
+                start_idx=start,
+                end_idx=start + len(value) - 1,
+            )
+        )
+
+    relations = extract_relations_offline(text, entities=entities)
+    keys = {(item.subject, item.predicate, item.object) for item in relations}
+
+    assert ("急性心肌梗死", "药物治疗", "阿司匹林") in keys
+    assert ("急性心肌梗死", "手术治疗", "经皮冠状动脉介入治疗") in keys
+    assert ("急性心肌梗死", "并发症", "心力衰竭") in keys
+    assert ("急性心肌梗死", "并发症", "心律失常") in keys
+
+    _gaps, review_candidates = prepare_cascade_targets(text, entities, relations)
+    reviewed_relation_keys = {
+        (item.subject, item.predicate, item.object)
+        for item in review_candidates
+        if item.kind == "relation"
+    }
+    assert {
+        ("急性心肌梗死", "药物治疗", "阿司匹林"),
+        ("急性心肌梗死", "手术治疗", "经皮冠状动脉介入治疗"),
+        ("急性心肌梗死", "并发症", "心力衰竭"),
+        ("急性心肌梗死", "并发症", "心律失常"),
+    }.issubset(reviewed_relation_keys)
+
+
+def test_explicit_historical_medication_is_not_discarded() -> None:
+    text = "既往有2型糖尿病病史10年，长期口服二甲双胍控制血糖。"
+    entities = []
+    for value, entity_type in (("2型糖尿病", "dis"), ("二甲双胍", "dru")):
+        start = text.index(value)
+        entities.append(
+            Entity(
+                text=value,
+                type=entity_type,
+                start_idx=start,
+                end_idx=start + len(value) - 1,
+            )
+        )
+
+    relations = extract_relations_offline(text, entities=entities)
+
+    assert any(
+        item.subject == "2型糖尿病"
+        and item.predicate == "药物治疗"
+        and item.object == "二甲双胍"
+        for item in relations
+    )
+    _gaps, review_candidates = prepare_cascade_targets(text, entities, relations)
+    assert any(
+        item.kind == "relation"
+        and item.subject == "2型糖尿病"
+        and item.object == "二甲双胍"
+        and item.extraction_method == "explicit_medication_frame"
+        for item in review_candidates
+    )

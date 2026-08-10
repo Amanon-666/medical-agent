@@ -100,7 +100,13 @@ def _offline_relation_context_is_supported(
     if disease_start >= 0:
         before = sentence[max(0, disease_start - 12) : disease_start]
         if any(cue in before for cue in ("\u65e2\u5f80\u6709", "\u6709\u75c5\u53f2", "\u6709\u2026\u53f2")):
-            return False
+            disease_end = disease_start + len(disease.text)
+            between = sentence[disease_end : object_start + len(obj.text)]
+            if not any(
+                cue in between
+                for cue in ("口服", "服用", "使用", "应用", "注射", "给予")
+            ):
+                return False
     return True
 
 
@@ -117,6 +123,7 @@ SEED_TERMS = {
 STOP_TERMS = {
     "患者", "医生", "治疗", "检查", "诊断", "病史", "阳性", "阴性",
     "糖尿", "内科", "外科", "儿童", "老人", "男性", "女性",
+    "升高", "口服", "长期口服", "控制血糖",
 }
 TYPE_PRIORITY = {
     "dis": 0,
@@ -455,6 +462,96 @@ def _owning_section_disease(
     )
 
 
+_DIAGNOSIS_HEADER_RE = re.compile(
+    r"(?:初步诊断|入院诊断|出院诊断|主要诊断|临床诊断|诊断)\s*[:：]"
+)
+
+
+def _preceding_diagnosis_context(
+    text: str,
+    sentence_start: int,
+    sentence_spans: list[tuple[int, int, str]],
+    diseases: list[Entity],
+) -> tuple[Entity | None, str]:
+    """Find a nearby explicit diagnosis that owns following clinical steps."""
+
+    checked = 0
+    for prior_start, prior_end, prior_sentence in reversed(sentence_spans):
+        if prior_end > sentence_start:
+            continue
+        if sentence_start - prior_end > 360 or checked >= 3:
+            break
+        if "\n\n" in text[prior_end:sentence_start]:
+            break
+        checked += 1
+        header = _DIAGNOSIS_HEADER_RE.search(prior_sentence)
+        if header is None:
+            continue
+        diagnosis_start = prior_start + header.end()
+        candidates = [
+            entity
+            for entity in diseases
+            if entity.start_idx is not None
+            and diagnosis_start <= entity.start_idx < prior_end
+        ]
+        if candidates:
+            primary = min(candidates, key=lambda item: item.start_idx or 0)
+            return primary, prior_sentence
+    return None, ""
+
+
+def _is_complication_frame(sentence: str) -> bool:
+    return "并发症" in sentence and any(
+        cue in sentence for cue in ("并发", "监测", "警惕", "预防", "出现")
+    )
+
+
+def _context_relation_for(
+    sentence: str,
+    sentence_start: int,
+    disease: Entity,
+    obj: Entity,
+    db_path: str,
+) -> tuple[str, str]:
+    """Resolve a relation owned by a diagnosis in a preceding sentence."""
+
+    if _is_complication_frame(sentence) and obj.type in {"dis", "sym"}:
+        return "并发症", "clinical_context_rule"
+    object_pos = _entity_position(sentence, obj, sentence_start)
+    if obj.type == "pro" and object_pos >= 0:
+        prefix = sentence[max(0, object_pos - 12) : object_pos]
+        if any(cue in prefix for cue in ("行", "接受", "实施", "进行")):
+            predicate = (
+                "手术治疗"
+                if any(cue in obj.text for cue in ("手术", "介入", "切除", "移植"))
+                else "辅助治疗"
+            )
+            return predicate, "clinical_context_rule"
+    if object_pos < 0:
+        return "", ""
+
+    prefix = disease.text + "@"
+    local_object_start = object_pos
+    local_object_end = local_object_start + len(obj.text) - 1
+    contextual_object = replace(
+        obj,
+        start_idx=len(prefix) + local_object_start,
+        end_idx=len(prefix) + local_object_end,
+    )
+    contextual_disease = replace(
+        disease,
+        start_idx=0,
+        end_idx=len(disease.text) - 1,
+    )
+    return _relation_for(
+        prefix + sentence,
+        contextual_disease,
+        contextual_object,
+        db_path,
+        sentence_start=0,
+    )
+
+
 def _primary_diseases(text: str, entities: list[Entity]) -> list[Entity]:
     diseases = [entity for entity in entities if entity.type == "dis"]
     if not diseases:
@@ -636,7 +733,12 @@ def _relation_for(
         for cue in ("\u624b\u672f", "\u5207\u9664", "\u79fb\u690d", "\u543b\u5408")
     ):
         return "\u624b\u672f\u6cbb\u7597", "sentence_rule"
-    return TYPE_TO_DEFAULT_RELATION.get(obj.type, ""), "sentence_rule"
+    method = "sentence_rule"
+    if obj.type == "dru" and any(
+        cue in between for cue in ("给予", "口服", "服用", "注射", "应用")
+    ):
+        method = "explicit_medication_frame"
+    return TYPE_TO_DEFAULT_RELATION.get(obj.type, ""), method
 
 
 def _make_relation(disease: Entity, obj: Entity, predicate: str, method: str, evidence: str) -> Relation:
@@ -770,14 +872,27 @@ def extract_relations_offline(
         section_disease = None
         if not sent_diseases:
             section_disease = _owning_section_disease(text, sent_start, diseases)
-        if not sent_diseases and section_disease is None:
+        diagnosis_disease, diagnosis_evidence = _preceding_diagnosis_context(
+            text,
+            sent_start,
+            sentence_spans,
+            diseases,
+        )
+        use_diagnosis_context = diagnosis_disease is not None and (
+            not sent_diseases or _is_complication_frame(sentence)
+        )
+        if not sent_diseases and section_disease is None and not use_diagnosis_context:
             continue
         sent_entities = [
             entity
             for entity in entities
             if entity.start_idx is not None and sent_start <= entity.start_idx < sent_end
         ]
-        active_diseases = sent_diseases[:2] or [section_disease]
+        active_diseases = (
+            [diagnosis_disease]
+            if use_diagnosis_context
+            else (sent_diseases[:2] or [section_disease])
+        )
         for disease in active_diseases:
             if disease is None:
                 continue
@@ -788,6 +903,9 @@ def extract_relations_offline(
                 relation_disease = disease
                 relation_object = obj
                 relation_sentence_start = sent_start
+                inherited_diagnosis = (
+                    use_diagnosis_context and disease is diagnosis_disease
+                )
                 if section_disease is disease and disease not in sent_diseases:
                     prefix = disease.text + "@"
                     object_end = (
@@ -807,13 +925,22 @@ def extract_relations_offline(
                         end_idx=len(prefix) + (object_end - sent_start),
                     )
                     relation_sentence_start = 0
-                predicate, method = _relation_for(
-                    relation_sentence,
-                    relation_disease,
-                    relation_object,
-                    db_path,
-                    sentence_start=relation_sentence_start,
-                )
+                if inherited_diagnosis:
+                    predicate, method = _context_relation_for(
+                        sentence,
+                        sent_start,
+                        disease,
+                        obj,
+                        db_path,
+                    )
+                else:
+                    predicate, method = _relation_for(
+                        relation_sentence,
+                        relation_disease,
+                        relation_object,
+                        db_path,
+                        sentence_start=relation_sentence_start,
+                    )
                 if not predicate:
                     continue
                 if not _offline_relation_object_type_is_compatible(
@@ -833,9 +960,13 @@ def extract_relations_offline(
                     continue
                 seen.add(key)
                 evidence = (
-                    relation_sentence
-                    if section_disease is disease and disease not in sent_diseases
-                    else sentence
+                    f"{diagnosis_evidence}；{sentence}"
+                    if inherited_diagnosis
+                    else (
+                        relation_sentence
+                        if section_disease is disease and disease not in sent_diseases
+                        else sentence
+                    )
                 )
                 relations.append(_make_relation(disease, obj, predicate, method, evidence))
 

@@ -503,6 +503,7 @@ def run_kg_pipeline_service(
                     triples,
                     record.get("source_file", ""),
                     source_id,
+                    source_record_id=record.get("record_id", ""),
                     return_details=True,
                     include_quality_metrics=True,
                 )

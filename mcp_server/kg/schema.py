@@ -61,6 +61,8 @@ def _task2_ensure_kg_schema(conn: sqlite3.Connection) -> None:
             relation_code TEXT NOT NULL,
             object_id INTEGER NOT NULL,
             source_id INTEGER,
+            source_file TEXT,
+            source_record_id TEXT,
             evidence TEXT,
             confidence REAL DEFAULT 1.0,
             extractor TEXT,
@@ -115,6 +117,10 @@ def _task2_ensure_kg_schema(conn: sqlite3.Connection) -> None:
     triple_columns = {row[1] for row in conn.execute("PRAGMA table_info(kg_triples)")}
     if "reliability_level" not in triple_columns:
         conn.execute("ALTER TABLE kg_triples ADD COLUMN reliability_level TEXT")
+    if "source_file" not in triple_columns:
+        conn.execute("ALTER TABLE kg_triples ADD COLUMN source_file TEXT")
+    if "source_record_id" not in triple_columns:
+        conn.execute("ALTER TABLE kg_triples ADD COLUMN source_record_id TEXT")
     conn.execute("DROP VIEW IF EXISTS v_disease_facts")
     conn.execute(
         """
@@ -130,6 +136,8 @@ def _task2_ensure_kg_schema(conn: sqlite3.Connection) -> None:
             t.confidence,
             t.extractor,
             t.reliability_level,
+            t.source_file,
+            t.source_record_id,
             src.source_name
         FROM kg_triples t
         JOIN kg_entities s ON t.subject_id = s.entity_id

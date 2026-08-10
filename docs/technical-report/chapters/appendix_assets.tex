@@ -3,7 +3,7 @@
 本附录列出报告正文涉及的主要 DataMate 算子、MCP 工具和数据库文件。
 平台自带的通用文件读写组件不单独展开；同名工具在不同智能体中的重复绑定只列一次。
 
-\section{任务一：数据处理资产}
+\section{任务一数据处理资产}
 
 \begin{table}[H]
 \centering
@@ -34,9 +34,6 @@
 \addlinespace
 记录组织 & MedicalRecordSplitter &
 按段落和句子边界拆分医疗记录，保留源文件与分段序号 \\
-\addlinespace
-统一输出 & UnifiedJsonlExporter &
-将多格式处理结果整理为统一 JSONL 记录，供后续知识构建读取 \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -60,7 +57,7 @@
 \end{tabularx}
 \end{table}
 
-\section{任务二：知识构建资产}
+\section{任务二知识构建资产}
 
 \begin{table}[H]
 \centering
@@ -80,6 +77,7 @@ MedicalTextQualityFilter & 检查文本长度、特殊字符比例和重复内�
 \end{tabularx}
 \end{table}
 
+\clearpage
 \begin{table}[H]
 \centering
 \small
@@ -90,9 +88,8 @@ MedicalTextQualityFilter & 检查文本长度、特殊字符比例和重复内�
 \toprule
 \textbf{工具} & \textbf{主要用途} \\
 \midrule
-\path{extract_medical_entities} & 对单条文本执行实体抽取并返回类型、位置和原文片段 \\
-\path{extract_medical_relations} & 对单条文本执行关系抽取并返回端点、关系类型和来源信息 \\
-\path{generate_medical_triples} & 将单条文本的抽取结果转换为三元组并执行结构校验 \\
+\path{extract_medical_knowledge_from_text} & 单次处理一段文本，统一返回实体、关系、三元组、级联统计、性能和错误 \\
+\path{extract_medical_entities}、\path{extract_medical_relations}、\path{generate_medical_triples} & 兼容只查看单类结果的拆分入口；空数组仍返回结构化成功对象 \\
 \path{run_task2_kg_pipeline} & 读取 DataMate 数据集，完成解析、抽取、入库和分析表刷新 \\
 \path{inspect_dataset}、\path{get_medical_data_sources} & 查看输入数据集和已登记来源 \\
 \path{get_validation_frontend_status} & 返回知识图谱验证工作台的入口和服务状态 \\
@@ -103,7 +100,7 @@ MedicalTextQualityFilter & 检查文本长度、特殊字符比例和重复内�
 \end{tabularx}
 \end{table}
 
-\section{任务三：分析工具}
+\section{任务三分析工具}
 
 任务三复用任务二的图谱和数据来源工具，并增加查询规划、分析执行与工作台状态工具。
 三类智能体的具体绑定关系见表~\ref{tab:agent-product-design}；以下列出任务三可用的完整工具集合。

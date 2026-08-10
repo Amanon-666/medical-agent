@@ -9,6 +9,11 @@ from core.medical_extraction_validation import (
 from core.schemas import Triple
 from mcp_server.kg.persistence import persist_triples
 from mcp_server.kg.schema import _task2_ensure_kg_schema
+from mcp_server.shared.parsing import parse_csv, parse_jsonl
+from mcp_server.task2.text_extraction_service import (
+    extract_text_knowledge,
+    validate_text_backend,
+)
 
 
 def test_llm_validation_assigns_review_reliability() -> None:
@@ -152,3 +157,73 @@ def test_hybrid_without_client_reports_degraded_fallback() -> None:
 
     assert result.backend == "hybrid"
     assert "LLM client is not configured" in result.llm_error
+
+
+def test_inline_text_service_returns_a_success_object_for_empty_fact_lists() -> None:
+    result = extract_text_knowledge(
+        "plain text without medical facts",
+        backend="offline",
+        kg_db_path="",
+    )
+
+    assert result["status"] == "success"
+    assert result["entities"] == []
+    assert result["relations"] == []
+    assert result["triples"] == []
+    assert result["counts"] == {
+        "entity_count": 0,
+        "relation_count": 0,
+        "triple_count": 0,
+    }
+
+
+def test_inline_text_service_rejects_unknown_backend() -> None:
+    try:
+        validate_text_backend("local")
+    except ValueError as exc:
+        assert "offline" in str(exc) and "hybrid" in str(exc)
+    else:
+        raise AssertionError("unknown backend must not silently fall back")
+
+
+def test_structured_parsers_preserve_source_record_identity() -> None:
+    csv_records = parse_csv("record_id,text\ncase-7,胸痛", "cases.csv")
+    jsonl_records = parse_jsonl(
+        '{"record_id":"case-8","text":"呼吸困难"}\n',
+        "cases.jsonl",
+    )
+
+    assert csv_records[0]["record_id"] == "cases.csv:case-7"
+    assert csv_records[0]["source_record_id"] == "case-7"
+    assert jsonl_records[0]["record_id"] == "cases.jsonl:case-8"
+    assert jsonl_records[0]["source_record_id"] == "case-8"
+
+
+def test_persisted_triple_keeps_file_and_record_lineage() -> None:
+    conn = sqlite3.connect(":memory:")
+    _task2_ensure_kg_schema(conn)
+    result = persist_triples(
+        conn,
+        [
+            Triple(
+                subject="急性心肌梗死",
+                predicate="临床表现",
+                object="胸痛",
+                subject_type="dis",
+                object_type="sym",
+                extraction_method="known_pair",
+                reliability_level="high",
+                evidence="急性心肌梗死表现为胸痛",
+            )
+        ],
+        source_file="cases.jsonl",
+        source_record_id="cases.jsonl:case-8",
+        source_id=1,
+        return_details=True,
+    )
+
+    assert result == {"inserted": 1, "candidate": 0, "rejected": 0}
+    row = conn.execute(
+        "SELECT source_file, source_record_id FROM kg_triples"
+    ).fetchone()
+    assert row == ("cases.jsonl", "cases.jsonl:case-8")

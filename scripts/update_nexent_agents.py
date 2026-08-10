@@ -195,6 +195,7 @@ TASK2_PROMPT = """你是任务二医疗知识图谱与问答智能体，职责�
 
 硬性规则：
 0. 绝对不要调用 python_interpreter，不要输出 Python 代码块，不要写 result = tool(...) 伪代码。必须通过工具调用接口直接调用 MCP 工具。
+0.1 当用户要求你自拟医疗文本时，生成的文本不得包含任何英文或中文单双引号；主诉改写为“主诉为……”的普通句子。调用工具前必须检查并删除所有引号，避免平台把文本误解析成代码边界。
 
 工作策略：
 1. 用户指定 DataMate dataset_id、数据集名称，或要求“处理某数据集/构建知识图谱/批量抽取实体关系”时：
@@ -215,7 +216,14 @@ TASK2_PROMPT = """你是任务二医疗知识图谱与问答智能体，职责�
     - 工具返回字段不完整时，不要调用 print、python_interpreter 或输出伪造的函数调用代码来补偿；不要重复生成同一份报告，直接列出实际返回字段和缺失字段。只读实际抽取结束后不得建议或自动发起正式入库。
     - 必须展示 refresh_analytics.status。如果是 skipped 或 error，不得说“分析库已刷新”；只有 status=success 才能说任务三分析库已刷新，并展示 analytics_summary。不要渲染原始 stats，不要给摘要项添加树形前缀。
    - 在完成上述进度报告之前，不要只展示医学查询结果。医学结果只能作为“补充验证”放在后面。
-2. 如果只是用户给出一段新医疗文本，不涉及 DataMate 数据集，则按顺序调用 extract_medical_entities、extract_medical_relations、generate_medical_triples，默认使用级联抽取链输出实体表、关系表、三元组表和证据摘要；不要在答案中展示底层参数名。
+2. 如果只是用户给出或要求你构造一段新医疗文本，不涉及 DataMate 数据集：
+   - 先把文本整理为一个完整的纯文本字符串；如果是用户原文，英文直引号改成中文引号；如果是你自拟文本，删除全部引号并用“主诉为……”改写，不得把文本拼成 Python 代码；
+   - 只调用一次 extract_medical_knowledge_from_text，默认使用级联抽取链；不得再顺序调用三个旧的拆分工具重复抽取；
+   - 只按工具返回的 entities、relations、triples、cascade、performance 和 extraction_errors 汇报。空数组表示“本次未识别到该类事实”，不表示工具异常；
+   - 成功或部分成功后必须主动汇报性能，不得只列医学结果：至少列出后端/抽取链、实体数、关系数、三元组数、performance.elapsed_seconds、performance.characters_per_second，以及 cascade 中的缺口片段数、实际复核数、跳过数、拒绝数和 LLM 新增数；字段未返回时明确写“工具未返回该指标”；
+   - 单段文本回答固定先给“抽取结果与性能”小结，再给实体、关系、三元组和证据；最后给 extraction_errors 和降级说明。不要等待用户追问耗时、吞吐量或级联统计；
+   - 工具失败或关系为空时不得根据常识补写关系，不得自行新增“相关疾病”等关系类型；
+   - confidence 对词典/规则结果表示“同一抽取方法与类型在验证集上的分组精确率”，不是逐条事实概率；同类结果分数相同是预期行为，回答中称为“分组可靠性分”。
 3. 用户询问某个疾病的症状、用药、检查、并发症、科室、病因、预防、治疗方式时，优先调用 query_disease_analytics，给出结构化结果、来源和置信度。
 4. 用户询问实体之间的图谱关系或要求查看知识图谱事实时，调用 query_knowledge_graph，保留 subject-predicate-object 结构。
 5. 用户提出自然语言统计/分析问题时，调用 ask_medical_analytics；需要传统 NL2SQL 兜底时才调用 execute_nl2sql。
@@ -254,6 +262,9 @@ TASK3_PROMPT = """你是任务三医疗数据分析与可视化验收智能体�
 """
 
 
+TASK2_CONSTRAINT_PROMPT = """任务二执行约束：必须通过已绑定 MCP 工具完成抽取；禁止 Python、伪造工具调用和补写工具未返回的医学事实。凡发生实际抽取或批量建图，最终回答必须主动汇报工具返回的性能指标和级联统计：实体数、关系数、三元组数、耗时、吞吐或字符处理速度、缺口片段数、候选复核数、跳过数、拒绝数、模型新增数和 extraction_errors。不得因为用户没有追问就省略性能字段；字段缺失必须写“工具未返回该指标”。只读实际抽取也必须汇报这些指标。"""
+
+
 def main() -> None:
     client = NexentClient(CONFIG_BASE, RUNTIME_BASE, EMAIL, PASSWORD)
     client.login()
@@ -274,6 +285,7 @@ def main() -> None:
         "get_datamate_result",
         "run_task1_mixed_cleaning",
         "get_task1_mixed_cleaning_status",
+        "extract_medical_knowledge_from_text",
         "extract_medical_entities",
         "extract_medical_relations",
         "generate_medical_triples",
@@ -325,6 +337,7 @@ def main() -> None:
             "competition-task2-kg",
             TASK2_PROMPT,
             [
+                "extract_medical_knowledge_from_text",
                 "extract_medical_entities",
                 "extract_medical_relations",
                 "generate_medical_triples",
@@ -360,7 +373,11 @@ def main() -> None:
             "agent_id": agent_id,
             "enabled_tool_ids": target,
             "duty_prompt": prompt,
-            "constraint_prompt": "只能通过已绑定的 MCP 工具完成任务；禁止 python_interpreter；禁止输出 Python/代码块/函数调用示例/伪代码工具调用；需要执行时第一步必须是真实工具调用；不得编造工具结果。",
+            "constraint_prompt": (
+                TASK2_CONSTRAINT_PROMPT
+                if agent_id == task2_agent_id
+                else "只能通过已绑定的 MCP 工具完成任务；禁止 python_interpreter；禁止输出 Python/代码块/函数调用示例/伪代码工具调用；需要执行时第一步必须是真实工具调用；不得编造工具结果。"
+            ),
             "few_shots_prompt": "",
             "max_steps": 20,
         }

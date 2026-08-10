@@ -9,12 +9,15 @@
 ```
 用户输入 "基于清洗后的数据构建知识图谱"
  ▼
- Step 1: Agent 调用 MCP 工具 
- 三项独立工具 (可单独调用, 也可通过 pipeline 批量): 
- extract_medical_entities(text, backend) ← 实体识别 
- extract_medical_relations(text, backend) ← 关系抽取 
- generate_medical_triples(text, backend) ← 三元组生成 
- 一个编排工具: 
+ Step 1: Agent 调用 MCP 工具
+ 单段文本统一入口（Nexent 默认使用）:
+ extract_medical_knowledge_from_text(text, backend)
+ → 一次返回实体、关系、三元组、级联统计、性能和错误
+ 三项拆分工具仅保留为兼容入口；即使结果是空数组也返回结构化成功对象:
+ extract_medical_entities(text, backend)
+ extract_medical_relations(text, backend)
+ generate_medical_triples(text, backend)
+ 数据集编排工具:
  run_task2_kg_pipeline(dataset_id, ...) ← 全流程批量构建 
  文件: mcp_server/tools/task2_extract.py 
  mcp_server/tools/task2_pipeline.py 
@@ -72,8 +75,8 @@
  输出: Triple 列表 
  Triple 数据结构: 
  {subject, predicate, object, confidence, source} 
- Offline 路径不再把固定常量解释为真实概率。系统依据独立评测结果，
- 按“处理阶段 + 抽取方法 + 实体或关系类型”读取可靠性等级:
+ Offline 路径不再把固定常量解释为单条事实概率。系统依据独立评测结果，
+ 按“处理阶段 + 抽取方法 + 实体或关系类型”读取分组精确率与可靠性等级:
  - 高: 写入主知识图谱
  - 中: 写入待复核事实记录
  - 低: 写入拦截审计记录，不进入主图谱
@@ -101,8 +104,8 @@
  • kg_sources (数据来源记录) 
  • kg_quality_issues (质量审计) 
  6d. 分析库刷新 
- mcp_server/kg/analytics_refresh.py 
- 从 KG 库刷新 task3_analytics.db (15 表 + 5 视图)
+ mcp_server/kg/analytics_refresh.py
+ 从 KG 库刷新 task3_analytics.db (16 表) 
  6e. 报告生成 
  mcp_server/task2/reporting.py 
  统计: 实体数、关系数、三元组数、耗时、吞吐量 
@@ -115,7 +118,7 @@
  --medical-json /path/to/medical.json 
  kg/build_analytics_v2.py 
  从 KG 库构建分析库 
- 生成 task3_analytics.db (固定版本，15 表 + 5 视图)
+ 生成 task3_analytics.db (211MB, 16 表)
  命令行: python kg/build_analytics_v2.py \ 
  --kg-db data/task2_medical_kg.db \ 
  --analytics-db data/task3_analytics.db 
@@ -128,7 +131,7 @@
 ### MCP 工具层
 | 文件 | 作用 |
 |------|------|
-| `mcp_server/tools/task2_extract.py` | 实体/关系/三元组 3 个 @mcp.tool |
+| `mcp_server/tools/task2_extract.py` | 单段文本统一入口及 3 个兼容查看入口 |
 | `mcp_server/tools/task2_pipeline.py` | KG 流水线编排 @mcp.tool |
 
 ### 编排服务层
@@ -193,11 +196,15 @@
 
 ```
 输入方式 A: 用户直接给文本
- 文本 → extract_medical_knowledge(text) → Entity[] + Relation[] + Triple[]
- → 返回 JSON 给 Agent → Agent 组织语言展示
+ 文本 → extract_medical_knowledge_from_text(text, backend="hybrid")
+ → 一次执行统一抽取服务
+ → 返回 Entity[] + Relation[] + Triple[] + cascade + performance + extraction_errors
+ → Agent 只解释工具实际返回的内容，不自行补写关系或指标
 
 输入方式 B: 基于 DataMate 数据集
- dataset_id → task2/selection.py 选记录
+ 任务一最终 dataset_id → 读取 TXT/CSV/JSON/JSONL 文件（PDF 已在任务一转为 TXT）
+ → 按原格式解析为统一 records[]，保留 source_file、source_format、record_id、source_record_id
+ → task2/selection.py 跨文件选记录
  → 每条记录调 extract_medical_knowledge()
  → kg/persistence.py 写入 SQLite
  → kg/analytics_refresh.py 刷新分析库
@@ -208,6 +215,16 @@
  medical.json → kg/build_kg_v2.py → task2_medical_kg.db
  task2_medical_kg.db → kg/build_analytics_v2.py → task3_analytics.db
 ```
+
+任务二不会要求任务一把所有文件预先改写为 JSONL。CSV 按行、JSON 按对象、
+JSONL 按行、TXT 按段落读取；结构化记录自带的 `record_id` 或 `id` 保存为
+`source_record_id`，没有源记录号时使用“文件名:行号或分段号”生成稳定编号。
+三元组写入时同时保存数据集来源、源文件、源记录和原文证据；任务三查询关系时
+返回这些字段，从分析结果可以反查到任务一交付数据集中的具体记录。
+
+单段文本入口对 `backend` 只接受 `offline`、`llm` 和 `hybrid`，不再把拼错的值
+静默当成离线方式。Nexent 自拟文本时使用不含未转义引号的连续中文病历，再把整段
+作为 `text` 参数一次提交。合法的空实体、空关系或空三元组属于成功结果，不视为工具异常。
 
 ## 需要的外部服务/数据
 
@@ -244,8 +261,10 @@
 实体识别相较早期小词典版本已明显改善，关系候选收紧后原始关系精确率和 F1
 均有所提升，但召回率有所下降。当前工程策略不是掩盖低质量预测，而是通过
 分组可靠性把低质事实隔离在主知识图谱之外，并把未覆盖句交给级联补漏。
-可靠性等级是同类抽取结果的经验质量等级，
-不是逐条事实的概率，也不在用户对话中展示伪精确百分比。
+分组精确率等于验证集中该组严格命中的数量除以该组输出总数，因此同一抽取方法、
+同一实体或关系类型的多条结果会显示相同数值。这是同类方法的历史质量，不是模型对
+每条事实分别估出的概率。低可靠候选经 LLM 明确接受后，结果改记本次复核分和
+`llm_review_verified`，不再保留原离线分数。
 
 服务器运行态验证使用任务二默认 `hybrid`，以 `dry_run=false`、`persist=false`、
 `refresh_analytics=false` 完成 1 条记录的实际抽取；生成结果和级联统计完整返回，
