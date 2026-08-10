@@ -5,8 +5,9 @@
 
 from __future__ import annotations
 
+import os
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter
 
 from core.llm_client import LLMClient
@@ -21,8 +22,9 @@ from core.task2_cascade import (
     count_skipped_offline_candidates,
     dedupe_review_candidates,
     prepare_cascade_targets,
+    select_auto_accepted_gap_candidate_ids,
 )
-from core.task2_verifier import extract_gap_facts, review_candidates
+from core.task2_verifier import extract_gap_facts_batch, review_candidates_parallel
 from mcp_server.config import KG_DB, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
 from mcp_server.datamate.resolver import (
     _task2_read_datamate_dataset,
@@ -96,7 +98,42 @@ def _classify_generated_triples(triples: list) -> dict[str, int]:
     return counts
 
 
-_MAX_BATCH_REVIEW_CANDIDATES = 200
+_MAX_BATCH_REVIEW_CANDIDATES = 256
+
+
+def _round_robin_candidates(per_record: list[dict], source_key: str, kind: str) -> list:
+    """Interleave records so a batch cap cannot starve later records."""
+
+    groups = [
+        [candidate for candidate in item[source_key] if candidate.kind == kind]
+        for item in per_record
+    ]
+    result: list = []
+    offset = 0
+    while any(offset < len(group) for group in groups):
+        for group in groups:
+            if offset < len(group):
+                result.append(group[offset])
+        offset += 1
+    return result
+
+
+def _cascade_gap_workers(record_count: int) -> int:
+    raw = os.getenv("CCF_TASK2_CASCADE_GAP_WORKERS", "8")
+    try:
+        configured = int(raw)
+    except ValueError:
+        configured = 8
+    return max(1, min(8, configured, record_count))
+
+
+def _cascade_gap_batch_size() -> int:
+    raw = os.getenv("CCF_TASK2_CASCADE_GAP_BATCH_SIZE", "6")
+    try:
+        configured = int(raw)
+    except ValueError:
+        configured = 6
+    return max(1, min(8, configured))
 
 
 def _batch_cascade_precompute(
@@ -108,7 +145,6 @@ def _batch_cascade_precompute(
 
     phase_start = time.perf_counter()
     per_record: list[dict] = []
-    offline_candidates: list = []
     for record_index, record in enumerate(selected_records):
         text = record.get("text", "")
         if not text.strip():
@@ -117,6 +153,7 @@ def _batch_cascade_precompute(
             text,
             backend="offline",
             kg_db_path=kg_db_path,
+            apply_offline_gate=False,
         )
         scope = f"r{record_index}"
         gap_segments, candidates = prepare_cascade_targets(
@@ -137,49 +174,61 @@ def _batch_cascade_precompute(
                     bundle.entities,
                     bundle.relations,
                     candidates,
+                    candidate_scope=scope,
                 ),
                 "gap_entities": [],
                 "gap_relations": [],
                 "gap_candidates": [],
+                "reviewable_gap_candidates": [],
+                "auto_accepted_candidate_ids": set(),
                 "gap_error": "",
             }
         )
-        offline_candidates.extend(candidates)
 
     if not per_record:
         return {}
 
     gap_results: dict[int, tuple[list, list]] = {}
-    if llm is not None:
-        max_workers = max(1, min(4, len(per_record)))
+    gap_records = [
+        (
+            item["index"],
+            item["text"],
+            item["gap_segments"],
+            item["offline_bundle"].entities,
+        )
+        for item in per_record
+        if item["gap_segments"]
+    ]
+    if llm is not None and gap_records:
+        batch_size = _cascade_gap_batch_size()
+        gap_batches = [
+            gap_records[offset : offset + batch_size]
+            for offset in range(0, len(gap_records), batch_size)
+        ]
+        max_workers = _cascade_gap_workers(len(gap_batches))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
-                item["index"]: executor.submit(
-                    extract_gap_facts,
-                    item["text"],
-                    item["gap_segments"],
-                    llm,
-                )
-                for item in per_record
-                if item["gap_segments"]
+                executor.submit(extract_gap_facts_batch, batch, llm): batch
+                for batch in gap_batches
             }
-            for record_index, future in futures.items():
+            for future in as_completed(futures):
+                batch = futures[future]
                 try:
-                    gap_results[record_index] = future.result(timeout=45)
+                    gap_results.update(future.result())
                 except Exception as exc:
-                    gap_results[record_index] = ([], [])
-                    for item in per_record:
-                        if item["index"] == record_index:
-                            item["gap_error"] = (
-                                f"gap extraction failed: {type(exc).__name__}: {str(exc)[:200]}"
-                            )
-                            break
+                    error = (
+                        f"gap extraction failed: {type(exc).__name__}: {str(exc)[:200]}"
+                    )
+                    for record_index, _, _, _ in batch:
+                        for item in per_record:
+                            if item["index"] == record_index:
+                                item["gap_error"] = error
+                                break
     else:
         for item in per_record:
             if item["gap_segments"]:
                 item["gap_error"] = "LLM client is not configured"
 
-    gap_candidates: list = []
     for item in per_record:
         gap_entities, gap_relations = gap_results.get(item["index"], ([], []))
         item["gap_entities"] = gap_entities
@@ -190,19 +239,36 @@ def _batch_cascade_precompute(
             item["gap_segments"],
             candidate_scope=item["scope"],
         )
-        gap_candidates.extend(item["gap_candidates"])
+        item["auto_accepted_candidate_ids"] = select_auto_accepted_gap_candidate_ids(
+            item["gap_candidates"]
+        )
+        item["reviewable_gap_candidates"] = [
+            candidate
+            for candidate in item["gap_candidates"]
+            if candidate.candidate_id not in item["auto_accepted_candidate_ids"]
+        ]
 
-    # Gap candidates are the augmentation path, so they get priority at the
-    # batch safety cap. Offline candidates fill the remaining review slots.
+    # Relation augmentation has the largest recall gap.  Interleave records in
+    # every tier so early records cannot consume the whole batch safety cap.
+    # Medium/high offline facts never enter this queue because the merge policy
+    # preserves them regardless of a review decision.
     review_queue = dedupe_review_candidates(
-        gap_candidates + offline_candidates
+        _round_robin_candidates(per_record, "reviewable_gap_candidates", "relation")
+        + _round_robin_candidates(per_record, "offline_candidates", "relation")
+        + _round_robin_candidates(per_record, "reviewable_gap_candidates", "entity")
+        + _round_robin_candidates(per_record, "offline_candidates", "entity")
     )[:_MAX_BATCH_REVIEW_CANDIDATES]
     reviewed_candidate_ids = {candidate.candidate_id for candidate in review_queue}
     decisions: dict = {}
     review_error = ""
     if review_queue and llm is not None:
         try:
-            decisions = review_candidates(llm, review_queue)
+            decisions = review_candidates_parallel(
+                llm,
+                review_queue,
+                batch_size=64,
+                max_workers=min(4, _cascade_gap_workers(len(per_record))),
+            )
         except Exception as exc:
             review_error = (
                 f"candidate review failed: {type(exc).__name__}: {str(exc)[:200]}"
@@ -228,6 +294,7 @@ def _batch_cascade_precompute(
                 gap_relations=item["gap_relations"],
                 candidate_scope=item["scope"],
                 reviewed_candidate_ids=reviewed_candidate_ids,
+                auto_accepted_candidate_ids=item["auto_accepted_candidate_ids"],
                 offline_review_skipped_count=item["offline_review_skipped_count"],
             )
             errors = [value for value in (item["gap_error"], review_error) if value]
@@ -241,18 +308,30 @@ def _batch_cascade_precompute(
                 gap_segment_count=cascade.gap_segment_count,
                 gap_candidate_count=cascade.gap_candidate_count,
                 reviewed_candidate_count=cascade.reviewed_candidate_count,
+                auto_accepted_candidate_count=cascade.auto_accepted_candidate_count,
                 review_skipped_candidate_count=cascade.review_skipped_candidate_count,
+                offline_filtered_candidate_count=cascade.offline_filtered_candidate_count,
                 rejected_candidate_count=cascade.rejected_candidate_count,
                 llm_added_count=cascade.llm_added_count,
+                llm_added_entity_count=cascade.llm_added_entity_count,
+                llm_added_relation_count=cascade.llm_added_relation_count,
             )
         except Exception as exc:
+            fallback = extract_medical_knowledge(
+                item["text"],
+                backend="offline",
+                kg_db_path=kg_db_path,
+            )
             result[item["index"]] = ExtractionBundle(
-                entities=offline_bundle.entities,
-                relations=offline_bundle.relations,
-                triples=offline_bundle.triples,
+                entities=fallback.entities,
+                relations=fallback.relations,
+                triples=fallback.triples,
                 backend="hybrid",
-                elapsed_seconds=round(elapsed_per_record, 4),
+                elapsed_seconds=round(
+                    elapsed_per_record + fallback.elapsed_seconds, 4
+                ),
                 llm_error=f"cascade merge failed: {type(exc).__name__}: {str(exc)[:240]}",
+                offline_filtered_candidate_count=fallback.offline_filtered_candidate_count,
             )
     return result
 
@@ -347,9 +426,13 @@ def run_kg_pipeline_service(
     cascade_gap_segment_count = 0
     cascade_gap_candidate_count = 0
     cascade_reviewed_candidate_count = 0
+    cascade_auto_accepted_candidate_count = 0
     cascade_review_skipped_candidate_count = 0
+    cascade_offline_filtered_candidate_count = 0
     cascade_rejected_candidate_count = 0
     cascade_llm_added_count = 0
+    cascade_llm_added_entity_count = 0
+    cascade_llm_added_relation_count = 0
     llm = _llm_for_backend(selected_backend)
 
     precomputed_bundles: dict[int, ExtractionBundle] = {}
@@ -373,9 +456,13 @@ def run_kg_pipeline_service(
             cascade_gap_segment_count += bundle.gap_segment_count
             cascade_gap_candidate_count += bundle.gap_candidate_count
             cascade_reviewed_candidate_count += bundle.reviewed_candidate_count
+            cascade_auto_accepted_candidate_count += bundle.auto_accepted_candidate_count
             cascade_review_skipped_candidate_count += bundle.review_skipped_candidate_count
+            cascade_offline_filtered_candidate_count += bundle.offline_filtered_candidate_count
             cascade_rejected_candidate_count += bundle.rejected_candidate_count
             cascade_llm_added_count += bundle.llm_added_count
+            cascade_llm_added_entity_count += bundle.llm_added_entity_count
+            cascade_llm_added_relation_count += bundle.llm_added_relation_count
 
             triples = bundle.triples
             generated_triple_count += len(triples)
@@ -390,9 +477,13 @@ def run_kg_pipeline_service(
                 "gap_segments": bundle.gap_segment_count,
                 "gap_candidates": bundle.gap_candidate_count,
                 "reviewed_candidates": bundle.reviewed_candidate_count,
+                "auto_accepted_candidates": bundle.auto_accepted_candidate_count,
                 "review_skipped_candidates": bundle.review_skipped_candidate_count,
+                "offline_filtered_candidates": bundle.offline_filtered_candidate_count,
                 "rejected_candidates": bundle.rejected_candidate_count,
                 "llm_added_facts": bundle.llm_added_count,
+                "llm_added_entities": bundle.llm_added_entity_count,
+                "llm_added_relations": bundle.llm_added_relation_count,
                 "inserted_triples": 0,
                 "candidate_triples": 0,
                 "rejected_triples": 0,
@@ -549,9 +640,13 @@ def run_kg_pipeline_service(
             "gap_segment_count": cascade_gap_segment_count,
             "gap_candidate_count": cascade_gap_candidate_count,
             "reviewed_candidate_count": cascade_reviewed_candidate_count,
+            "auto_accepted_candidate_count": cascade_auto_accepted_candidate_count,
             "review_skipped_candidate_count": cascade_review_skipped_candidate_count,
+            "offline_filtered_candidate_count": cascade_offline_filtered_candidate_count,
             "rejected_candidate_count": cascade_rejected_candidate_count,
             "llm_added_count": cascade_llm_added_count,
+            "llm_added_entity_count": cascade_llm_added_entity_count,
+            "llm_added_relation_count": cascade_llm_added_relation_count,
         },
         "performance": {
             "extractor_backend": selected_backend,
@@ -571,8 +666,10 @@ def run_kg_pipeline_service(
             f"覆盖 {len(source_file_summary)} 个来源文件，生成 {generated_triple_count} 条三元组，"
             f"高可靠通过 {accepted_high_triple_count} 条（新入库 {inserted_triple_count} 条，"
             f"已存在 {deduplicated_triple_count} 条），中可靠待复核 {candidate_triple_count} 条，"
-            f"低可靠门禁拦截 {rejected_triple_count} 条，级联实际复核 {cascade_reviewed_candidate_count} 条，"
-            f"未送复核 {cascade_review_skipped_candidate_count} 条，LLM 补充入选 {cascade_llm_added_count} 条，"
+            f"低可靠候选过滤 {cascade_offline_filtered_candidate_count} 条，"
+            f"LLM 复核拒绝 {cascade_rejected_candidate_count} 条，级联实际复核 {cascade_reviewed_candidate_count} 条，"
+            f"证据门禁直接通过 {cascade_auto_accepted_candidate_count} 条，无需或未进入复核 {cascade_review_skipped_candidate_count} 条，"
+            f"LLM 补充实体 {cascade_llm_added_entity_count} 个、关系 {cascade_llm_added_relation_count} 条，"
             f"总耗时 {format_stage_duration(elapsed)}，"
             f"抽取吞吐 {throughput} records/s。"
         ),

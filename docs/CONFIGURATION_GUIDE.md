@@ -83,6 +83,9 @@
 | `CCF_TASK2_AGENT_ID` | 任务二 Agent ID | `4` | 同上 |
 | `CCF_TASK2_BACKEND` | 任务二抽取后端；`hybrid` 为离线优先并由 LLM 查缺补漏，`offline` 为显式纯离线回退 | `hybrid` | 任务二 DataMate 算子入口；MCP/流水线默认同样为 `hybrid` |
 | `CCF_TASK2_CASCADE_MAX_GAP_SEGMENTS` | 单条记录最多交给 LLM 补漏的句子数 | `12` | `core/task2_cascade.py` |
+| `CCF_TASK2_CASCADE_GAP_WORKERS` | 批处理时并行请求 LLM 补漏的最大线程数；服务器默认 8，限流时可降为 4 | `8` | `mcp_server/task2/pipeline_service.py` |
+| `CCF_TASK2_CASCADE_GAP_BATCH_SIZE` | 每个 LLM 补漏请求合并处理的记录数；过大可能增加单次提示词长度，默认按 6 条记录合并 | `6` | `mcp_server/task2/pipeline_service.py` |
+| `CCF_TASK2_LLM_GAP_AUTO_ACCEPT_CONFIDENCE` | LLM 缺口候选通过确定性原文证据门禁后进入快速通道的最低置信度；不满足时仍进入复核，不直接入选 | `0.90` | `core/task2_cascade.py` |
 | `CCF_TASK3_AGENT_ID` | 任务三 Agent ID | `5` | 同上 |
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |
 | `CCF_MEDICAL_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |

@@ -243,9 +243,9 @@ def collect_group_metrics(
 
 
 def reliability_level(precision: float, predicted: int) -> str:
-    if predicted >= 5 and precision >= 0.80:
+    if predicted >= 8 and precision >= 0.80:
         return "high"
-    if predicted >= 10 and precision >= 0.50:
+    if predicted >= 8 and precision >= 0.50:
         return "medium"
     return "low"
 

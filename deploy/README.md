@@ -26,6 +26,14 @@ PDF 清洗链默认连接 MinerU 官方 Agent 轻量解析接口，不需要部�
 
 任务一在发现 PDF 后先验证远程接口，再执行签名上传、状态轮询、Markdown 下载和 TXT 规范化，随后把 TXT 交给 DataMate 文本清洗链。远程服务不可达、触发限频或文件超过 10 MB / 20 页时会停止该任务并返回明确原因，原有 TXT、CSV、JSON 和 JSONL 链不受影响。
 
+## 1.5 任务二级联抽取运行态更新
+
+```bash
+bash deploy/apply_task2_cascade.sh
+```
+
+该脚本会先在目标运行态备份任务二抽取文件，再同步级联模块、MCP 入口和三个任务二算子，完成语法检查并重启 MCP。目标主机和项目路径可分别通过 `CCF_REMOTE_HOST`、`CCF_REMOTE_ROOT` 覆盖；纯离线回退仍使用显式 `backend=offline`。
+
 ## 2. 配置文件
 
 部署前复制模板并填写目标环境参数。字段说明见 [`docs/CONFIGURATION_GUIDE.md`](../docs/CONFIGURATION_GUIDE.md)。

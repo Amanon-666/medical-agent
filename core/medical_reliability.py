@@ -25,6 +25,7 @@ _FALLBACK = {
     "known_pair": Reliability("high", 0.90, 0),
     "sentence_rule": Reliability("medium", 0.65, 0),
     "context_rule": Reliability("low", 0.40, 0),
+    "explicit_section_frame": Reliability("medium", 0.85, 0),
     "llm": Reliability("medium", 0.70, 0),
 }
 

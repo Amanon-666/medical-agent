@@ -2,6 +2,7 @@
 """LLM 统一调用出口，所有 LLM 请求经此模块发出。"""
 import re
 import json
+import threading
 import requests
 from typing import Any, Optional
 
@@ -10,12 +11,38 @@ class LLMClient:
     def __init__(self,
                  base_url: str = "https://api.deepseek.com/v1/chat/completions",
                  model: str = "deepseek-chat",
-                 timeout: int = 240,
-                 api_key: Optional[str] = None):
+                 timeout: int = 45,
+                 api_key: Optional[str] = None,
+                 temperature: float = 0.0,
+                 max_tokens: int = 4096):
         self.base_url = base_url
         self.model = model
         self.timeout = timeout
         self.api_key = api_key
+        self.temperature = max(0.0, min(2.0, float(temperature)))
+        try:
+            configured_max_tokens = int(max_tokens)
+        except (TypeError, ValueError):
+            configured_max_tokens = 4096
+        self.max_tokens = max(256, min(16384, configured_max_tokens))
+        # Gap extraction can run in parallel.  Keep one HTTP session per
+        # worker thread so repeated requests reuse TLS connections without
+        # sharing a requests.Session instance across threads.
+        self._thread_local = threading.local()
+
+    def _session(self) -> requests.Session:
+        session = getattr(self._thread_local, "session", None)
+        if session is None:
+            session = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(
+                pool_connections=8,
+                pool_maxsize=8,
+                max_retries=0,
+            )
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            self._thread_local.session = session
+        return session
 
     def chat(self, prompt: str, system: Optional[str] = None) -> str:
         """单轮对话，返回纯文本（已剥离 think 标签）"""
@@ -24,11 +51,22 @@ class LLMClient:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        payload = {"model": self.model, "messages": messages, "stream": False}
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "stream": False,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        resp = requests.post(self.base_url, json=payload, headers=headers, timeout=self.timeout)
+        resp = self._session().post(
+            self.base_url,
+            json=payload,
+            headers=headers,
+            timeout=self.timeout,
+        )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         return self._strip_think(content).strip()

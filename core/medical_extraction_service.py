@@ -22,6 +22,7 @@ from .medical_offline_extraction import (
 )
 from .schemas import Entity, Relation, Triple
 from .task2_cascade import extract_medical_knowledge_cascade
+from .task2_cascade import filter_low_reliability_results
 
 
 VALID_BACKENDS = {"offline", "llm", "hybrid"}
@@ -38,9 +39,13 @@ class ExtractionBundle:
     gap_segment_count: int = 0
     gap_candidate_count: int = 0
     reviewed_candidate_count: int = 0
+    auto_accepted_candidate_count: int = 0
     review_skipped_candidate_count: int = 0
+    offline_filtered_candidate_count: int = 0
     rejected_candidate_count: int = 0
     llm_added_count: int = 0
+    llm_added_entity_count: int = 0
+    llm_added_relation_count: int = 0
 
 
 def normalize_backend(value: str | None) -> str:
@@ -78,6 +83,7 @@ def extract_medical_knowledge(
     backend: str = "offline",
     kg_db_path: str = "",
     llm: LLMClient | None = None,
+    apply_offline_gate: bool = True,
 ) -> ExtractionBundle:
     """从医学文本中抽取实体、关系和三元组。
 
@@ -85,7 +91,9 @@ def extract_medical_knowledge(
     extractors. ``hybrid`` is the production cascade: offline scans the full
     text first, then LLM reviews uncertain offline relations and fills selected
     uncovered sentences. LLM failures are reported without discarding offline
-    results.
+    results. ``apply_offline_gate=False`` is reserved for the batch cascade's
+    internal candidate-routing phase; callers still receive a gated result from
+    the cascade merge.
     """
     selected = normalize_backend(backend)
     started = perf_counter()
@@ -121,19 +129,30 @@ def extract_medical_knowledge(
                 gap_segment_count=cascade.gap_segment_count,
                 gap_candidate_count=cascade.gap_candidate_count,
                 reviewed_candidate_count=cascade.reviewed_candidate_count,
+                auto_accepted_candidate_count=cascade.auto_accepted_candidate_count,
                 review_skipped_candidate_count=cascade.review_skipped_candidate_count,
+                offline_filtered_candidate_count=cascade.offline_filtered_candidate_count,
                 rejected_candidate_count=cascade.rejected_candidate_count,
                 llm_added_count=cascade.llm_added_count,
+                llm_added_entity_count=cascade.llm_added_entity_count,
+                llm_added_relation_count=cascade.llm_added_relation_count,
             )
         except Exception as exc:
             llm_error = f"{type(exc).__name__}: {str(exc)[:240]}"
 
-    entities = extract_entities_offline(text, kg_db_path)
-    relations = extract_relations_offline(
+    raw_entities = extract_entities_offline(text, kg_db_path)
+    raw_relations = extract_relations_offline(
         text,
-        entities=entities,
+        entities=raw_entities,
         db_path=kg_db_path,
     )
+    if apply_offline_gate:
+        entities, relations, filtered_count = filter_low_reliability_results(
+            raw_entities,
+            raw_relations,
+        )
+    else:
+        entities, relations, filtered_count = raw_entities, raw_relations, 0
     triples = generate_triples_offline(
         text,
         entities=entities,
@@ -150,4 +169,5 @@ def extract_medical_knowledge(
         backend=selected,
         elapsed_seconds=round(perf_counter() - started, 4),
         llm_error=llm_error,
+        offline_filtered_candidate_count=filtered_count,
     )

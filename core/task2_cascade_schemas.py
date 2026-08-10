@@ -30,6 +30,7 @@ class ReviewCandidate:
     source: str
     evidence: str = ""
     reliability_level: str = ""
+    confidence: float = 0.0
     entity_text: str = ""
     entity_type: str = ""
     subject: str = ""
@@ -39,13 +40,14 @@ class ReviewCandidate:
     object_type: str = ""
     segment_id: str = ""
 
-    def to_prompt_dict(self) -> dict[str, str]:
+    def to_prompt_dict(self) -> dict[str, object]:
         values = {
             "candidate_id": self.candidate_id,
             "kind": self.kind,
             "source": self.source,
             "evidence": self.evidence[:320],
             "reliability_level": self.reliability_level,
+            "confidence": round(float(self.confidence), 4),
             "segment_id": self.segment_id,
         }
         if self.kind == "entity":
@@ -81,6 +83,10 @@ class CascadeOutput:
     gap_segment_count: int = 0
     gap_candidate_count: int = 0
     reviewed_candidate_count: int = 0
+    auto_accepted_candidate_count: int = 0
     review_skipped_candidate_count: int = 0
+    offline_filtered_candidate_count: int = 0
     rejected_candidate_count: int = 0
     llm_added_count: int = 0
+    llm_added_entity_count: int = 0
+    llm_added_relation_count: int = 0

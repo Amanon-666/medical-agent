@@ -119,6 +119,45 @@ RELATION_ALIASES = {
     "转移": "转移部位",
 }
 
+RELATION_EVIDENCE_CUES = {
+    "临床表现": ("症状", "表现", "伴有", "伴随", "出现", "可见", "主诉", "有"),
+    "传播途径": ("传播", "途径", "飞沫", "接触", "经", "通过"),
+    "内窥镜检查": ("内窥镜", "内镜", "胃镜", "肠镜"),
+    "发病年龄": ("年龄", "岁", "儿童", "老年", "青年"),
+    "发病性别倾向": ("男性", "女性", "性别"),
+    "发病率": ("发病率", "发生率", "患病率", "比例", "%"),
+    "发病部位": ("部位", "发生于", "好发于", "位于", "累及", "侵犯", "在"),
+    "同义词": ("又称", "别名", "简称", "即", "英文名", "英文"),
+    "外侵部位": ("侵犯", "侵及", "浸润"),
+    "多发地区": ("地区", "地域", "流行", "多发"),
+    "多发季节": ("季节", "春", "夏", "秋", "冬"),
+    "多发群体": ("人群", "男性", "女性", "儿童", "老人", "多发", "好发"),
+    "实验室检查": ("实验室", "血液", "血清", "检测", "检查", "测定", "化验"),
+    "并发症": ("并发", "合并", "可致", "有", "出现", "可见"),
+    "影像学检查": ("影像", "CT", "MRI", "超声", "X线", "扫描", "检查"),
+    "手术治疗": ("手术", "切除", "移植", "引流", "吻合"),
+    "放射治疗": ("放疗", "放射", "照射"),
+    "死亡率": ("死亡率", "病死率", "死亡"),
+    "治疗后症状": ("治疗后", "术后", "治疗后出现"),
+    "病因": ("病因", "原因", "由于", "引起", "导致", "病原体", "感染"),
+    "病理分型": ("病理分型", "分型", "分为", "分类", "类型", "亚型"),
+    "相关（导致）": ("导致", "引起", "造成", "相关", "转化"),
+    "相关（症状）": ("相关症状", "症状", "表现", "伴随"),
+    "相关（转化）": ("转化", "转变", "演变", "发展为"),
+    "筛查": ("筛查", "筛选"),
+    "组织学检查": ("组织学", "病理", "活组织", "活检"),
+    "药物治疗": ("治疗", "用药", "服用", "口服", "给予", "注射", "使用", "首选"),
+    "转移部位": ("转移", "转移至", "转移到"),
+    "辅助检查": ("检查", "检测", "监测", "复查", "测定", "诊断"),
+    "辅助治疗": ("治疗", "手术", "处理", "干预", "切除", "移植", "放疗", "化疗"),
+    "鉴别诊断": ("鉴别", "排除", "区分", "诊断"),
+    "预后状况": ("预后", "结局", "恢复"),
+    "预后生存率": ("生存率", "存活率", "预后"),
+    "预防": ("预防", "避免", "防止", "接种"),
+    "风险评估因素": ("风险", "危险因素", "相关因素", "相关", "因素"),
+    "高危因素": ("高危", "危险因素", "风险因素", "风险"),
+}
+
 
 def normalize_entity_type(value: Any) -> str:
     raw = str(value or "").strip()
@@ -132,6 +171,125 @@ def normalize_relation_type(value: Any) -> str:
     return normalized if normalized in CMEIE_RELATION_TYPES else ""
 
 
+def relation_evidence_supports_predicate(text: str, predicate: str) -> bool:
+    """Reject LLM relation labels with no predicate-specific textual cue.
+
+    Entity and endpoint existence alone cannot distinguish, for example,
+    ``相关（导致）`` from a merely adjacent medical mention.  The cue check
+    is intentionally permissive and only applies to predicates with a known
+    lexical frame; unknown future labels remain governed by the normal schema
+    and LLM review gates.
+    """
+
+    if not any("\u4e00" <= char <= "\u9fff" for char in text):
+        return True
+    cues = RELATION_EVIDENCE_CUES.get(predicate)
+    return not cues or any(cue in text for cue in cues)
+
+
+_STRICT_RELATION_CUES = {
+    "\u4e34\u5e8a\u8868\u73b0": ("\u75c7\u72b6", "\u8868\u73b0", "\u4f34\u6709", "\u51fa\u73b0"),
+    "\u53d1\u75c5\u90e8\u4f4d": (
+        "\u53d1\u75c5\u90e8\u4f4d",
+        "\u53d1\u751f\u4e8e",
+        "\u597d\u53d1\u4e8e",
+        "\u4f4d\u4e8e",
+        "\u7d2f\u53ca",
+        "\u4fb5\u72af",
+        "\u5728",
+    ),
+    "\u5916\u4fb5\u90e8\u4f4d": ("\u4fb5\u72af", "\u4fb5\u53ca", "\u6d78\u6da6"),
+    "\u8f6c\u79fb\u90e8\u4f4d": ("\u8f6c\u79fb",),
+    "\u75c5\u56e0": (
+        "\u75c5\u56e0",
+        "\u539f\u56e0",
+        "\u7531\u4e8e",
+        "\u5f15\u8d77",
+        "\u5bfc\u81f4",
+        "\u8bf1\u53d1",
+        "\u75c5\u539f\u4f53",
+        "\u611f\u67d3",
+    ),
+    "\u5e76\u53d1\u75c7": ("\u5e76\u53d1", "\u5408\u5e76", "\u51fa\u73b0"),
+    "\u836f\u7269\u6cbb\u7597": ("\u6cbb\u7597", "\u7528\u836f", "\u670d\u7528", "\u7ed9\u4e88", "\u4f7f\u7528", "\u5e94\u7528", "\u53e3\u670d", "\u6ce8\u5c04"),
+    "\u8f85\u52a9\u6cbb\u7597": ("\u6cbb\u7597", "\u5904\u7406", "\u5e72\u9884", "\u624b\u672f"),
+    "\u8f85\u52a9\u68c0\u67e5": ("\u68c0\u67e5", "\u68c0\u6d4b", "\u76d1\u6d4b", "\u590d\u67e5"),
+    "\u5b9e\u9a8c\u5ba4\u68c0\u67e5": ("\u5b9e\u9a8c\u5ba4", "\u8840\u6db2", "\u68c0\u6d4b", "\u68c0\u67e5"),
+    "\u5f71\u50cf\u5b66\u68c0\u67e5": ("\u5f71\u50cf", "CT", "MRI", "\u8d85\u58f0", "X\u7ebf", "\u626b\u63cf", "\u68c0\u67e5"),
+}
+
+_STRICT_RELATION_OBJECT_TYPES = {
+    "\u53d1\u75c5\u90e8\u4f4d": {"bod"},
+    "\u5916\u4fb5\u90e8\u4f4d": {"bod"},
+    "\u8f6c\u79fb\u90e8\u4f4d": {"bod"},
+    "\u836f\u7269\u6cbb\u7597": {"dru"},
+    "\u8f85\u52a9\u68c0\u67e5": {"ite"},
+    "\u5b9e\u9a8c\u5ba4\u68c0\u67e5": {"ite"},
+    "\u5f71\u50cf\u5b66\u68c0\u67e5": {"ite"},
+    "\u4e34\u5e8a\u8868\u73b0": {"sym", "bod"},
+    "\u5e76\u53d1\u75c7": {"dis", "sym"},
+}
+
+_STRICT_FORWARD_RELATIONS = {
+    "\u4e34\u5e8a\u8868\u73b0",
+    "\u53d1\u75c5\u90e8\u4f4d",
+    "\u5916\u4fb5\u90e8\u4f4d",
+    "\u8f6c\u79fb\u90e8\u4f4d",
+    "\u75c5\u56e0",
+    "\u5e76\u53d1\u75c7",
+    "\u75c5\u7406\u5206\u578b",
+}
+
+
+def relation_evidence_supports_pair(
+    text: str,
+    predicate: str,
+    subject: str,
+    object_value: str,
+    *,
+    subject_type: str = "",
+    object_type: str = "",
+    require_disease_subject: bool = False,
+    max_distance: int = 128,
+) -> bool:
+    """Require a predicate cue in the local span connecting both endpoints.
+
+    The previous validation checked the whole segment.  That allowed a cue
+    belonging to an unrelated fact to authorize any other pair in the same
+    sentence.  Cascade gap relations use this stricter local check.
+    """
+
+    if not subject or not object_value or subject not in text or object_value not in text:
+        return False
+    if subject == object_value or object_value == predicate:
+        return False
+    if require_disease_subject and subject_type != "dis":
+        return False
+    allowed_types = _STRICT_RELATION_OBJECT_TYPES.get(predicate)
+    if allowed_types and object_type and object_type not in allowed_types:
+        return False
+    if not any("\u4e00" <= char <= "\u9fff" for char in text):
+        return True
+
+    cues = _STRICT_RELATION_CUES.get(predicate)
+    if not cues:
+        return False
+    subject_spans = list(_all_occurrences(text, subject))
+    object_spans = list(_all_occurrences(text, object_value))
+    for subject_start, subject_end in subject_spans:
+        for object_start, object_end in object_spans:
+            if predicate in _STRICT_FORWARD_RELATIONS and subject_start > object_start:
+                continue
+            start = min(subject_start, object_start)
+            end = max(subject_end, object_end)
+            if end - start + 1 > max_distance:
+                continue
+            local_text = text[start : end + 1]
+            if any(cue in local_text for cue in cues):
+                return True
+    return False
+
+
 def _all_occurrences(text: str, value: str) -> Iterable[tuple[int, int]]:
     start = text.find(value)
     while start >= 0:
@@ -140,7 +298,7 @@ def _all_occurrences(text: str, value: str) -> Iterable[tuple[int, int]]:
 
 
 def _resolve_entity_overlaps(entities: list[Entity]) -> list[Entity]:
-    """Prefer the longest mention while retaining non-overlapping mentions."""
+    """Remove duplicate spans while retaining CMeEE nested symptom mentions."""
 
     positioned = [item for item in entities if item.start_idx is not None]
     unpositioned = [item for item in entities if item.start_idx is None]
@@ -157,12 +315,33 @@ def _resolve_entity_overlaps(entities: list[Entity]) -> list[Entity]:
         if entity_end is None:
             selected.append(entity)
             continue
-        if any(
-            entity.start_idx <= (other.end_idx if other.end_idx is not None else other.start_idx)
-            and entity_end >= other.start_idx
+        overlaps = [
+            other
             for other in selected
             if other.start_idx is not None
-        ):
+            and entity.start_idx <= (other.end_idx if other.end_idx is not None else other.start_idx)
+            and entity_end >= other.start_idx
+        ]
+        if not overlaps:
+            selected.append(entity)
+            continue
+        can_keep_nested = any(
+            entity.type != other.type
+            and (
+                (
+                    other.type == "sym"
+                    and other.start_idx <= entity.start_idx
+                    and entity_end <= (other.end_idx if other.end_idx is not None else other.start_idx)
+                )
+                or (
+                    entity.type == "sym"
+                    and entity.start_idx <= other.start_idx
+                    and (other.end_idx if other.end_idx is not None else other.start_idx) <= entity_end
+                )
+            )
+            for other in overlaps
+        )
+        if not can_keep_nested:
             continue
         selected.append(entity)
     return sorted(
@@ -252,6 +431,8 @@ def validate_relations(
         if subject not in text or obj not in text:
             continue
         if entities and (subject not in entity_types or obj not in entity_types):
+            continue
+        if not relation_evidence_supports_predicate(text, predicate):
             continue
 
         key = (subject, predicate, obj)
