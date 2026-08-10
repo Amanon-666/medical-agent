@@ -16,6 +16,9 @@ venv/
 # Logs
 *.log
 
+# Generated report build files
+docs/technical-report/build/
+
 # Codex
 .codex*
 
