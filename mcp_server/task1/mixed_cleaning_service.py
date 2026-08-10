@@ -43,7 +43,7 @@ _DATASET_VOLUME = DATASET_VOLUME
 def run_task1_mixed_cleaning_service(
     dataset_id: str,
     task_name: str = "",
-    wait: bool = False,
+    wait: bool = True,
     async_file_threshold: int = 50,
     _status_run_id: str = "",
 ) -> dict:
@@ -68,11 +68,11 @@ def run_task1_mixed_cleaning_service(
     5. register one final Task 1 delivery dataset
     6. register DataMate quality tags, lineage, and statistics
 
-    In normal agent conversations this tool starts an async background job by default and
-    returns immediately with run_id, source grouping and operators_plan. Call
-    get_task1_mixed_cleaning_status(run_id) later to fetch progress/result.
+    In normal agent conversations this tool waits for every DataMate format chain and
+    returns the final delivery dataset in the same request. Callers that explicitly
+    choose wait=False receive a run_id for background status polling.
 
-    Set wait=True only for explicit blocking tests or the background worker.
+    Set wait=False only for an explicitly non-blocking integration.
     Synchronous return includes the source grouping, per-type task IDs, final
     delivery dataset ID/name, and quality totals. This is the recommended path
     for mixed-format Task 1 datasets. Unified JSONL conversion is intentionally
@@ -169,8 +169,8 @@ def run_task1_mixed_cleaning_service(
                     "next_action": pdf_capability["deployment_hint"],
                 }
 
-        # 保留参数以兼容旧客户端，但不再用文件数猜测耗时。一个 PDF 或一条
-        # 语义清洗链也可能运行数分钟，非阻塞请求必须统一交给后台任务。
+        # 保留参数以兼容旧客户端。默认入口必须等待最终结果；只有调用方明确
+        # 传入 wait=False 时才切换后台任务，避免一次正常对话被拆成两次。
         _ = async_file_threshold
         if should_start_background_job(wait):
             run_id = f"{int(_time.time())}_{_uuid.uuid4().hex[:8]}"

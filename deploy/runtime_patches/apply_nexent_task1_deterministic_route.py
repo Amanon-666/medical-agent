@@ -8,8 +8,9 @@ RUNTIME_ROOTS = (
     Path("/opt/sdk/nexent"),
 )
 ROUTE_MARKER = "TASK1_DETERMINISTIC_ROUTE"
-ROUTE_VERSION_MARKER = "TASK1_DETERMINISTIC_ROUTE_V2_BEGIN"
-ROUTE_VERSION_BEGIN = "        # TASK1_DETERMINISTIC_ROUTE_V2_BEGIN\n"
+ROUTE_VERSION_MARKER = "TASK1_DETERMINISTIC_ROUTE_V3_BEGIN"
+ROUTE_VERSION_BEGIN = "        # TASK1_DETERMINISTIC_ROUTE_V3_BEGIN\n"
+OLD_V2_ROUTE_BEGIN = "        # TASK1_DETERMINISTIC_ROUTE_V2_BEGIN\n"
 OLD_ROUTE_BEGIN = "        # Route Task 1 dataset operations from the user's quoted identifier before model planning.\n"
 ROUTE_END = "        if additional_args is not None:\n"
 
@@ -17,7 +18,7 @@ ROUTE_END = "        if additional_args is not None:\n"
 def patch_core(path: Path) -> bool:
     """向指定 Nexent 运行时入口写入幂等路由补丁。"""
     text = path.read_text(encoding="utf-8")
-    if ROUTE_VERSION_MARKER in text and "wait=False)\\nprint(result)\\n" in text:
+    if ROUTE_VERSION_MARKER in text and "wait=True)\\nprint(result)\\n" in text:
         return False
 
     if "import json\n" not in text:
@@ -26,7 +27,7 @@ def patch_core(path: Path) -> bool:
         text = text.replace("import json\n", "import json\nimport re\n", 1)
 
     marker = "        self.task = task\n"
-    insert = r"""        # TASK1_DETERMINISTIC_ROUTE_V2_BEGIN
+    insert = r"""        # TASK1_DETERMINISTIC_ROUTE_V3_BEGIN
         # Route Task 1 dataset operations from the user's quoted identifier before model planning.
         if "run_task1_mixed_cleaning" in self.tools or "inspect_dataset" in self.tools:
             quoted_values = re.findall(r'["“‘《]([^"”’》]{2,120})["”’》]', task)
@@ -52,14 +53,13 @@ def patch_core(path: Path) -> bool:
                 dataset_literal = json.dumps(dataset_name, ensure_ascii=False)
                 task_name_literal = json.dumps(f"{dataset_name}_清洗任务", ensure_ascii=False)
                 self.task = (
-                    "[TASK1_DETERMINISTIC_ROUTE_V2] Your next response must contain only executable Python code "
+                    "[TASK1_DETERMINISTIC_ROUTE_V3] Your next response must contain only executable Python code "
                     "for the exact call below. Do not write a plan, result, metric, dataset ID, or completion claim "
                     "before executing it. Do not call inspect_dataset:\n"
                     f"result = run_task1_mixed_cleaning(dataset_id={dataset_literal}, "
-                    f"task_name={task_name_literal}, wait=False)\nprint(result)\n"
-                    "After execution, report only the returned status and run_id. If status is queued, running, "
-                    "or async_started, say the task is still processing and tell the user to query status; "
-                    "never describe it as completed and never invent final IDs or metrics.\n"
+                    f"task_name={task_name_literal}, wait=True)\nprint(result)\n"
+                    "Do not answer until this call returns. After execution, report only its actual status, "
+                    "final dataset, quality evidence, and performance; never invent IDs or metrics.\n"
                     f"Original user request: {task}"
                 )
             elif dataset_name and wants_inspection and "inspect_dataset" in self.tools:
@@ -69,10 +69,14 @@ def patch_core(path: Path) -> bool:
                     f"result = inspect_dataset(dataset_id={dataset_literal})\nprint(result)\n"
                     f"Original user request: {task}"
                 )
-        # TASK1_DETERMINISTIC_ROUTE_V2_END
+        # TASK1_DETERMINISTIC_ROUTE_V3_END
 """
     if ROUTE_VERSION_BEGIN in text:
         start = text.index(ROUTE_VERSION_BEGIN)
+        end = text.index(ROUTE_END, start)
+        text = text[:start] + insert + text[end:]
+    elif OLD_V2_ROUTE_BEGIN in text:
+        start = text.index(OLD_V2_ROUTE_BEGIN)
         end = text.index(ROUTE_END, start)
         text = text[:start] + insert + text[end:]
     elif OLD_ROUTE_BEGIN in text:

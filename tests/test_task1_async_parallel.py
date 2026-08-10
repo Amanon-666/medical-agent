@@ -13,9 +13,10 @@ def test_nonblocking_task_always_starts_background_job():
     assert should_start_background_job(wait=True) is False
 
 
-def test_task1_agent_prompt_never_blocks_for_cleaning():
-    assert "wait 必须设为 false" in TASK1_PROMPT
-    assert "只有 get_task1_mixed_cleaning_status 返回 success 后" in TASK1_PROMPT
+def test_task1_agent_prompt_waits_for_final_result():
+    assert "wait 必须设为 true" in TASK1_PROMPT
+    assert "同一次调用中返回最终数据集和质量结果" in TASK1_PROMPT
+    assert "正常任务一路径必须等待工具返回 success 后" in TASK1_PROMPT
 
 
 def test_format_groups_execute_concurrently(monkeypatch):
@@ -55,7 +56,7 @@ def test_status_updates_preserve_submission_details(monkeypatch, tmp_path):
     assert payload["run_id"] == "run-1"
 
 
-def test_nexent_route_upgrades_blocking_call_to_async(tmp_path):
+def test_nexent_route_uses_synchronous_call(tmp_path):
     core = tmp_path / "core_agent.py"
     core.write_text(
         "import json\n"
@@ -72,8 +73,34 @@ def test_nexent_route_upgrades_blocking_call_to_async(tmp_path):
 
     assert patch_core(core) is True
     patched = core.read_text(encoding="utf-8")
-    assert "TASK1_DETERMINISTIC_ROUTE_V2_BEGIN" in patched
-    assert "wait=False" in patched
-    assert "wait=True" not in patched
-    assert "never invent final IDs or metrics" in patched
+    assert "TASK1_DETERMINISTIC_ROUTE_V3_BEGIN" in patched
+    assert "wait=True" in patched
+    assert "wait=False" not in patched
+    assert "Do not answer until this call returns" in patched
+    assert "never invent IDs or metrics" in patched
+    assert patch_core(core) is False
+
+
+def test_nexent_route_upgrades_v2_without_duplicate_routes(tmp_path):
+    core = tmp_path / "core_agent_v2.py"
+    core.write_text(
+        "import json\n"
+        "import re\n"
+        "class Agent:\n"
+        "    def run(self, task, additional_args=None):\n"
+        "        self.task = task\n"
+        "        # TASK1_DETERMINISTIC_ROUTE_V2_BEGIN\n"
+        "        self.task = '[TASK1_DETERMINISTIC_ROUTE_V2] wait=False'\n"
+        "        # TASK1_DETERMINISTIC_ROUTE_V2_END\n"
+        "        if additional_args is not None:\n"
+        "            pass\n",
+        encoding="utf-8",
+    )
+
+    assert patch_core(core) is True
+    patched = core.read_text(encoding="utf-8")
+    assert patched.count("TASK1_DETERMINISTIC_ROUTE_V3_BEGIN") == 1
+    assert "TASK1_DETERMINISTIC_ROUTE_V2_BEGIN" not in patched
+    assert "wait=True" in patched
+    assert "wait=False" not in patched
     assert patch_core(core) is False

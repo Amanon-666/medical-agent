@@ -35,7 +35,9 @@ bash deploy/apply_task2_llm_guardrails.sh
 清洗数据集“糖尿病全流程PDF混合演示数据集”，任务名为PDF混合清洗验证。
 ```
 
-智能体的第一项动作应为 `run_task1_mixed_cleaning(..., wait=False)`。首次答复只说明任务已提交并给出真实 `run_id`，不得提前声称完成；后台完成后调用 `get_task1_mixed_cleaning_status(run_id)` 获取最终数据集 ID 和处理指标。
+智能体的第一项动作应为 `run_task1_mixed_cleaning(..., wait=True)`。智能体必须保持这次调用直到 DataMate 的所有子任务完成，再在同一轮答复中给出真实最终数据集 ID 和处理指标。只有明确要求非阻塞调用时才使用 `wait=False`，此时才通过 `get_task1_mixed_cleaning_status(run_id)` 查询后台任务。
+
+部署时保持 `CCF_MINERU_TIMEOUT_SECONDS` 为空，DataMate 和 MinerU 的任务轮询不设置总时限；`CCF_MINERU_REQUEST_TIMEOUT_SECONDS` 只限制单次 HTTP 请求，连接超时后继续轮询。
 
 ## 回滚
 

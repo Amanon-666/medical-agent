@@ -51,7 +51,7 @@ class MineruAgentClient:
         self,
         base_url: str = DEFAULT_MINERU_BASE_URL,
         *,
-        timeout_seconds: float = 300,
+        timeout_seconds: float | None = None,
         poll_interval_seconds: float = 2,
         request_timeout_seconds: float = 30,
         session: requests.Session | None = None,
@@ -59,7 +59,9 @@ class MineruAgentClient:
         monotonic=time.monotonic,
     ) -> None:
         self.base_url = base_url.rstrip("/")
-        self.timeout_seconds = max(10.0, float(timeout_seconds))
+        self.timeout_seconds = (
+            None if timeout_seconds is None else max(10.0, float(timeout_seconds))
+        )
         self.poll_interval_seconds = max(0.1, float(poll_interval_seconds))
         self.request_timeout_seconds = max(5.0, float(request_timeout_seconds))
         self.session = session or requests.Session()
@@ -70,9 +72,10 @@ class MineruAgentClient:
     def from_env(cls) -> "MineruAgentClient":
         """从统一环境变量创建客户端。"""
 
+        timeout_value = os.environ.get("CCF_MINERU_TIMEOUT_SECONDS", "").strip()
         return cls(
             base_url=os.environ.get("CCF_MINERU_API", DEFAULT_MINERU_BASE_URL),
-            timeout_seconds=os.environ.get("CCF_MINERU_TIMEOUT_SECONDS", "300"),
+            timeout_seconds=float(timeout_value) if timeout_value else None,
             poll_interval_seconds=os.environ.get("CCF_MINERU_POLL_INTERVAL_SECONDS", "2"),
             request_timeout_seconds=os.environ.get("CCF_MINERU_REQUEST_TIMEOUT_SECONDS", "30"),
         )
@@ -163,11 +166,16 @@ class MineruAgentClient:
         )
 
     def _wait_for_result(self, task_id: str, started: float) -> dict[str, Any]:
-        while self._monotonic() - started < self.timeout_seconds:
-            response = self.session.get(
-                f"{self.base_url}/parse/{task_id}",
-                timeout=self.request_timeout_seconds,
-            )
+        while self.timeout_seconds is None or self._monotonic() - started < self.timeout_seconds:
+            try:
+                response = self.session.get(
+                    f"{self.base_url}/parse/{task_id}",
+                    timeout=self.request_timeout_seconds,
+                )
+            except requests.RequestException as exc:
+                print(f"[MinerU] status request failed; keep waiting: {type(exc).__name__}")
+                self._sleep(self.poll_interval_seconds)
+                continue
             response.raise_for_status()
             data = self._api_data(response, "查询 MinerU 解析任务")
             state = str(data.get("state") or "").strip().lower()

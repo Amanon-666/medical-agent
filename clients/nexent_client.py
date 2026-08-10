@@ -126,7 +126,8 @@ class NexentClient:
 
     # ---------- 对话（SSE 流式）----------
     def run_agent_stream(self, agent_id: int, query: str,
-                         conversation_id: Optional[int] = None) -> Iterator[Dict[str, Any]]:
+                         conversation_id: Optional[int] = None,
+                         stream_timeout: Optional[float] = None) -> Iterator[Dict[str, Any]]:
         """运行 Agent，以 SSE 事件流形式返回（用于 main_pipeline 或测试）。
         事件类型：agent_new_run, step_count, model_output_thinking,
                   parse(工具调用), final_answer 等。"""
@@ -135,7 +136,7 @@ class NexentClient:
             payload["conversation_id"] = conversation_id
         with requests.post(f"{self.runtime_base}/agent/run",
                            headers=self.headers, json=payload,
-                           stream=True, timeout=120) as resp:
+                           stream=True, timeout=stream_timeout) as resp:
             resp.raise_for_status()
             for line in resp.iter_lines():
                 if not line:

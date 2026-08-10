@@ -43,7 +43,12 @@ def op(spec: OperatorSpec) -> Dict:
     }
 
 
-def run_pipeline(dataset: Dict, operators: List[OperatorSpec], label: str, timeout_seconds: int = 900) -> Dict:
+def run_pipeline(
+    dataset: Dict,
+    operators: List[OperatorSpec],
+    label: str,
+    timeout_seconds: int | None = None,
+) -> Dict:
     created_at = int(time.time())
     payload = {
         "name": f"任务一-{label}-源格式清洗-{created_at}",
@@ -63,12 +68,16 @@ def run_pipeline(dataset: Dict, operators: List[OperatorSpec], label: str, timeo
     print(f"[{label}] task auto-started by create endpoint: {task_id}")
 
     last = {}
-    deadline = time.time() + timeout_seconds
+    deadline = time.time() + timeout_seconds if timeout_seconds is not None else None
     tick = 0
-    while time.time() < deadline:
+    while deadline is None or time.time() < deadline:
         time.sleep(5)
         tick += 5
-        info = requests.get(f"{DM_BASE}/api/cleaning/tasks/{task_id}", timeout=15)
+        try:
+            info = requests.get(f"{DM_BASE}/api/cleaning/tasks/{task_id}", timeout=15)
+        except requests.RequestException as exc:
+            print(f"[{label}] status request failed; keep waiting: {type(exc).__name__}")
+            continue
         if not info.ok:
             continue
         last = info.json().get("data", {})
@@ -79,8 +88,10 @@ def run_pipeline(dataset: Dict, operators: List[OperatorSpec], label: str, timeo
         print(f"[{label}] {tick}s status={status} progress={done}/{total}")
         if status in ("COMPLETED", "FAILED", "STOPPED", "PARTIAL_SUCCESS"):
             break
-    if last.get("status") != "COMPLETED":
+    if deadline is not None and last.get("status") != "COMPLETED":
         raise RuntimeError(f"{label} pipeline did not complete: {json.dumps(last, ensure_ascii=False)[:800]}")
+    if last.get("status") != "COMPLETED":
+        raise RuntimeError(f"{label} pipeline ended without a terminal completion state: {json.dumps(last, ensure_ascii=False)[:800]}")
     return {"task_id": task_id, "dest_dataset_id": last.get("destDatasetId"), "detail": last}
 
 

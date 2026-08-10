@@ -164,7 +164,7 @@ TASK1_PROMPT = """你是任务一医疗数据清洗与 DataMate 数据集注册�
 3. 用户已经给出原始医疗文本、病历、JSON/CSV片段，或说“注册到DataMate/创建数据集/上传数据集”时，选择工具 upload_text_to_datamate；参数 JSON 中 text 填用户原文，name 填一个可辨识中文名称。
 4. upload_text_to_datamate 返回 dataset_id 后，选择工具 inspect_dataset；参数 JSON 中 dataset_id 填上一步真实返回值。
 5. 用户给出 DataMate dataset_id 或数据集中文名称时，选择工具 inspect_dataset；参数 dataset_id 可以是 UUID，也可以是用户给出的数据集名称原文，解析交给工具完成。
-6. 需要执行任务一清洗时，选择工具 run_task1_mixed_cleaning；参数 dataset_id 填真实数据集标识，task_name 填中文任务名，wait 必须设为 false。工具会立即返回真实 run_id，后续用 get_task1_mixed_cleaning_status 查询状态；不要在同一次回答中持续轮询或等待 DataMate 完成。
+6. 需要执行任务一清洗时，选择工具 run_task1_mixed_cleaning；参数 dataset_id 填真实数据集标识，task_name 填中文任务名，wait 必须设为 true。工具会持续等待所有 DataMate 子任务完成，并在同一次调用中返回最终数据集和质量结果。
 7. 混合数据集、JSON、JSONL、CSV 或“任务一最终交付”场景，禁止改用 run_datamate_pipeline 兜底；该通用链只适合单一文本链，会丢失/文本化结构化文件。如果 run_task1_mixed_cleaning 返回错误，必须停止并报告错误，不能宣称任务完成。
 8. 不要把非 UUID 当作不存在。不要构造 00000000-0000-0000-0000-000000000001 这类假 UUID。不要编造数据集 ID、task_id、文件数、算子结果。
 9. 如果工具返回错误，原样解释错误和下一步修复建议；不要改用 Python 代码兜底；不要重复输出同一段“尝试直接调用工具”的文字。
@@ -176,7 +176,7 @@ TASK1_PROMPT = """你是任务一医疗数据清洗与 DataMate 数据集注册�
    - 如果 DataMate t_clean_result/result 为空或工具未返回 diff，不得编造残留噪声、治理标签、质量统计细节。
    - 如果输出文件数小于源文件数，必须报告“处理不完整/降级失败”，不得自行推断为“空文件、幻影文件、被过滤文件”，除非工具证据明确给出 removed_phantoms 或被过滤原因。
 11. 只要用户请求与任务执行、注册、清洗或交付相关，最终回答必须显式展示工具调用过程和量化指标，即使用户只发很短的提示。优先引用工具返回的 performance、reports、delivery_report、source_groups、operators_plan；如果某个指标工具未返回，写“工具未返回该指标”，不要估算或编造。
-12. run_task1_mixed_cleaning 返回 queued、running 或 async_started 时，只能报告“已提交、仍在后台处理”，展示真实 run_id、源文件分组、算子规划和状态查询方法；此时禁止输出最终数据集、质量指标、耗时或“清洗完成”。只有 get_task1_mixed_cleaning_status 返回 success 后，才能汇报最终结果。
+12. 正常任务一路径必须等待工具返回 success 后再汇报最终数据集、质量指标、耗时和术语/噪声明细。只有在调用方明确选择非阻塞模式、工具返回 queued/running/async_started 时，才报告真实 run_id 和状态查询方式，禁止提前声称完成。
 
 推荐流程：
 - 原始文本：工具 upload_text_to_datamate -> 工具 inspect_dataset -> 工具 run_task1_mixed_cleaning -> 汇报清洗结果与后续任务二入口。
@@ -186,8 +186,8 @@ TASK1_PROMPT = """你是任务一医疗数据清洗与 DataMate 数据集注册�
 以“任务一执行进度”开头，列出：
 - 已调用工具：工具名、输入标识、返回 dataset_id/task_id/run_id；
 - 数据与算子：源文件数、格式分布、每类格式使用的算子链；
-- 输出与质量：仅在 status=success 时输出数据集 ID/名称、文件数、reports 质量表、actual_cleaning_evidence 中真实术语替换和真实噪声移除；
-- 性能指标：仅在 status=success 时输出 performance.elapsed_seconds、throughput_records_per_second 或 throughput_files_per_second、处理记录/文件数；
+- 输出与质量：工具返回 success 后输出数据集 ID/名称、文件数、reports 质量表、actual_cleaning_evidence 中真实术语替换和真实噪声移除；
+- 性能指标：工具返回 success 后输出 performance.elapsed_seconds、throughput_records_per_second 或 throughput_files_per_second、处理记录/文件数；
 - 下一步：是否建议继续交给任务二构建知识图谱。
 """
 

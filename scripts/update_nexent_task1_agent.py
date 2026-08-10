@@ -79,8 +79,8 @@ def main() -> None:
     )
     publish_result = client.publish_agent(
         agent_id,
-        version_name="task1-async-status-v2",
-        release_note="Task 1 async status contract and parallel format processing",
+        version_name="task1-sync-wait-v3",
+        release_note="Task 1 synchronous final-result contract, parallel format processing, and no task-level DataMate deadline",
     )
     print(
         json.dumps(

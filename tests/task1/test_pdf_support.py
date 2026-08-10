@@ -112,6 +112,10 @@ class PdfRoutingTests(unittest.TestCase):
 
 
 class MineruRemoteClientTests(unittest.TestCase):
+    def test_parser_has_no_default_task_deadline(self) -> None:
+        client = MineruAgentClient(session=_Session(), sleep=lambda _seconds: None)
+        self.assertIsNone(client.timeout_seconds)
+
     def test_signed_upload_poll_and_download(self) -> None:
         session = _Session()
         client = MineruAgentClient(session=session, sleep=lambda _seconds: None)

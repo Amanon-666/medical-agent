@@ -193,17 +193,17 @@ def run_datamate_pipeline(dataset_id: str = "", task_name: str = "",
 def run_task1_mixed_cleaning(
     dataset_id: str,
     task_name: str = "",
-    wait: bool = False,
+    wait: bool = True,
     async_file_threshold: int = 50,
 ) -> dict:
     """执行任务一混合格式数据集清洗编排。
 
     Use this tool for mixed txt/csv/json/jsonl/pdf DataMate datasets. It keeps
     source formats except that PDF is explicitly converted to TXT, runs per-type chains,
-    and returns lineage, quality evidence and DataMate task IDs. Keep wait=False
-    in normal Nexent conversations: the tool returns a real run_id immediately,
-    and get_task1_mixed_cleaning_status reports progress and the final result.
-    A queued/running response is not a completed cleaning result.
+    and returns lineage, quality evidence and DataMate task IDs. The normal Nexent
+    path waits for the final result in this same request. Use wait=False only for
+    an explicitly non-blocking caller; that path returns a real run_id for the
+    status tool and is not the normal Agent conversation path.
     """
     return _run_task1_mixed_cleaning_service(
         dataset_id=dataset_id,
@@ -217,8 +217,9 @@ def run_task1_mixed_cleaning(
 def get_task1_mixed_cleaning_status(run_id: str) -> dict:
     """查询任务一混合清洗异步任务状态。
 
-    run_task1_mixed_cleaning 默认会立即返回 run_id，避免 Nexent
-    对话界面长时间等待。拿到 run_id 后调用本工具，可获得：
+    该工具只服务于调用方明确选择 wait=False 的非阻塞任务。正常的
+    run_task1_mixed_cleaning 调用会在同一次请求中等待最终结果。拿到 run_id
+    后调用本工具，可获得：
     - queued/running/success/error 状态；
     - 源数据集和文件类型分布；
     - 每类格式实际使用的算子链；

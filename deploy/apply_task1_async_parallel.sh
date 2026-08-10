@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 将任务一后台执行与格式分组并发作为一个可回滚单元部署。
+# 将任务一同步等待、格式分组并发与可选后台模式作为一个可回滚单元部署。
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 : "${CCF_REMOTE_HOST:?Set CCF_REMOTE_HOST to the deployment host}"
 : "${CCF_REMOTE_ROOT:?Set CCF_REMOTE_ROOT to the project root on the deployment host}"
@@ -15,35 +15,50 @@ FILES=(
   mcp_server/task1/status.py
   mcp_server/task1/async_worker.py
   mcp_server/task1/mixed_cleaning_service.py
+  mcp_server/task1/mineru_client.py
+  mcp_server/task1/runtime_helpers/preserved_pipeline.py
   mcp_server/tools/task1_data.py
   deploy/runtime_patches/apply_nexent_task1_deterministic_route.py
   deploy/runtime_patches/README.md
   deploy/verify_task1_async_parallel.py
   deploy/verify_nexent_task1_status.py
   deploy/verify_nexent_task1_submit.py
+  deploy/verify_nexent_task1_sync.py
   scripts/update_nexent_agents.py
   scripts/update_nexent_task1_agent.py
+  clients/nexent_client.py
 )
 PY_FILES=(
   mcp_server/task1/execution.py
   mcp_server/task1/status.py
   mcp_server/task1/async_worker.py
   mcp_server/task1/mixed_cleaning_service.py
+  mcp_server/task1/mineru_client.py
+  mcp_server/task1/runtime_helpers/preserved_pipeline.py
   mcp_server/tools/task1_data.py
   deploy/runtime_patches/apply_nexent_task1_deterministic_route.py
   deploy/verify_task1_async_parallel.py
   deploy/verify_nexent_task1_status.py
   deploy/verify_nexent_task1_submit.py
+  deploy/verify_nexent_task1_sync.py
   scripts/update_nexent_agents.py
   scripts/update_nexent_task1_agent.py
+  clients/nexent_client.py
 )
 
 ssh "$REMOTE_HOST" "set -eu
 cd '$REMOTE_ROOT'
-mkdir -p '$REMOTE_BACKUP/mcp_server/task1' '$REMOTE_BACKUP/mcp_server/tools' '$REMOTE_BACKUP/deploy/runtime_patches' '$REMOTE_BACKUP/scripts'
+mkdir -p '$REMOTE_BACKUP/mcp_server/task1/runtime_helpers' '$REMOTE_BACKUP/mcp_server/tools' '$REMOTE_BACKUP/deploy/runtime_patches' '$REMOTE_BACKUP/scripts' '$REMOTE_BACKUP/clients'
+if [ -f .env.runtime ]; then
+  cp -p .env.runtime '$REMOTE_BACKUP/.env.runtime'
+  sed -i 's/^CCF_MINERU_TIMEOUT_SECONDS=.*/CCF_MINERU_TIMEOUT_SECONDS=/' .env.runtime
+fi
 for path in mcp_server/task1/status.py mcp_server/task1/async_worker.py mcp_server/task1/mixed_cleaning_service.py \
+  mcp_server/task1/mineru_client.py \
+  mcp_server/task1/runtime_helpers/preserved_pipeline.py \
   mcp_server/tools/task1_data.py deploy/runtime_patches/apply_nexent_task1_deterministic_route.py \
-  deploy/runtime_patches/README.md scripts/update_nexent_agents.py; do
+  deploy/runtime_patches/README.md scripts/update_nexent_agents.py \
+  scripts/update_nexent_task1_agent.py clients/nexent_client.py; do
   if [ -f \"\$path\" ]; then
     cp -p \"\$path\" '$REMOTE_BACKUP/'\"\$path\"
   fi
@@ -72,4 +87,4 @@ set +a
 .venv/bin/python scripts/update_nexent_task1_agent.py
 "
 
-echo "Task 1 async/parallel runtime deployed; backup: $REMOTE_BACKUP"
+echo "Task 1 sync-wait/parallel runtime deployed; backup: $REMOTE_BACKUP"
