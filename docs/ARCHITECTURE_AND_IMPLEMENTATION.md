@@ -120,7 +120,7 @@
 | --- | --- | --- |
 | 疾病详情、统计与解释 | `task3_analytics.db` | `ask_medical_analytics` → `task3.runtime` |
 | 关系子图 | `task2_medical_kg.db` | `query_knowledge_graph` |
-| 疾病背景与来源解释 | Nexent 绑定的 `ccf_medical_kb` | 知识库检索与来源工具 |
+| 疾病背景与来源解释 | Nexent 文本知识库 | 知识库检索与来源工具 |
 | 兼容 NL2SQL 工具名 | `task3_analytics.db` | `execute_nl2sql` → 同一 `task3.runtime` |
 | 数据来源列表 | `kg_sources` | `get_medical_data_sources` |
 | 可视化入口状态 | 服务健康检查 | `get_validation_frontend_status` |

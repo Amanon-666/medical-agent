@@ -36,6 +36,8 @@ PASSWORD = os.environ.get("CCF_NEXENT_PASSWORD", "")
 TASK1_AGENT_ID = int(os.environ.get("CCF_TASK1_AGENT_ID", "3"))
 TASK2_AGENT_ID = int(os.environ.get("CCF_TASK2_AGENT_ID", "4"))
 TASK3_AGENT_ID = int(os.environ.get("CCF_TASK3_AGENT_ID", "5"))
+KB_INDEX_NAME = os.environ.get("CCF_NEXENT_KB_INDEX_NAME", "").strip()
+KB_SEARCH_MODE = os.environ.get("CCF_NEXENT_KB_SEARCH_MODE", "hybrid").strip().lower()
 
 
 def _as_tool_list(payload: Any) -> list[dict[str, Any]]:
@@ -59,6 +61,25 @@ def _tool_id(tool: dict[str, Any]) -> int | None:
         return int(value)
     except (TypeError, ValueError):
         return None
+
+
+def _knowledge_base_params() -> dict[str, Any]:
+    """返回目标环境的知识库工具参数；未指定索引时保持现有绑定不变。"""
+    if not KB_INDEX_NAME:
+        return {}
+    allowed_modes = {"accurate", "hybrid"}
+    if KB_SEARCH_MODE not in allowed_modes:
+        raise ValueError(
+            "CCF_NEXENT_KB_SEARCH_MODE must be one of: "
+            + ", ".join(sorted(allowed_modes))
+        )
+    return {
+        "index_names": [KB_INDEX_NAME],
+        "top_k": 5,
+        "search_mode": KB_SEARCH_MODE,
+        "rerank": False,
+        "rerank_model_name": "",
+    }
 
 
 def _current_version(client: NexentClient, agent_id: int) -> int:
@@ -270,6 +291,7 @@ def main() -> None:
     client = NexentClient(CONFIG_BASE, RUNTIME_BASE, EMAIL, PASSWORD)
     client.login()
     scan = client.scan_tools()
+    knowledge_base_params = _knowledge_base_params()
 
     tools = _as_tool_list(client.list_tools())
     name_to_id: dict[str, int] = {}
@@ -295,6 +317,7 @@ def main() -> None:
         "get_medical_data_sources",
         "get_validation_frontend_status",
         "query_knowledge_graph",
+        "knowledge_base_search",
         "query_disease_analytics",
         "ask_medical_analytics",
         "execute_nl2sql",
@@ -320,10 +343,18 @@ def main() -> None:
         ["medical_analyst", "analyst", "数据分析", "任务三", "task3"],
     )
 
+    # Nexent 当前导出模型要求这两个字段为明确的非空类型。
+    # 旧版 Agent 记录可能把它们保存为 null，导致 /agent/export 统一返回 500。
+    business_descriptions = {
+        task1_agent_id: "面向医疗文本、结构化文件和数据集，完成数据登记、格式清理、术语规范化与质量检查。",
+        task2_agent_id: "面向医疗实体、关系和三元组，完成知识抽取、校验、入库以及知识图谱查询。",
+        task3_agent_id: "面向中文医疗问题，完成受控查询规划、只读分析、知识图谱查询与结果可视化交付。",
+    }
+
     for agent_id, version_name, prompt, names in [
         (
             task1_agent_id,
-            "prompt-direct-mcp-task1",
+            "data-cleaning-tools",
             TASK1_PROMPT,
             [
                 "upload_text_to_datamate",
@@ -335,7 +366,7 @@ def main() -> None:
         ),
         (
             task2_agent_id,
-            "competition-task2-kg",
+            "medical-knowledge-graph",
             TASK2_PROMPT,
             [
                 "extract_medical_knowledge_from_text",
@@ -347,6 +378,7 @@ def main() -> None:
                 "get_medical_data_sources",
                 "get_validation_frontend_status",
                 "query_knowledge_graph",
+                "knowledge_base_search",
                 "query_disease_analytics",
                 "ask_medical_analytics",
                 "execute_nl2sql",
@@ -354,7 +386,7 @@ def main() -> None:
         ),
         (
             task3_agent_id,
-            "competition-task3-analytics",
+            "medical-analytics",
             TASK3_PROMPT,
             [
                 "run_task2_kg_pipeline",
@@ -364,6 +396,7 @@ def main() -> None:
                 "ask_medical_analytics",
                 "execute_nl2sql",
                 "query_knowledge_graph",
+                "knowledge_base_search",
             ],
         ),
     ]:
@@ -381,12 +414,21 @@ def main() -> None:
             ),
             "few_shots_prompt": "",
             "max_steps": 20,
+            "business_description": business_descriptions[agent_id],
+            "provide_run_summary": False,
         }
         update_result = client.update_agent(update_payload)
+        knowledge_base_update_result = None
+        if agent_id in {task2_agent_id, task3_agent_id} and knowledge_base_params:
+            knowledge_base_update_result = client.update_tool_instance(
+                agent_id=agent_id,
+                tool_id=name_to_id["knowledge_base_search"],
+                params=knowledge_base_params,
+            )
         publish_result = client.publish_agent(
             agent_id,
             version_name=version_name,
-            release_note="Competition release: medical data cleaning, knowledge graph, analytics and visualization tools",
+            release_note="Publish medical data agents and tool bindings",
         )
         updates[str(agent_id)] = {
             "previous_version": detail.get("_current_version"),
@@ -395,6 +437,8 @@ def main() -> None:
             "target_tool_ids": target,
             "added_tool_ids": sorted(set(target) - set(existing)),
             "update_result": update_result,
+            "knowledge_base_params": knowledge_base_params if agent_id in {task2_agent_id, task3_agent_id} else {},
+            "knowledge_base_update_result": knowledge_base_update_result,
             "publish_result": publish_result,
         }
 

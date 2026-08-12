@@ -1,6 +1,6 @@
 # 数据资产说明
 
-`data/` 保存在线服务和离线复现使用的数据文件。代码可以重新生成数据库，但当前目录中的数据库已经与可视化平台、MCP 工具和 Notebook 演示对齐，可直接用于验证任务二和任务三结果。
+`data/` 保存在线服务和离线复现使用的本地数据文件。数据库属于独立数据资产，不进入 Git 历史。正式提交包的数据位置、用途、版本边界和 SHA-256 清单见 [`docs/数据资产包说明.md`](../docs/数据资产包说明.md)。数据库位于独立的 `MediFlow-数据包.zip`，不随代码主包重复分发。
 
 ## 目录内容
 
@@ -26,8 +26,9 @@
 ## 数据库构建
 
 数据库属于数据产物，不进 Git。获取方式：
-- 随 Release 资产包分发预构建 `.db` 文件
-- 或通过 [`deploy/04_build_databases.sh`](../deploy/04_build_databases.sh) 从源数据构建
+- 解压独立数据包中的 `release-data/` 目录；
+- 按 [`docs/数据资产包说明.md`](../docs/数据资产包说明.md) 将运行库复制到项目默认路径；
+- 或通过 [`deploy/04_build_databases.sh`](../deploy/04_build_databases.sh) 从源数据构建。
 
 数据库详细结构见数据库表说明。
 
@@ -41,7 +42,7 @@
   -> task3_analytics.db
 ```
 
-`task2_medical_kg.db` 和 `task3_analytics.db` 是数据产物，适合随工程目录提供；不建议写入 Git 历史。新环境可通过 `deploy/04_build_databases.sh` 重新生成。
+`task2_medical_kg.db` 和 `task3_analytics.db` 是数据产物，建议随正式提交包单独分发。数据分析服务的运行态数据库和基准评测数据库必须按 [`docs/数据资产包说明.md`](../docs/数据资产包说明.md) 区分使用。
 
 ## 验证入口
 

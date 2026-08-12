@@ -17,6 +17,9 @@
 | **[`CONFIGURATION_GUIDE.md`](CONFIGURATION_GUIDE.md)** | 全部 33 个环境变量的字段含义、默认值与消费者 |
 | **[`DEMO_USAGE_GUIDE.md`](DEMO_USAGE_GUIDE.md)** | 在线入口、演示账号、Notebook、Nexent 对话、DataMate 数据查看 |
 | **[`TASK1_MIXED_ORCHESTRATION.md`](TASK1_MIXED_ORCHESTRATION.md)** | 混合格式识别、分链清洗、格式保留、血缘和质量证据 |
+| **[`数据资产包说明.md`](数据资产包说明.md)** | 数据库用途、运行态与冻结评测版本、独立数据包和校验方式 |
+| **[`正式提交包说明.md`](正式提交包说明.md)** | 主包与独立数据包的内容边界、使用顺序和提交前检查 |
+| **[`任务二医学标注集使用说明.md`](任务二医学标注集使用说明.md)** | CMeEE、CMeIE 的用途边界、获取原则和任务二 F1 复现命令 |
 
 ## 工作流追踪文档
 
@@ -33,5 +36,7 @@
 | [`workflow/code-inventory.md`](workflow/code-inventory.md) | 完整代码清单：按链路归类 + 复用关系 |
 
 ---
+
+三项任务评测入口见 [`../evaluation/README.md`](../evaluation/README.md)，统一命令见 [`../tests/EVAL_COMMANDS.md`](../tests/EVAL_COMMANDS.md)。任务三结果说明见 [`任务三NL2SQL评测报告.md`](任务三NL2SQL评测报告.md)。
 
 [← 返回项目首页](../README.md)

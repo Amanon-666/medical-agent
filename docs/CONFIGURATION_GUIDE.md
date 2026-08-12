@@ -89,6 +89,8 @@
 | `CCF_TASK2_CASCADE_MAX_REVIEW_CANDIDATES` | 单次数据集混合抽取最多交给 LLM 复核的候选数，超出后保留离线结果 | `256` | `core/task2_cascade.py` / `mcp_server/task2/pipeline_service.py` |
 | `CCF_TASK2_LLM_GAP_AUTO_ACCEPT_CONFIDENCE` | LLM 缺口候选通过确定性原文证据门禁后进入快速通道的最低置信度；不满足时仍进入复核，不直接入选 | `0.90` | `core/task2_cascade.py` |
 | `CCF_TASK3_AGENT_ID` | 任务三 Agent ID | `5` | 同上 |
+| `CCF_NEXENT_KB_INDEX_NAME` | Nexent 目标知识库的内部索引标识；填写后发布脚本会显式绑定任务二/三 | 空（保留已有绑定） | [`scripts/update_nexent_agents.py`](../scripts/update_nexent_agents.py) |
+| `CCF_NEXENT_KB_SEARCH_MODE` | 知识库检索模式；统一 1024 维知识库使用混合检索 | `hybrid` | 同上 |
 | `CCF_MCP_SERVICE_NAME` | MCP 服务在 Nexent 中的注册名 | `medical-ai` | [`register_mcp.py`](../scripts/register_mcp.py) |
 | `CCF_TASK2_KG_DB` | 知识图谱库路径 | `data/task2_medical_kg.db` | [`mcp_server/config.py`](../mcp_server/config.py) |
 | `CCF_TASK3_ANALYTICS_DB` | 任务三唯一权威分析库路径 | `data/task3_analytics.db` | 同上；旧名 `CCF_ANALYTICS_DB` 仍兼容 |
@@ -108,7 +110,13 @@
 
 这些路径与 [`deploy/02_deploy_operators.sh`](../deploy/02_deploy_operators.sh) 中的 `docker cp` 目标目录一一对应。如需修改，两边要同步改。
 
-## 5. 安全注意
+## 5. Nexent 原生知识库配置
+
+知识图谱智能体和数据分析智能体使用 Nexent 内置的 `knowledge_base_search` 工具。在新环境导入知识库后，将 `CCF_NEXENT_KB_INDEX_NAME` 填为 Nexent 返回的内部索引标识。`scripts/update_nexent_agents.py` 会写入知识库参数、绑定工具并发布智能体。
+
+当前方案统一使用 `BAAI/bge-large-zh-v1.5` 的 1024 维向量模型，默认启用 `hybrid`，同时利用关键词匹配和向量相似度。知识库可通过 [`scripts/rebuild_nexent_knowledge_base.py`](../scripts/rebuild_nexent_knowledge_base.py) 从文档清单创建，命令示例见 [`scripts/README.md`](../scripts/README.md)。
+
+## 6. 安全注意
 
 - 不要把真实生产密码写入 Git 历史。
 - 在线演示账号只用于当前演示环境。

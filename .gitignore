@@ -15,9 +15,16 @@ venv/
 
 # Logs
 *.log
+log_codex/
+log_claude/
+tmp/
 
 # Generated report build files
 docs/technical-report/build/
+
+# Local release assets and runtime backups
+backups/
+release-data/
 
 # Codex
 .codex*

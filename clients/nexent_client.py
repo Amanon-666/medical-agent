@@ -17,6 +17,7 @@ Nexent 平台 API 客户端。
   GET   5010 /mcp/list                                 已注册 MCP server 列表
   GET   5010 /tool/list                                工具列表（含 MCP 工具）
   GET   5010 /tool/scan_tool                           扫描/同步 MCP 工具到 tool 表
+  POST  5010 /tool/update                              更新 Agent 工具实例参数
   POST  5014 /agent/run          {agent_id, query, ...} 运行 Agent（SSE 流式）
 
 注意事项：
@@ -121,6 +122,49 @@ class NexentClient:
         resp = requests.post(f"{self.config_base}/agent/{agent_id}/publish",
                              headers=self.headers,
                              json={"version_name": version_name, "release_note": release_note})
+        resp.raise_for_status()
+        return resp.json()
+
+    def export_agent(self, agent_id: int) -> Any:
+        """导出 Agent 配置；无 Skill 时返回 JSON，有 Skill 时返回 ZIP 字节。"""
+        resp = requests.post(
+            f"{self.config_base}/agent/export",
+            headers=self.headers,
+            json={"agent_id": agent_id},
+            timeout=120,
+        )
+        resp.raise_for_status()
+        content_type = resp.headers.get("Content-Type", "").lower()
+        if "zip" in content_type:
+            return resp.content
+        return resp.json()
+
+    def update_tool_instance(
+        self,
+        agent_id: int,
+        tool_id: int,
+        params: Dict[str, Any],
+        enabled: bool = True,
+        version_no: int = 0,
+    ) -> Dict[str, Any]:
+        """更新 Agent 对某个工具的实例参数。
+
+        Nexent 的 Agent 导入/发布只携带工具绑定，不会自动把当前环境的
+        知识库索引标识转换成目标环境的索引标识。因此，部署脚本在明确提供
+        目标索引时，需要通过这个接口写入该 Agent 的工具参数。
+        """
+        resp = requests.post(
+            f"{self.config_base}/tool/update",
+            headers=self.headers,
+            json={
+                "tool_id": tool_id,
+                "agent_id": agent_id,
+                "params": params,
+                "enabled": enabled,
+                "version_no": version_no,
+            },
+            timeout=30,
+        )
         resp.raise_for_status()
         return resp.json()
 

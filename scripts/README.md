@@ -1,25 +1,44 @@
 # scripts 目录说明
 
-`scripts/` 只保留部署流程需要调用的平台维护脚本，不作为用户交互入口，也不保存一次性测试脚本。
+`scripts/` 保存部署流程调用的平台配置和发布脚本。
 
 ## 文件索引
 
-| 文件 | 作用 | 由谁调用 |
-| --- | --- | --- |
-| [`runtime_env.py`](runtime_env.py) | 读取 `.env.runtime` 中的运行配置，避免在代码中写死部署参数。 | 其他脚本 |
-| [`register_mcp.py`](register_mcp.py) | 将 MCP 服务地址登记到 Nexent，使智能体能够发现工具。 | `deploy/06_register_nexent.sh` |
-| [`update_nexent_agents.py`](update_nexent_agents.py) | 创建或更新任务一、任务二、任务三智能体的工具绑定和提示词。 | `deploy/06_register_nexent.sh` |
-| [`generate_datamate_registration_sql.py`](generate_datamate_registration_sql.py) | 生成 DataMate 算子注册 SQL，用于登记自定义算子。 | `deploy/03_register_operators.sh` |
-| [`start_mcp_server.sh`](start_mcp_server.sh) | 在服务器上启动 MCP 服务。 | `deploy/05_start_mcp.sh` |
+| 文件 | 作用 |
+| --- | --- |
+| [`runtime_env.py`](runtime_env.py) | 从 `.env.runtime` 和环境变量读取部署配置 |
+| [`register_mcp.py`](register_mcp.py) | 将 MCP 服务地址注册到 Nexent |
+| [`update_nexent_agents.py`](update_nexent_agents.py) | 创建或更新三个智能体的工具、提示词、知识库绑定和导出元数据 |
+| [`generate_datamate_registration_sql.py`](generate_datamate_registration_sql.py) | 生成 DataMate 自定义算子注册 SQL |
+| [`start_mcp_server.sh`](start_mcp_server.sh) | 启动 MCP 服务 |
+| [`rebuild_nexent_knowledge_base.py`](rebuild_nexent_knowledge_base.py) | 将文档清单导入统一 1024 维模型的 Nexent 知识库 |
 
-## 配置来源
+## 创建 Nexent 知识库
 
-脚本优先读取环境变量，其次读取项目根目录下的 `.env.runtime`。配置字段说明见 [`docs/CONFIGURATION_GUIDE.md`](../docs/CONFIGURATION_GUIDE.md)。
+准备文档清单后执行：
 
-## 使用边界
+```powershell
+$env:CCF_NEXENT_CONFIG_BASE = "https://nexent-api.example.com"
+$env:CCF_NEXENT_EMAIL = "your-account@example.com"
+$env:CCF_NEXENT_PASSWORD = "your-password"
 
-- 在线服务已部署完成时，不需要手动运行本目录脚本。
-- 新环境复现时，应通过 [`deploy/`](../deploy/) 中的脚本统一调用。
+python scripts/rebuild_nexent_knowledge_base.py `
+  --manifest "path/to/documents_for_import.json" `
+  --create-name "medical_knowledge_base"
+```
+
+脚本默认使用 `BAAI/bge-large-zh-v1.5` 的 1024 维向量模型。已有知识库可通过 `--index-name` 传入 Nexent 返回的内部索引标识。
+
+## 发布并绑定智能体
+
+在 `.env.runtime` 中配置目标知识库后，由部署脚本统一执行 Agent 更新：
+
+```dotenv
+CCF_NEXENT_KB_INDEX_NAME=目标知识库内部索引标识
+CCF_NEXENT_KB_SEARCH_MODE=hybrid
+```
+
+`update_nexent_agents.py` 会绑定 MCP 工具和 `knowledge_base_search`，补齐 Nexent 导入导出需要的元数据并发布新版本。完整配置字段见 [`docs/CONFIGURATION_GUIDE.md`](../docs/CONFIGURATION_GUIDE.md)。
 
 ---
 

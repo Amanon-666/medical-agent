@@ -28,14 +28,15 @@
 | 每个代码文件的作用 | [`docs/workflow/code-inventory.md`](docs/workflow/code-inventory.md) — 183 文件清单 |
 | 每个目录的子文档 | 见下方[目录结构](#目录结构) |
 | 全部文档列表 | [`docs/README.md`](docs/README.md) — 文档索引导读 |
+| 三项任务评测入口 | [`evaluation/README.md`](evaluation/README.md) — 任务一、二、三评测脚本、数据边界和复现说明 |
 
 ### 决赛材料
 
 | 文档 | 用途 |
 | --- | --- |
-| [`docs/决赛技术报告.md`](docs/决赛技术报告.md) | 作品设计、实现逻辑、测试证据、创新价值和当前限制 |
-| [`docs/决赛优化计划.md`](docs/决赛优化计划.md) | 决赛前代码、数据、性能、稳定性、安全和材料调整清单 |
-| [`docs/决赛材料组织方案.md`](docs/决赛材料组织方案.md) | 12 分钟答辩 PPT、演示视频和最终成果目录框架 |
+| [`output/pdf/MediFlow-Technical-Report.pdf`](output/pdf/MediFlow-Technical-Report.pdf) | 技术报告 PDF：作品设计、实现逻辑、测试证据、创新价值和当前限制 |
+| 技术报告源文件 | 不随正式主包分发；正式交付材料以 `output/pdf/MediFlow-Technical-Report.pdf` 为准 |
+| [`docs/DEMO_USAGE_GUIDE.md`](docs/DEMO_USAGE_GUIDE.md) | 在线平台、Notebook、Nexent 对话和 DataMate 演示入口 |
 
 ## 在线服务入口
 
@@ -81,7 +82,7 @@
 | `mcp_server/` | 暴露给 Nexent 的 MCP 工具服务，负责任务一、二、三的工具入口和流程编排 | **[`mcp_server/README.md`](mcp_server/README.md)** |
 | `kg/` | 知识图谱库与分析库的构建脚本 | **[`kg/README.md`](kg/README.md)** |
 | `demo/` | Notebook 演示和医学数据智能体可视化平台 | **[`demo/README.md`](demo/README.md)** |
-| `data/` | 糖尿病混合格式数据、任务二知识图谱库、任务三分析库 | **[`data/README.md`](data/README.md)** |
+| `data/` | 糖尿病混合格式演示数据和数据库挂载位置 | **[`data/README.md`](data/README.md)** |
 | `deploy/` | 环境检查、算子部署、数据库构建、MCP 启动、Agent 发布、可视化平台启动和健康检查 | **[`deploy/README.md`](deploy/README.md)** |
 | `docs/` | 架构、任务实现、部署、配置、演示和数据资产说明 | **[`docs/README.md`](docs/README.md)** |
 | `scripts/` | 部署流程调用的平台注册脚本 | **[`scripts/README.md`](scripts/README.md)** |
@@ -144,14 +145,16 @@
 
 ## 数据资产
 
-在线环境已预载以下知识库。数据库属于数据产物，不进 Git，通过 Release 资产包或脚本构建分发。
+在线环境已预载以下知识库。数据库属于数据产物，不放入正式主包，由同目录的独立数据包提供。
+
+正式提交包采用“代码主包 + 独立数据包”形式。先解压 `MediFlow-数据包.zip`，再按 [`docs/数据资产包说明.md`](docs/数据资产包说明.md) 复制运行库；数据库用途、版本边界、校验摘要和复制命令也在该文档中说明。
 
 | 文件 | 用途 | 使用方 |
 | --- | --- | --- |
-| `data/task2_medical_kg.db` | 知识图谱库：实体（79,600）、三元组（467,400）、关系、别名、来源、质量审计 | 任务二 MCP 工具、任务三查询、可视化平台 |
-| `data/task3_analytics.db` | 分析库：疾病（14,408）、症状、药物、检查、科室、并发症等 15 张表、5 个视图 | 任务三 NL2SQL、统计图表、疾病问答 |
-| `operators/llm_noise_filter/noise_kb.db` | 噪声规则库：431 条语义噪声检测规则 | 任务一 LLMNoiseFilter 算子、可视化平台噪声拦截面板 |
-| `operators/medical_term_normalizer/term_kb.db` | 术语标准化库：114 条医学缩写/别名映射 | 任务一 MedicalTermNormalizer 算子、字段清洗算子 |
+| `data/task2_medical_kg.db` | 知识图谱库：实体、关系、三元组、别名、来源和质量审计 | 任务二 MCP 工具、任务三查询、可视化平台 |
+| `data/task3_analytics.db` | 分析库：疾病事实表和统计视图 | 任务三 NL2SQL、统计图表、疾病问答 |
+| `operators/llm_noise_filter/noise_kb.db` | 噪声规则库 | 任务一 LLMNoiseFilter 算子、可视化平台噪声拦截面板 |
+| `operators/medical_term_normalizer/term_kb.db` | 医学术语映射库 | 任务一 MedicalTermNormalizer 算子、字段清洗算子 |
 | `data/standard_diabetes_demo/datamate_upload/` | 糖尿病混合格式演示数据（`txt/csv/json/jsonl`，4 文件） | 任务一 DataMate 清洗演示 |
 
 ## 设计边界

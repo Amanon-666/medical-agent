@@ -45,8 +45,10 @@ PDF 不直接交给文本算子读取。MCP 编排层先调用 MinerU 官方远�
 | [`medical_term_normalizer/medical_abbrev.py`](medical_term_normalizer/medical_abbrev.py) | 医学缩写与处方频次词典，提供不依赖模型接口的快速术语标准化。 |
 | [`llm_noise_filter/noise_logger.py`](llm_noise_filter/noise_logger.py) | 记录语义噪声信号、清洗状态和差异片段，用于质量审计和任务三噪声拦截展示。 |
 | [`llm_noise_filter/noise_distiller.py`](llm_noise_filter/noise_distiller.py) | 将重复、已确认且通过医学安全检查的噪声差异沉淀为可审计精确规则。 |
-| [`llm_noise_filter/noise_kb.db`](llm_noise_filter/noise_kb.db) | 语义噪声规则库占位；运行态维护实际规则，本地评测按轮生成独立数据库。 |
-| [`medical_term_normalizer/term_kb.db`](medical_term_normalizer/term_kb.db) | 医学术语标准化知识库（114 条映射）。 |
+| `llm_noise_filter/noise_kb.db` | 语义噪声规则库；运行态文件由独立数据包提供，本地评测按轮生成独立数据库。 |
+| `medical_term_normalizer/term_kb.db` | 医学术语标准化知识库；运行态文件由独立数据包提供。 |
+
+数据库不随代码主包分发。请按 [`docs/数据资产包说明.md`](../docs/数据资产包说明.md) 从独立数据包复制到上述运行路径。
 
 ---
 

@@ -10,6 +10,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from matplotlib.font_manager import FontProperties
 
 
@@ -17,13 +18,18 @@ COLORS = ("#0072B2", "#E69F00", "#009E73", "#CC79A7", "#D55E00")
 
 
 def _font() -> FontProperties:
-    for path in (
-        Path(r"C:\Windows\Fonts\msyh.ttc"),
-        Path(r"C:\Windows\Fonts\simhei.ttf"),
-        Path("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
+    for family in (
+        "Microsoft YaHei",
+        "SimHei",
+        "Noto Sans CJK SC",
+        "WenQuanYi Zen Hei",
     ):
-        if path.exists():
-            return FontProperties(fname=str(path))
+        properties = FontProperties(family=family)
+        try:
+            font_manager.findfont(properties, fallback_to_default=False)
+        except ValueError:
+            continue
+        return properties
     return FontProperties()
 
 

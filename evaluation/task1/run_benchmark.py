@@ -13,7 +13,7 @@ from typing import Any
 from .datamate_emulator import OperatorRuntime
 from .fixtures import CorpusCase, build_corpus
 from .knowledge_base import build_evaluation_kb
-from .metrics import build_markdown_report, evaluate_case, summarize_case_metrics, write_metrics_csv
+from .metrics import evaluate_case, summarize_case_metrics, write_metrics_csv
 from .plotting import render_plots
 from .stress_fixtures import LEARNED_NOISE
 
@@ -181,7 +181,6 @@ def run(run_dir: Path, strict: bool = False) -> tuple[int, dict[str, Any]]:
         "learned_outputs": str(run_dir / "outputs" / "learned"),
         "metrics_json": str(results_dir / "benchmark_metrics.json"),
         "metrics_csv": str(results_dir / "benchmark_metrics.csv"),
-        "markdown_report": str(results_dir / "benchmark_results_zh.md"),
         "figures": figures,
     }
     report = {
@@ -214,10 +213,6 @@ def run(run_dir: Path, strict: bool = False) -> tuple[int, dict[str, Any]]:
     }
     _write_json(results_dir / "benchmark_metrics.json", report)
     write_metrics_csv(summary, results_dir / "benchmark_metrics.csv")
-    (results_dir / "benchmark_results_zh.md").write_text(
-        build_markdown_report(summary, baseline_summary, learning),
-        encoding="utf-8",
-    )
 
     compact = {
         "quality_gate_pass": quality_gate_pass,
@@ -232,7 +227,6 @@ def run(run_dir: Path, strict: bool = False) -> tuple[int, dict[str, Any]]:
         "learned_noise_recall_after": summary["overall"]["learned_noise_recall"],
         "unseen_noise_recall_after": summary["overall"]["unseen_noise_recall"],
         "learned_rules": learning["promoted_count"],
-        "report": str(results_dir / "benchmark_results_zh.md"),
     }
     print("TASK1_OPERATOR_BENCHMARK_V2")
     print(json.dumps(compact, ensure_ascii=False, indent=2))

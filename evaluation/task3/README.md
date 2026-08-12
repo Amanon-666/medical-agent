@@ -8,6 +8,8 @@
 - `nl2sql_test.jsonl`：93 道测试题；
 - `results_gold_dev.json`、`results_gold_test.json`：对应 Gold 结果；
 - `benchmark_manifest.json`：数据库版本、题数和主指标记录；
+- `benchmark_summary.md`：题型分布、指标口径和阶段性结果概要；
+- `results/benchmark_results_zh.md`：中文结果表和限制说明；
 - `schema_snapshot.json`：构建时的数据库结构快照；
 - `run_benchmark.py`：执行评测；
 - `build_nl2sql_benchmark.py`：从数据库重新构建题集；
@@ -16,17 +18,26 @@
 
 ## 使用
 
-在项目根目录执行。评测数据库应放在 `data/task3_analytics.db`，并与 `benchmark_manifest.json` 中的版本一致。
+在项目根目录执行。评测数据库应与 `benchmark_manifest.json` 中的版本一致。正式提交包中的基准评测库位于 `release-data/evaluation/task3/data/task3_analytics.db`；运行态数据库位于 `release-data/runtime/data/task3_analytics.db`，两者用途不同。
 
 ```powershell
 # 检查 Gold 结果和评测器
-python evaluation/task3/run_benchmark.py --split dev --engine gold
+python evaluation/task3/run_benchmark.py `
+  --split dev `
+  --engine gold `
+  --database release-data/evaluation/task3/data/task3_analytics.db
 
 # 运行稳定语义层
-python evaluation/task3/run_benchmark.py --split test --engine semantic
+python evaluation/task3/run_benchmark.py `
+  --split test `
+  --engine semantic `
+  --database release-data/evaluation/task3/data/task3_analytics.db
 
 # 运行模型 NL2SQL；模型配置由外部环境变量提供
-python evaluation/task3/run_benchmark.py --split test --engine nl2sql
+python evaluation/task3/run_benchmark.py `
+  --split test `
+  --engine nl2sql `
+  --database release-data/evaluation/task3/data/task3_analytics.db
 
 # 生成 CSV 和中文图表
 python evaluation/task3/generate_benchmark_report.py
